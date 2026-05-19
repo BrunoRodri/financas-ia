@@ -30,7 +30,7 @@
             <span class="text-[10px] text-gray-600">{{ txn.installment_number }}/{{ txn.recurring_rule.total_installments }}</span>
             {% endif %}
             {% for tag in txn.tags.all %}
-            <span class="tag-pill" style="background: {{ tag.color }}20; color: {{ tag.color }};">{{ tag.name }}</span>
+            <span class="tag-pill" style="--color: {{ tag.color }}; background: color-mix(in srgb, var(--color) 20%, transparent); color: var(--color);">{{ tag.name }}</span>
             {% endfor %}
         </div>
     </div>
