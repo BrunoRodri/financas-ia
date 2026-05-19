@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}Configurações{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Configurações</h1>
+        <p class="text-sm text-gray-400 mt-1">Atualize seu saldo e data de referência</p>
+    </div>
+
+    <div class="max-w-lg">
+        <div class="card card-glow">
+            <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Saldo de Referência
+            </h2>
+            <p class="text-sm text-gray-400 mb-4">Este é o ponto de partida para a projeção do fluxo de caixa. Insira o saldo real da sua conta hoje.</p>
+
+            <form method="post" action="{% url 'settings' %}" class="space-y-4">
+                {% csrf_token %}
+
+                <div>
+                    <label class="form-label" for="id_current_balance">Saldo Atual (R$)</label>
+                    {{ form.current_balance }}
+                    {% if form.current_balance.errors %}
+                        <p class="form-error">{{ form.current_balance.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="form-label" for="id_balance_date">Data de Referência</label>
+                    {{ form.balance_date }}
+                    <p class="text-xs text-gray-600 mt-1">Data em que o saldo informado era real</p>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    Salvar
+                </button>
+            </form>
+
+            <!-- Current Info -->
+            <div class="divider"></div>
+            <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-400">Saldo atual salvo:</span>
+                <span class="font-semibold text-white">{{ settings.current_balance|brl }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm mt-2">
+                <span class="text-gray-400">Data de referência:</span>
+                <span class="text-gray-300">{{ settings.balance_date|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

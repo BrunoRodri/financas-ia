@@ -1,0 +1,8 @@
+{% load currency_filters %}
+<div class="stat-card" style="--stat-color: linear-gradient(90deg, #6366f1, #8b5cf6);">
+    <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saldo Atual</span>
+    </div>
+    <p class="text-2xl font-bold text-white">{{ settings.current_balance|brl }}</p>
+    <p class="text-xs text-gray-500 mt-1">Referência: {{ settings.balance_date|date:"d/m/Y" }}</p>
+</div>

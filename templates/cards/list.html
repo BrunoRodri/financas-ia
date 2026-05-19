@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}Cartões{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Cartões de Crédito</h1>
+        <p class="text-sm text-gray-400 mt-1">Cadastre seus cartões para vincular a compras</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Cards List -->
+        <div class="lg:col-span-2 card">
+            <h2 class="text-lg font-semibold text-white mb-4">Seus Cartões</h2>
+            <div class="space-y-3" id="cards-list">
+                {% for card in cards %}
+                    {% include 'partials/card_row.html' %}
+                {% empty %}
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                        <p class="text-sm">Nenhum cartão cadastrado</p>
+                        <p class="text-xs mt-1">Cadastre seus cartões para organizar as compras</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="card card-glow">
+            <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Novo Cartão
+            </h2>
+            <form hx-post="{% url 'card_create' %}"
+                  hx-target="#cards-list"
+                  hx-swap="afterbegin"
+                  hx-on::after-request="if(event.detail.successful) this.reset()"
+                  class="space-y-3">
+                {% csrf_token %}
+
+                <div>
+                    <label class="form-label" for="id_name">Nome</label>
+                    {{ form.name }}
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label" for="id_brand">Bandeira</label>
+                        {{ form.brand }}
+                    </div>
+                    <div>
+                        <label class="form-label" for="id_last_digits">Últimos 4 dígitos</label>
+                        {{ form.last_digits }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label" for="id_closing_day">Fechamento (dia)</label>
+                        {{ form.closing_day }}
+                    </div>
+                    <div>
+                        <label class="form-label" for="id_due_day">Vencimento (dia)</label>
+                        {{ form.due_day }}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" for="id_color">Cor</label>
+                    {{ form.color }}
+                </div>
+
+                <button type="submit" class="btn btn-primary w-full">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Cadastrar Cartão
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

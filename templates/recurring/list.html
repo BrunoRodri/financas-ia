@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}Recorrentes{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Regras Recorrentes</h1>
+        <p class="text-sm text-gray-400 mt-1">Assinaturas mensais e compras parceladas</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- List -->
+        <div class="lg:col-span-2 card">
+            <h2 class="text-lg font-semibold text-white mb-4">Suas Regras</h2>
+            <div class="space-y-1" id="recurring-list">
+                {% for rule in rules %}
+                    {% include 'partials/recurring_row.html' %}
+                {% empty %}
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <p class="text-sm">Nenhuma regra recorrente cadastrada</p>
+                        <p class="text-xs mt-1">Adicione assinaturas e compras parceladas</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <div class="card card-glow">
+            <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Nova Regra
+            </h2>
+            <form hx-post="{% url 'recurring_create' %}"
+                  hx-target="#recurring-list"
+                  hx-swap="afterbegin"
+                  hx-on::after-request="if(event.detail.successful) this.reset()"
+                  class="space-y-3">
+                {% csrf_token %}
+
+                <div>
+                    <label class="form-label" for="id_description">Descrição</label>
+                    {{ form.description }}
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label" for="id_amount">Valor (R$)</label>
+                        {{ form.amount }}
+                    </div>
+                    <div>
+                        <label class="form-label" for="id_type">Tipo</label>
+                        {{ form.type }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label" for="id_recurrence_type">Recorrência</label>
+                        {{ form.recurrence_type }}
+                    </div>
+                    <div>
+                        <label class="form-label" for="id_total_installments">Parcelas</label>
+                        {{ form.total_installments }}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label" for="id_start_date">Data início</label>
+                        {{ form.start_date }}
+                    </div>
+                    <div>
+                        <label class="form-label" for="id_credit_card">Cartão</label>
+                        {{ form.credit_card }}
+                    </div>
+                </div>
+
+                {% if form.tags.field.queryset.exists %}
+                <div>
+                    <label class="form-label">Tags</label>
+                    <div class="flex flex-wrap gap-2">
+                        {% for checkbox in form.tags %}
+                            <div class="tag-checkbox">
+                                {{ checkbox.tag }}
+                                <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary w-full">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    Criar Regra
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

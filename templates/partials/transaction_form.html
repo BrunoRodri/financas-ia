@@ -1,0 +1,71 @@
+{% load currency_filters %}
+<form hx-post="{% url 'transaction_create' %}"
+      hx-target="#transaction-list"
+      hx-swap="afterbegin"
+      hx-on::after-request="if(event.detail.successful) this.reset()"
+      class="space-y-3">
+    {% csrf_token %}
+
+    <!-- Descrição -->
+    <div>
+        <label class="form-label" for="id_description">Descrição</label>
+        {{ form.description }}
+        {% if form.description.errors %}
+            <p class="form-error">{{ form.description.errors.0 }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Valor + Tipo -->
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="form-label" for="id_amount">Valor (R$)</label>
+            {{ form.amount }}
+            {% if form.amount.errors %}
+                <p class="form-error">{{ form.amount.errors.0 }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <label class="form-label" for="id_type">Tipo</label>
+            {{ form.type }}
+        </div>
+    </div>
+
+    <!-- Data + Status -->
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="form-label" for="id_due_date">Data</label>
+            {{ form.due_date }}
+        </div>
+        <div>
+            <label class="form-label" for="id_status">Status</label>
+            {{ form.status }}
+        </div>
+    </div>
+
+    <!-- Cartão -->
+    <div>
+        <label class="form-label" for="id_credit_card">Cartão</label>
+        {{ form.credit_card }}
+    </div>
+
+    <!-- Tags -->
+    {% if form.tags.field.queryset.exists %}
+    <div>
+        <label class="form-label">Tags</label>
+        <div class="flex flex-wrap gap-2">
+            {% for checkbox in form.tags %}
+                <div class="tag-checkbox">
+                    {{ checkbox.tag }}
+                    <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Submit -->
+    <button type="submit" class="btn btn-primary w-full">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        Lançar
+    </button>
+</form>

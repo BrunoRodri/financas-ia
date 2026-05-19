@@ -1,0 +1,53 @@
+{% load currency_filters %}
+<div id="txn-{{ txn.id }}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors group {% if is_new %}new-row{% endif %}">
+    <!-- Status Toggle -->
+    <button hx-post="{% url 'transaction_toggle' txn.id %}"
+            hx-target="#txn-{{ txn.id }}"
+            hx-swap="outerHTML"
+            class="flex-shrink-0 w-5 h-5 rounded-full border-2 transition-all cursor-pointer hover:scale-110
+                   {% if txn.status == 'PAID' %}bg-green-500/20 border-green-500{% else %}border-gray-600 hover:border-yellow-500{% endif %}"
+            title="{% if txn.status == 'PAID' %}Marcar como pendente{% else %}Marcar como pago{% endif %}">
+        {% if txn.status == 'PAID' %}
+        <svg class="w-full h-full text-green-400 p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+        {% endif %}
+    </button>
+
+    <!-- Info -->
+    <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-white truncate {% if txn.status == 'PAID' %}line-through opacity-50{% endif %}">
+                {{ txn.description }}
+            </span>
+            {% if txn.credit_card %}
+            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 flex-shrink-0">
+                {{ txn.credit_card.name }}
+            </span>
+            {% endif %}
+        </div>
+        <div class="flex items-center gap-2 mt-0.5">
+            <span class="text-xs text-gray-500">{{ txn.due_date|date:"d/m/Y" }}</span>
+            {% if txn.installment_number and txn.recurring_rule %}
+            <span class="text-[10px] text-gray-600">{{ txn.installment_number }}/{{ txn.recurring_rule.total_installments }}</span>
+            {% endif %}
+            {% for tag in txn.tags.all %}
+            <span class="tag-pill" style="background: {{ tag.color }}20; color: {{ tag.color }};">{{ tag.name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Amount -->
+    <div class="flex-shrink-0 text-right">
+        <span class="text-sm font-semibold {% if txn.is_income %}text-income{% else %}text-expense{% endif %}">
+            {% if txn.is_income %}+{% else %}-{% endif %}{{ txn.amount|brl }}
+        </span>
+    </div>
+
+    <!-- Delete -->
+    <button hx-post="{% url 'transaction_delete' txn.id %}"
+            hx-target="#txn-{{ txn.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Excluir esta transação?"
+            class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </button>
+</div>

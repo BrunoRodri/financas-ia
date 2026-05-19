@@ -1,0 +1,51 @@
+{% load currency_filters %}
+<div id="rule-{{ rule.id }}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors group {% if is_new %}new-row{% endif %}">
+    <!-- Active Toggle -->
+    <button hx-post="{% url 'recurring_toggle' rule.id %}"
+            hx-target="#rule-{{ rule.id }}"
+            hx-swap="outerHTML"
+            class="flex-shrink-0 w-3 h-3 rounded-full transition-all cursor-pointer
+                   {% if rule.is_active %}bg-green-400 animate-pulse-glow{% else %}bg-gray-600{% endif %}"
+            title="{% if rule.is_active %}Desativar{% else %}Ativar{% endif %}">
+    </button>
+
+    <!-- Info -->
+    <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-medium text-white truncate {% if not rule.is_active %}opacity-50{% endif %}">
+                {{ rule.description }}
+            </span>
+            <span class="badge {% if rule.recurrence_type == 'MONTHLY' %}badge-income{% else %}badge-expense{% endif %}">
+                {% if rule.recurrence_type == 'MONTHLY' %}Mensal{% else %}{{ rule.total_installments }}x{% endif %}
+            </span>
+        </div>
+        <div class="flex items-center gap-2 mt-0.5">
+            <span class="text-xs text-gray-500">Início: {{ rule.start_date|date:"d/m/Y" }}</span>
+            {% if rule.credit_card %}
+            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400">{{ rule.credit_card.name }}</span>
+            {% endif %}
+            {% for tag in rule.tags.all %}
+            <span class="tag-pill" style="background: {{ tag.color }}20; color: {{ tag.color }};">{{ tag.name }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Amount -->
+    <div class="flex-shrink-0 text-right">
+        <span class="text-sm font-semibold {% if rule.type == 'INCOME' %}text-income{% else %}text-expense{% endif %}">
+            {{ rule.amount|brl }}
+        </span>
+        <p class="text-[10px] text-gray-600">
+            {% if rule.type == 'INCOME' %}entrada{% else %}saída{% endif %}/mês
+        </p>
+    </div>
+
+    <!-- Delete -->
+    <button hx-post="{% url 'recurring_delete' rule.id %}"
+            hx-target="#rule-{{ rule.id }}"
+            hx-swap="outerHTML"
+            hx-confirm="Excluir esta regra e suas transações pendentes?"
+            class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    </button>
+</div>
