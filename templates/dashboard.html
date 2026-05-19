@@ -111,7 +111,7 @@
                     </thead>
                     <tbody>
                         {% for month in projection.monthly_summary %}
-                        <tr class="animate-fade-in-up" style="animation-delay: {{ forloop.counter0 }}00ms;">
+                        <tr class="animate-fade-in-up" style="--delay: {{ forloop.counter0 }}00ms; animation-delay: var(--delay);">
                             <td class="font-medium text-white">{{ month.month_label }}</td>
                             <td class="text-right text-income">{{ month.income|brl }}</td>
                             <td class="text-right text-expense">{{ month.expense|brl }}</td>
@@ -168,13 +168,20 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- JSON Scripts para passar variáveis com segurança para o JavaScript sem alertar o linter -->
+{{ chart_labels|json_script:"chart-labels-data" }}
+{{ chart_balances|json_script:"chart-balances-data" }}
+{{ chart_income|json_script:"chart-income-data" }}
+{{ chart_expense|json_script:"chart-expense-data" }}
+
 <script>
     // Cash Flow Chart
     const ctx = document.getElementById('cashFlowChart').getContext('2d');
-    const labels = {{ chart_labels|safe }};
-    const balances = {{ chart_balances|safe }}.map(Number);
-    const income = {{ chart_income|safe }}.map(Number);
-    const expense = {{ chart_expense|safe }}.map(Number);
+    
+    const labels = JSON.parse(document.getElementById('chart-labels-data').textContent);
+    const balances = JSON.parse(document.getElementById('chart-balances-data').textContent).map(Number);
+    const income = JSON.parse(document.getElementById('chart-income-data').textContent).map(Number);
+    const expense = JSON.parse(document.getElementById('chart-expense-data').textContent).map(Number);
 
     new Chart(ctx, {
         type: 'line',

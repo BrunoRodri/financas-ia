@@ -27,10 +27,10 @@ def dashboard(request):
     settings = UserSettings.load()
 
     # Dados para o gráfico (Chart.js)
-    chart_labels = json.dumps([m['month_label'] for m in projection['monthly_summary']])
-    chart_balances = json.dumps([str(m['end_balance']) for m in projection['monthly_summary']])
-    chart_income = json.dumps([str(m['income']) for m in projection['monthly_summary']])
-    chart_expense = json.dumps([str(m['expense']) for m in projection['monthly_summary']])
+    chart_labels = [m['month_label'] for m in projection['monthly_summary']]
+    chart_balances = [float(m['end_balance']) for m in projection['monthly_summary']]
+    chart_income = [float(m['income']) for m in projection['monthly_summary']]
+    chart_expense = [float(m['expense']) for m in projection['monthly_summary']]
 
     # Form de lançamento rápido
     form = TransactionForm()
