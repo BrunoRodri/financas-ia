@@ -54,6 +54,10 @@ def dashboard(request):
 
 def transaction_list(request):
     """Lista completa de transações com filtros."""
+    # Materializa recorrências mensais pendentes antes de listar para garantir dados atualizados
+    from core.services.cash_flow import materialize_recurring_transactions
+    materialize_recurring_transactions(months_ahead=6)
+
     transactions = Transaction.objects.select_related(
         'recurring_rule', 'credit_card'
     ).prefetch_related('tags').order_by('due_date')
@@ -108,20 +112,20 @@ def transaction_list(request):
     from core.models import CreditCard, Tag
     cards = CreditCard.objects.all()
 
-    # Todos os 12 meses em ordem alfabética
+    # Todos os 12 meses em ordem cronológica
     months_available = [
-        {'value': '04', 'label': 'Abril'},
-        {'value': '08', 'label': 'Agosto'},
-        {'value': '12', 'label': 'Dezembro'},
-        {'value': '02', 'label': 'Fevereiro'},
         {'value': '01', 'label': 'Janeiro'},
-        {'value': '07', 'label': 'Julho'},
-        {'value': '06', 'label': 'Junho'},
-        {'value': '05', 'label': 'Maio'},
+        {'value': '02', 'label': 'Fevereiro'},
         {'value': '03', 'label': 'Março'},
-        {'value': '11', 'label': 'Novembro'},
-        {'value': '10', 'label': 'Outubro'},
+        {'value': '04', 'label': 'Abril'},
+        {'value': '05', 'label': 'Maio'},
+        {'value': '06', 'label': 'Junho'},
+        {'value': '07', 'label': 'Julho'},
+        {'value': '08', 'label': 'Agosto'},
         {'value': '09', 'label': 'Setembro'},
+        {'value': '10', 'label': 'Outubro'},
+        {'value': '11', 'label': 'Novembro'},
+        {'value': '12', 'label': 'Dezembro'},
     ]
 
     # Mapear os anos existentes nas transações

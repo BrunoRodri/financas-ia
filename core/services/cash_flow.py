@@ -67,23 +67,28 @@ def project_cash_flow(months_ahead=6):
     today = timezone.localdate()
     end_date = today + relativedelta(months=months_ahead)
 
-    # 4. Busca todas as transações no período
-    transactions = Transaction.objects.filter(
-        due_date__gte=today,
+    # 4. Define data de início para exibição (2 meses anteriores ao atual) e busca todas as transações no horizonte exibido
+    first_day_of_current_month = today.replace(day=1)
+    start_display_month = first_day_of_current_month - relativedelta(months=2)
+    query_start_date = start_display_month
+
+    transactions_in_horizon = Transaction.objects.filter(
+        due_date__gte=query_start_date,
         due_date__lte=end_date,
     ).select_related('recurring_rule', 'credit_card').prefetch_related('tags').order_by('due_date')
 
-    # 5. Agrupa transações por data
+    # 5. Agrupa transações por data para a projeção diária (apenas de hoje em diante)
     txn_by_date = defaultdict(list)
-    for txn in transactions:
-        txn_by_date[txn.due_date].append(txn)
+    for txn in transactions_in_horizon:
+        if txn.due_date >= today:
+            txn_by_date[txn.due_date].append(txn)
 
     # 6. Calcula projeção dia a dia
     daily = []
     running_balance = start_balance
     current_date = today
 
-    # Inclui transações entre balance_date e today que já estão pagas
+    # Inclui transações entre balance_date e hoje para o saldo inicial diário
     past_transactions = Transaction.objects.filter(
         due_date__gte=balance_date,
         due_date__lt=today,
@@ -106,7 +111,7 @@ def project_cash_flow(months_ahead=6):
 
         current_date += timedelta(days=1)
 
-    # 7. Agrupa por mês
+    # 7. Agrupa por mês (a partir do início do mês de exibição inicial)
     MONTH_NAMES = {
         1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
         7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez',
@@ -117,7 +122,7 @@ def project_cash_flow(months_ahead=6):
         'expense': Decimal('0'),
     })
 
-    for txn in transactions:
+    for txn in transactions_in_horizon:
         month_key = txn.due_date.strftime('%Y-%m')
         if txn.is_income:
             monthly_data[month_key]['income'] += txn.amount
@@ -127,11 +132,16 @@ def project_cash_flow(months_ahead=6):
     monthly_summary = []
     month_balance = start_balance
 
-    # Adjust for past transactions
-    for txn in past_transactions:
+    # Ajusta o saldo inicial mensal com transações anteriores ao primeiro mês exibido
+    past_non_displayed_transactions = Transaction.objects.filter(
+        due_date__gte=balance_date,
+        due_date__lt=query_start_date,
+    )
+    for txn in past_non_displayed_transactions:
         month_balance += txn.signed_amount
 
-    current_month = today.replace(day=1)
+    current_month = start_display_month
+
     while current_month <= end_date:
         month_key = current_month.strftime('%Y-%m')
         data = monthly_data.get(month_key, {'income': Decimal('0'), 'expense': Decimal('0')})
@@ -151,8 +161,10 @@ def project_cash_flow(months_ahead=6):
 
         current_month += relativedelta(months=1)
 
-    total_income = sum(m['income'] for m in monthly_summary)
-    total_expense = sum(m['expense'] for m in monthly_summary)
+
+    total_income = sum(m['income'] for m in monthly_summary if m['month'] >= first_day_of_current_month.strftime('%Y-%m'))
+    total_expense = sum(m['expense'] for m in monthly_summary if m['month'] >= first_day_of_current_month.strftime('%Y-%m'))
+
 
     return {
         'start_balance': start_balance,

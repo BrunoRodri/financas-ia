@@ -163,6 +163,10 @@ class RecurringRule(models.Model):
         today = timezone.localdate()
         end_horizon = today + relativedelta(months=months_ahead)
 
+        start_materialize = self.start_date
+
+
+
         existing_dates = set(
             self.transactions.values_list('due_date', flat=True)
         )
@@ -170,7 +174,7 @@ class RecurringRule(models.Model):
         transactions = []
         current = self.start_date
         while current <= end_horizon:
-            if current >= today and current not in existing_dates:
+            if current >= start_materialize and current not in existing_dates:
                 txn = Transaction(
                     description=self.description,
                     amount=self.amount,
@@ -187,6 +191,7 @@ class RecurringRule(models.Model):
         for txn in created:
             txn.tags.set(self.tags.all())
         return created
+
 
 
 class Transaction(models.Model):
