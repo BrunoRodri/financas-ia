@@ -117,8 +117,13 @@ class RecurringRuleForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        txn_type = cleaned_data.get('type')
         recurrence_type = cleaned_data.get('recurrence_type')
         total_installments = cleaned_data.get('total_installments')
+        credit_card = cleaned_data.get('credit_card')
+
+        if txn_type == RecurringRule.TransactionType.INCOME and credit_card:
+            cleaned_data['credit_card'] = None
 
         if recurrence_type == RecurringRule.RecurrenceType.INSTALLMENT:
             if not total_installments or total_installments < 2:

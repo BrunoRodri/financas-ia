@@ -36,7 +36,7 @@
             <form hx-post="{% url 'recurring_create' %}"
                   hx-target="#recurring-list"
                   hx-swap="afterbegin"
-                  hx-on::after-request="if(event.detail.successful) this.reset(); document.getElementById('installment-preview').style.display='none';"
+                  hx-on::after-request="if(event.detail.successful && !event.detail.xhr.getResponseHeader('HX-Trigger')) { this.reset(); document.getElementById('installment-preview').style.display='none'; }"
                   class="space-y-3">
                 {% csrf_token %}
 
@@ -115,6 +115,8 @@
     const amountInput = document.getElementById('id_amount');
     const installmentsInput = document.getElementById('id_total_installments');
     const recurrenceSelect = document.getElementById('id_recurrence_type');
+    const typeSelect = document.getElementById('id_type');
+    const cardSelect = document.getElementById('id_credit_card');
     const preview = document.getElementById('installment-preview');
     const valueSpan = document.getElementById('installment-value');
 
@@ -135,9 +137,24 @@
         }
     }
 
+    function updateCardAvailability() {
+        if (!typeSelect || !cardSelect) return;
+        const isIncome = typeSelect.value === 'INCOME';
+        if (isIncome) {
+            cardSelect.value = '';
+            cardSelect.disabled = true;
+        } else {
+            cardSelect.disabled = false;
+        }
+    }
+
     if (amountInput) amountInput.addEventListener('input', updatePreview);
     if (installmentsInput) installmentsInput.addEventListener('input', updatePreview);
     if (recurrenceSelect) recurrenceSelect.addEventListener('change', updatePreview);
+    if (typeSelect) typeSelect.addEventListener('change', updateCardAvailability);
+
+    updatePreview();
+    updateCardAvailability();
 })();
 </script>
 {% endblock %}

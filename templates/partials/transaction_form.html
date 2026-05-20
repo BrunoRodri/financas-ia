@@ -84,10 +84,11 @@
         function updateTransactionFormFields() {
             const typeField = document.getElementById('id_type');
             const paymentTypeField = document.getElementById('id_payment_type');
+            const creditCardField = document.getElementById('id_credit_card');
             const paymentTypeContainer = document.getElementById('payment-type-container');
             const creditCardContainer = document.getElementById('credit-card-container');
 
-            if (!typeField || !paymentTypeField || !paymentTypeContainer || !creditCardContainer) {
+            if (!typeField || !paymentTypeField || !creditCardField || !paymentTypeContainer || !creditCardContainer) {
                 return;
             }
 
@@ -96,14 +97,22 @@
 
             if (isExpense) {
                 paymentTypeContainer.classList.remove('hidden');
+                paymentTypeField.disabled = false;
                 if (isCard) {
                     creditCardContainer.classList.remove('hidden');
+                    creditCardField.disabled = false;
                 } else {
                     creditCardContainer.classList.add('hidden');
+                    creditCardField.value = '';
+                    creditCardField.disabled = true;
                 }
             } else {
                 paymentTypeContainer.classList.add('hidden');
                 creditCardContainer.classList.add('hidden');
+                paymentTypeField.value = 'other';
+                paymentTypeField.disabled = true;
+                creditCardField.value = '';
+                creditCardField.disabled = true;
             }
         }
 

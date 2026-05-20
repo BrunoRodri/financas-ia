@@ -126,6 +126,34 @@
     <!-- Toast notifications (HTMX) -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 
+    <script>
+        (function() {
+            function showToast(message, level) {
+                const container = document.getElementById('toast-container');
+                if (!container || !message) return;
+
+                const tone = level === 'error'
+                    ? 'border-red-400/40 bg-red-500/10 text-red-100'
+                    : 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100';
+
+                const toast = document.createElement('div');
+                toast.className = `max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg backdrop-blur ${tone}`;
+                toast.textContent = message;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => toast.remove(), 300);
+                }, 5000);
+            }
+
+            document.body.addEventListener('showToast', function(event) {
+                const detail = event.detail || {};
+                showToast(detail.message, detail.level);
+            });
+        })();
+    </script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

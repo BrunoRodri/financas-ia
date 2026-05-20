@@ -266,9 +266,24 @@ def recurring_create(request):
                 'rule': rule, 'is_new': True,
             })
         return redirect('recurring_list')
-    return render(request, 'partials/recurring_form.html', {
-        'form': form,
-    }, status=400)
+    if request.headers.get('HX-Request'):
+        installments_error = form.errors.get('total_installments')
+        if installments_error:
+            message = f'{installments_error[0]} Solução: informe 2 ou mais parcelas para regras parceladas.'
+        else:
+            message = 'Não foi possível criar a regra recorrente. Revise os campos e tente novamente.'
+
+        response = HttpResponse('', status=200)
+        response['HX-Reswap'] = 'none'
+        response['HX-Trigger'] = json.dumps({
+            'showToast': {
+                'level': 'error',
+                'message': message,
+            }
+        })
+        return response
+
+    return redirect('recurring_list')
 
 
 @require_POST

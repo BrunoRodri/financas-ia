@@ -13,7 +13,7 @@
         <form hx-get="{% url 'transaction_list' %}"
               hx-target="#transactions-page-container"
               hx-swap="outerHTML"
-              hx-trigger="change from:select"
+              hx-trigger="change from:select, submit"
               hx-push-url="true"
               id="filter-form"
               class="space-y-4">
@@ -52,7 +52,7 @@
                 </div>
 
                 <!-- Cartão -->
-                <div id="filter_card_container" class="hidden">
+                <div id="filter_card_container" class="{% if current_payment_method != 'card' %}hidden{% endif %}">
                     <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_card">Cartão de Crédito</label>
                     <select name="card" id="filter_card" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
                         <option value="">Todos os cartões</option>
