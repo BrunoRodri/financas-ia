@@ -18,14 +18,25 @@
               id="filter-form"
               class="space-y-4">
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <!-- Mês -->
                 <div>
-                    <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold animate-pulse" for="filter_month" style="animation-duration: 3s;">Mês</label>
+                    <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_month">Mês</label>
                     <select name="month" id="filter_month" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
                         <option value="">Todos os meses</option>
                         {% for m in months_available %}
                             <option value="{{ m.value }}" {% if m.value == current_month %}selected{% endif %}>{{ m.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Ano -->
+                <div>
+                    <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_year">Ano</label>
+                    <select name="year" id="filter_year" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
+                        <option value="">Todos os anos</option>
+                        {% for y in years_available %}
+                            <option value="{{ y }}" {% if y|stringformat:"d" == current_year %}selected{% endif %}>{{ y }}</option>
                         {% endfor %}
                     </select>
                 </div>
