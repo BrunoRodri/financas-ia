@@ -36,7 +36,7 @@
             <form hx-post="{% url 'recurring_create' %}"
                   hx-target="#recurring-list"
                   hx-swap="afterbegin"
-                  hx-on::after-request="if(event.detail.successful) this.reset()"
+                  hx-on::after-request="if(event.detail.successful) this.reset(); document.getElementById('installment-preview').style.display='none';"
                   class="space-y-3">
                 {% csrf_token %}
 
@@ -47,7 +47,7 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="form-label" for="id_amount">Valor (R$)</label>
+                        <label class="form-label" for="id_amount">Valor total (R$)</label>
                         {{ form.amount }}
                     </div>
                     <div>
@@ -65,6 +65,13 @@
                         <label class="form-label" for="id_total_installments">Parcelas</label>
                         {{ form.total_installments }}
                     </div>
+                </div>
+
+                <!-- Preview do valor por parcela -->
+                <div id="installment-preview" style="display:none"
+                     class="rounded-lg bg-accent/10 border border-accent/20 px-3 py-2 text-sm text-center">
+                    <span class="text-gray-400">Valor por parcela: </span>
+                    <span id="installment-value" class="font-bold text-accent-light"></span>
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
@@ -100,4 +107,37 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function() {
+    const amountInput = document.getElementById('id_amount');
+    const installmentsInput = document.getElementById('id_total_installments');
+    const recurrenceSelect = document.getElementById('id_recurrence_type');
+    const preview = document.getElementById('installment-preview');
+    const valueSpan = document.getElementById('installment-value');
+
+    function updatePreview() {
+        const isInstallment = recurrenceSelect && recurrenceSelect.value === 'INSTALLMENT';
+        const total = parseFloat(amountInput.value.replace(',', '.')) || 0;
+        const parcelas = parseInt(installmentsInput.value) || 0;
+
+        if (isInstallment && total > 0 && parcelas > 1) {
+            const perParcela = total / parcelas;
+            valueSpan.textContent = 'R$ ' + perParcela.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + ' × ' + parcelas + 'x';
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    if (amountInput) amountInput.addEventListener('input', updatePreview);
+    if (installmentsInput) installmentsInput.addEventListener('input', updatePreview);
+    if (recurrenceSelect) recurrenceSelect.addEventListener('change', updatePreview);
+})();
+</script>
 {% endblock %}

@@ -242,7 +242,13 @@ def recurring_create(request):
     """Cria nova regra recorrente via HTMX."""
     form = RecurringRuleForm(request.POST)
     if form.is_valid():
-        rule = form.save()
+        rule = form.save(commit=False)
+        # Se for parcelado, divide o valor total pelo número de parcelas
+        if (rule.recurrence_type == RecurringRule.RecurrenceType.INSTALLMENT
+                and rule.total_installments and rule.total_installments > 0):
+            rule.amount = (rule.amount / Decimal(rule.total_installments)).quantize(Decimal('0.01'))
+        rule.save()
+        form.save_m2m()  # Salva tags (ManyToMany)
         # Se for parcelado, gera todas as transações imediatamente
         if rule.recurrence_type == RecurringRule.RecurrenceType.INSTALLMENT:
             rule.generate_installment_transactions()
