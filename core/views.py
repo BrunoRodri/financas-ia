@@ -62,9 +62,17 @@ def transaction_list(request):
     status = request.GET.get('status')
     txn_type = request.GET.get('type')
     tag = request.GET.get('tag')
-    month_filter = request.GET.get('month')  # Formato: YYYY-MM
+    month_filter = request.GET.get('month')  # Pode ser "05" ou "2026-05" (redirecionamento do dashboard)
+    year_filter = request.GET.get('year')
     payment_method = request.GET.get('payment_method')
     card_id = request.GET.get('card')
+
+    # Suporte a redirecionamentos do dashboard no formato YYYY-MM
+    if month_filter and '-' in month_filter:
+        try:
+            year_filter, month_filter = month_filter.split('-')
+        except ValueError:
+            pass
 
     # Aplicar filtros
     if status:
@@ -73,10 +81,14 @@ def transaction_list(request):
         transactions = transactions.filter(type=txn_type)
     if tag:
         transactions = transactions.filter(tags__id=tag)
+    if year_filter:
+        try:
+            transactions = transactions.filter(due_date__year=int(year_filter))
+        except ValueError:
+            pass
     if month_filter:
         try:
-            year, month = map(int, month_filter.split('-'))
-            transactions = transactions.filter(due_date__year=year, due_date__month=month)
+            transactions = transactions.filter(due_date__month=int(month_filter))
         except ValueError:
             pass
     if payment_method:
@@ -96,37 +108,47 @@ def transaction_list(request):
     from core.models import CreditCard, Tag
     cards = CreditCard.objects.all()
 
-    # Mapear os meses/anos existentes nas transações
-    from django.db.models.functions import ExtractMonth, ExtractYear
-    months_query = Transaction.objects.annotate(
-        year=ExtractYear('due_date'),
-        month=ExtractMonth('due_date')
-    ).values('year', 'month').distinct().order_by('-year', '-month')
+    # Todos os 12 meses em ordem alfabética
+    months_available = [
+        {'value': '04', 'label': 'Abril'},
+        {'value': '08', 'label': 'Agosto'},
+        {'value': '12', 'label': 'Dezembro'},
+        {'value': '02', 'label': 'Fevereiro'},
+        {'value': '01', 'label': 'Janeiro'},
+        {'value': '07', 'label': 'Julho'},
+        {'value': '06', 'label': 'Junho'},
+        {'value': '05', 'label': 'Maio'},
+        {'value': '03', 'label': 'Março'},
+        {'value': '11', 'label': 'Novembro'},
+        {'value': '10', 'label': 'Outubro'},
+        {'value': '09', 'label': 'Setembro'},
+    ]
 
-    months_available = []
-    MONTH_NAMES = {
-        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
-        5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
-        9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
-    }
-    for item in months_query:
-        y = item['year']
-        m = item['month']
-        if y and m:
-            months_available.append({
-                'value': f"{y}-{m:02d}",
-                'label': f"{MONTH_NAMES[m]} {y}"
-            })
+    # Mapear os anos existentes nas transações
+    from django.db.models.functions import ExtractYear
+    years_query = Transaction.objects.annotate(
+        year=ExtractYear('due_date')
+    ).values_list('year', flat=True).distinct().order_by('-year')
+
+    current_year = timezone.localdate().year
+    years_available = list(years_query)
+    if current_year not in years_available:
+        years_available.append(current_year)
+    
+    # Remover valores nulos e ordenar decrescente
+    years_available = sorted([y for y in years_available if y is not None], reverse=True)
 
     context = {
         'transactions': transactions,
         'tags': Tag.objects.all(),
         'cards': cards,
         'months_available': months_available,
+        'years_available': years_available,
         'current_status': status,
         'current_type': txn_type,
         'current_tag': tag,
         'current_month': month_filter,
+        'current_year': year_filter,
         'current_payment_method': payment_method,
         'current_card': card_id,
         'total_income': total_income,
