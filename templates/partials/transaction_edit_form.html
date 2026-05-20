@@ -1,0 +1,70 @@
+{% load currency_filters %}
+<div id="txn-{{ txn.id }}" class="rounded-xl border border-accent/30 bg-dark-800/60 p-4 animate-fade-in-up">
+    <form hx-post="{% url 'transaction_edit' txn.id %}"
+          hx-target="#txn-{{ txn.id }}"
+          hx-swap="outerHTML"
+          class="space-y-3">
+        {% csrf_token %}
+
+        <!-- Descrição -->
+        <div>
+            <label class="form-label text-xs" for="edit_description_{{ txn.id }}">Descrição</label>
+            <input type="text" name="description" id="edit_description_{{ txn.id }}"
+                   value="{{ txn.description }}"
+                   class="form-input w-full" required>
+        </div>
+
+        <!-- Valor + Tipo -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="form-label text-xs" for="edit_amount_{{ txn.id }}">Valor (R$)</label>
+                <input type="number" name="amount" id="edit_amount_{{ txn.id }}"
+                       value="{{ txn.amount|stringformat:'.2f' }}"
+                       step="0.01" min="0.01"
+                       class="form-input w-full" required>
+            </div>
+            <div>
+                <label class="form-label text-xs" for="edit_type_{{ txn.id }}">Tipo</label>
+                <select name="type" id="edit_type_{{ txn.id }}" class="form-select w-full">
+                    <option value="INCOME" {% if txn.type == 'INCOME' %}selected{% endif %}>Entrada</option>
+                    <option value="EXPENSE" {% if txn.type == 'EXPENSE' %}selected{% endif %}>Saída</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Data + Status -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="form-label text-xs" for="edit_due_date_{{ txn.id }}">Data</label>
+                <input type="date" name="due_date" id="edit_due_date_{{ txn.id }}"
+                       value="{{ txn.due_date|date:'Y-m-d' }}"
+                       class="form-input w-full" required>
+            </div>
+            <div>
+                <label class="form-label text-xs" for="edit_status_{{ txn.id }}">Status</label>
+                <select name="status" id="edit_status_{{ txn.id }}" class="form-select w-full">
+                    <option value="PENDING" {% if txn.status == 'PENDING' %}selected{% endif %}>Pendente</option>
+                    <option value="PAID" {% if txn.status == 'PAID' %}selected{% endif %}>Pago</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex gap-2 pt-1">
+            <button type="submit" class="btn btn-primary flex-1 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Salvar
+            </button>
+            <!-- Cancelar: busca a row original sem salvar -->
+            <button type="button"
+                    hx-get="{% url 'transaction_edit' txn.id %}"
+                    hx-target="#txn-{{ txn.id }}"
+                    hx-swap="outerHTML"
+                    hx-vals='{"cancel": "1"}'
+                    class="btn btn-ghost flex items-center justify-center gap-2 px-4">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                Cancelar
+            </button>
+        </div>
+    </form>
+</div>

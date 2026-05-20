@@ -205,22 +205,31 @@ def transaction_delete(request, pk):
 
 
 def transaction_edit(request, pk):
-    """Edita uma transação."""
+    """Edita uma transação via HTMX inline."""
     txn = get_object_or_404(Transaction, pk=pk)
+
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=txn)
         if form.is_valid():
-            form.save()
-            if request.headers.get('HX-Request'):
-                return render(request, 'partials/transaction_row.html', {'txn': txn})
-            return redirect('transaction_list')
-    else:
-        form = TransactionForm(instance=txn)
-
-    if request.headers.get('HX-Request'):
+            txn = form.save()
+            return render(request, 'partials/transaction_row.html', {'txn': txn})
+        # Form inválido: retorna o form com erros
         return render(request, 'partials/transaction_edit_form.html', {
             'form': form, 'txn': txn,
+        }, status=400)
+
+    # GET com ?cancel=1 → cancela e retorna a row original sem salvar
+    if request.GET.get('cancel'):
+        return render(request, 'partials/transaction_row.html', {'txn': txn})
+
+    # GET sem cancel → retorna o form inline de edição
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/transaction_edit_form.html', {
+            'form': TransactionForm(instance=txn), 'txn': txn,
         })
+
+    # Fallback página completa (não HTMX)
+    form = TransactionForm(instance=txn)
     return render(request, 'transactions/edit.html', {'form': form, 'txn': txn})
 
 
