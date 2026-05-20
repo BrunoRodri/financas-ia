@@ -42,10 +42,19 @@
         </div>
     </div>
 
+    <!-- Tipo de Pagamento (Dinheiro/Pix vs. Cartão) -->
+    <div id="payment-type-container" class="hidden">
+        <label class="form-label" for="id_payment_type">Tipo de Pagamento</label>
+        {{ form.payment_type }}
+    </div>
+
     <!-- Cartão -->
-    <div>
+    <div id="credit-card-container" class="hidden">
         <label class="form-label" for="id_credit_card">Cartão</label>
         {{ form.credit_card }}
+        {% if form.credit_card.errors %}
+            <p class="form-error">{{ form.credit_card.errors.0 }}</p>
+        {% endif %}
     </div>
 
     <!-- Tags -->
@@ -69,3 +78,55 @@
         Lançar
     </button>
 </form>
+
+<script>
+    (function() {
+        function updateTransactionFormFields() {
+            const typeField = document.getElementById('id_type');
+            const paymentTypeField = document.getElementById('id_payment_type');
+            const paymentTypeContainer = document.getElementById('payment-type-container');
+            const creditCardContainer = document.getElementById('credit-card-container');
+
+            if (!typeField || !paymentTypeField || !paymentTypeContainer || !creditCardContainer) {
+                return;
+            }
+
+            const isExpense = typeField.value === 'EXPENSE';
+            const isCard = paymentTypeField.value === 'card';
+
+            if (isExpense) {
+                paymentTypeContainer.classList.remove('hidden');
+                if (isCard) {
+                    creditCardContainer.classList.remove('hidden');
+                } else {
+                    creditCardContainer.classList.add('hidden');
+                }
+            } else {
+                paymentTypeContainer.classList.add('hidden');
+                creditCardContainer.classList.add('hidden');
+            }
+        }
+
+        // Global listeners registration check to prevent duplicates
+        if (!window.hasTransactionFormListeners) {
+            window.hasTransactionFormListeners = true;
+
+            document.addEventListener('change', (event) => {
+                if (event.target && (event.target.id === 'id_type' || event.target.id === 'id_payment_type')) {
+                    updateTransactionFormFields();
+                }
+            });
+
+            document.addEventListener('reset', (event) => {
+                if (event.target && event.target.tagName === 'FORM') {
+                    setTimeout(updateTransactionFormFields, 0);
+                }
+            });
+
+            document.addEventListener('htmx:afterSwap', updateTransactionFormFields);
+        }
+
+        // Run initially
+        updateTransactionFormFields();
+    })();
+</script>

@@ -62,22 +62,82 @@ def transaction_list(request):
     status = request.GET.get('status')
     txn_type = request.GET.get('type')
     tag = request.GET.get('tag')
+    month_filter = request.GET.get('month')  # Formato: YYYY-MM
+    payment_method = request.GET.get('payment_method')
+    card_id = request.GET.get('card')
 
+    # Aplicar filtros
     if status:
         transactions = transactions.filter(status=status)
     if txn_type:
         transactions = transactions.filter(type=txn_type)
     if tag:
         transactions = transactions.filter(tags__id=tag)
+    if month_filter:
+        try:
+            year, month = map(int, month_filter.split('-'))
+            transactions = transactions.filter(due_date__year=year, due_date__month=month)
+        except ValueError:
+            pass
+    if payment_method:
+        if payment_method == 'other':
+            transactions = transactions.filter(credit_card__isnull=True)
+        elif payment_method == 'card':
+            transactions = transactions.filter(credit_card__isnull=False)
+    if card_id:
+        transactions = transactions.filter(credit_card_id=card_id)
 
-    from core.models import Tag
+    # Calcular somatórios
+    total_income = sum(t.amount for t in transactions if t.is_income)
+    total_expense = sum(t.amount for t in transactions if t.is_expense)
+    net_balance = total_income - total_expense
+
+    # Opções para popular os dropdowns de filtro na página inteira e HTMX partial
+    from core.models import CreditCard, Tag
+    cards = CreditCard.objects.all()
+
+    # Mapear os meses/anos existentes nas transações
+    from django.db.models.functions import ExtractMonth, ExtractYear
+    months_query = Transaction.objects.annotate(
+        year=ExtractYear('due_date'),
+        month=ExtractMonth('due_date')
+    ).values('year', 'month').distinct().order_by('-year', '-month')
+
+    months_available = []
+    MONTH_NAMES = {
+        1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
+        5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
+        9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
+    }
+    for item in months_query:
+        y = item['year']
+        m = item['month']
+        if y and m:
+            months_available.append({
+                'value': f"{y}-{m:02d}",
+                'label': f"{MONTH_NAMES[m]} {y}"
+            })
+
     context = {
         'transactions': transactions,
         'tags': Tag.objects.all(),
+        'cards': cards,
+        'months_available': months_available,
         'current_status': status,
         'current_type': txn_type,
         'current_tag': tag,
+        'current_month': month_filter,
+        'current_payment_method': payment_method,
+        'current_card': card_id,
+        'total_income': total_income,
+        'total_expense': total_expense,
+        'net_balance': net_balance,
     }
+
+    # Retorna o fragmento HTML se for uma requisição HTMX
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/transactions_full_content.html', context)
+
     return render(request, 'transactions/list.html', context)
 
 

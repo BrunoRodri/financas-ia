@@ -1,0 +1,201 @@
+{% load currency_filters %}
+<div id="transactions-page-container" class="space-y-6 animate-fade-in">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">Transações</h1>
+            <p class="text-sm text-gray-400 mt-1">Todas as suas receitas e despesas</p>
+        </div>
+    </div>
+
+    <!-- Filters Panel -->
+    <div class="card bg-dark-800/20 backdrop-blur-xl border border-white/5 p-4 sm:p-5">
+        <form hx-get="{% url 'transaction_list' %}"
+              hx-target="#transactions-page-container"
+              hx-swap="outerHTML"
+              hx-trigger="change from:select"
+              hx-push-url="true"
+              id="filter-form"
+              class="space-y-4">
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Mês -->
+                <div>
+                    <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold animate-pulse" for="filter_month" style="animation-duration: 3s;">Mês</label>
+                    <select name="month" id="filter_month" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
+                        <option value="">Todos os meses</option>
+                        {% for m in months_available %}
+                            <option value="{{ m.value }}" {% if m.value == current_month %}selected{% endif %}>{{ m.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Meio de Pagamento -->
+                <div>
+                    <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_payment_method">Meio de Pagamento</label>
+                    <select name="payment_method" id="filter_payment_method" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
+                        <option value="">Todos os meios</option>
+                        <option value="other" {% if current_payment_method == 'other' %}selected{% endif %}>Dinheiro / Pix / Débito</option>
+                        <option value="card" {% if current_payment_method == 'card' %}selected{% endif %}>Cartão de Crédito</option>
+                    </select>
+                </div>
+
+                <!-- Cartão -->
+                <div id="filter_card_container" class="hidden">
+                    <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_card">Cartão de Crédito</label>
+                    <select name="card" id="filter_card" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
+                        <option value="">Todos os cartões</option>
+                        {% for c in cards %}
+                            <option value="{{ c.id }}" {% if current_card == c.id|stringformat:"d" %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Status -->
+                <div>
+                    <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_status">Status</label>
+                    <select name="status" id="filter_status" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
+                        <option value="">Todos os status</option>
+                        <option value="PENDING" {% if current_status == 'PENDING' %}selected{% endif %}>Pendente</option>
+                        <option value="PAID" {% if current_status == 'PAID' %}selected{% endif %}>Pago</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Botões / Linha de Tipo e Tags -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-white/5">
+                <div class="flex flex-wrap items-center gap-3">
+                    <input type="hidden" name="type" id="filter_type_input" value="{{ current_type|default:'' }}">
+                    <input type="hidden" name="tag" id="filter_tag_input" value="{{ current_tag|default:'' }}">
+
+                    <!-- Botões de Tipo -->
+                    <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Tipo:</span>
+                    <button type="button" class="btn btn-sm {% if not current_type %}btn-primary{% else %}btn-ghost{% endif %}" onclick="setFilterType('')">Todos</button>
+                    <button type="button" class="btn btn-sm {% if current_type == 'INCOME' %}btn-success{% else %}btn-ghost{% endif %}" onclick="setFilterType('INCOME')">Entradas</button>
+                    <button type="button" class="btn btn-sm {% if current_type == 'EXPENSE' %}btn-danger{% else %}btn-ghost{% endif %}" onclick="setFilterType('EXPENSE')">Saídas</button>
+
+                    <!-- Botões de Tags -->
+                    {% if tags %}
+                        <div class="w-px h-6 bg-white/10"></div>
+                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Tags:</span>
+                        <button type="button" class="btn btn-sm {% if not current_tag %}btn-primary{% else %}btn-ghost{% endif %}" onclick="setFilterTag('')">Todas</button>
+                        {% for tag in tags %}
+                            <button type="button" class="btn btn-sm {% if current_tag == tag.id|stringformat:'d' %}btn-primary{% else %}btn-ghost{% endif %}"
+                                    {% if current_tag == tag.id|stringformat:'d' %}style="--color: {{ tag.color }}; background: color-mix(in srgb, var(--color) 30%, transparent); color: var(--color);"{% endif %}
+                                    onclick="setFilterTag('{{ tag.id }}')">
+                                {{ tag.name }}
+                            </button>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <!-- Botão de Limpar -->
+                <div>
+                    <a href="{% url 'transaction_list' %}"
+                       hx-get="{% url 'transaction_list' %}"
+                       hx-target="#transactions-page-container"
+                       hx-swap="outerHTML"
+                       hx-push-url="true"
+                       class="btn btn-sm btn-ghost text-gray-400 hover:text-white flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Limpar Filtros
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Stat Cards Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Receitas -->
+        <div class="stat-card bg-dark-800/40 backdrop-blur-xl border border-white/5" style="--stat-color: linear-gradient(90deg, #22c55e, #16a34a);">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Receitas Filtradas</span>
+                <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+                </div>
+            </div>
+            <p class="text-2xl font-bold text-income">{{ total_income|brl }}</p>
+        </div>
+
+        <!-- Despesas -->
+        <div class="stat-card bg-dark-800/40 backdrop-blur-xl border border-white/5" style="--stat-color: linear-gradient(90deg, #ef4444, #dc2626);">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Despesas Filtradas</span>
+                <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/></svg>
+                </div>
+            </div>
+            <p class="text-2xl font-bold text-expense">{{ total_expense|brl }}</p>
+        </div>
+
+        <!-- Saldo Líquido -->
+        <div class="stat-card bg-dark-800/40 backdrop-blur-xl border border-white/5" style="--stat-color: linear-gradient(90deg, #a855f7, #6366f1);">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saldo Líquido</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                </div>
+            </div>
+            <p class="text-2xl font-bold {% if net_balance >= 0 %}text-income{% else %}text-expense{% endif %}">
+                {{ net_balance|brl }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Transaction List Card -->
+    <div class="card">
+        <div class="space-y-1" id="full-transaction-list">
+            {% for txn in transactions %}
+                {% include 'partials/transaction_row.html' %}
+            {% empty %}
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    <p class="text-sm">Nenhuma transação encontrada</p>
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-sm mt-4">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                        Lançar no Dashboard
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            function updateFilterCardVisibility() {
+                const methodField = document.getElementById('filter_payment_method');
+                const cardContainer = document.getElementById('filter_card_container');
+                if (methodField && cardContainer) {
+                    if (methodField.value === 'card') {
+                        cardContainer.classList.remove('hidden');
+                    } else {
+                        cardContainer.classList.add('hidden');
+                        const cardSelect = document.getElementById('filter_card');
+                        if (cardSelect) cardSelect.value = '';
+                    }
+                }
+            }
+
+            // Run visibility check initially
+            updateFilterCardVisibility();
+
+            // Set global functions for buttons
+            window.setFilterType = function(val) {
+                const input = document.getElementById('filter_type_input');
+                if (input) {
+                    input.value = val;
+                    htmx.trigger('#filter-form', 'submit');
+                }
+            };
+
+            window.setFilterTag = function(val) {
+                const input = document.getElementById('filter_tag_input');
+                if (input) {
+                    input.value = val;
+                    htmx.trigger('#filter-form', 'submit');
+                }
+            };
+        })();
+    </script>
+</div>

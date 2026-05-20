@@ -7,6 +7,16 @@ from core.models import CreditCard, Goal, RecurringRule, Tag, Transaction, UserS
 class TransactionForm(forms.ModelForm):
     """Form para lançamento rápido de transações."""
 
+    payment_type = forms.ChoiceField(
+        choices=[
+            ('other', 'Dinheiro / Pix / Débito'),
+            ('card', 'Cartão de Crédito'),
+        ],
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Tipo de Pagamento'
+    )
+
     class Meta:
         model = Transaction
         fields = ['description', 'amount', 'due_date', 'type', 'status', 'credit_card', 'tags']
@@ -38,6 +48,28 @@ class TransactionForm(forms.ModelForm):
         self.fields['credit_card'].required = False
         self.fields['credit_card'].empty_label = 'Sem cartão'
         self.fields['tags'].required = False
+
+        if self.instance and self.instance.pk:
+            if self.instance.credit_card:
+                self.fields['payment_type'].initial = 'card'
+            else:
+                self.fields['payment_type'].initial = 'other'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        txn_type = cleaned_data.get('type')
+        payment_type = cleaned_data.get('payment_type')
+        credit_card = cleaned_data.get('credit_card')
+
+        if txn_type == Transaction.TransactionType.INCOME:
+            # Entrada não tem cartão nem tipo de pagamento
+            cleaned_data['credit_card'] = None
+        elif txn_type == Transaction.TransactionType.EXPENSE:
+            if payment_type == 'other':
+                cleaned_data['credit_card'] = None
+            elif payment_type == 'card' and not credit_card:
+                self.add_error('credit_card', 'Selecione um cartão de crédito.')
+        return cleaned_data
 
 
 class RecurringRuleForm(forms.ModelForm):
