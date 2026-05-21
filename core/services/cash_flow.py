@@ -141,26 +141,27 @@ def project_cash_flow(months_ahead=6):
 
     # Reconstrói o saldo no início da janela exibida com base na data de referência,
     # para não ancorar o saldo de referência diretamente em meses anteriores.
-    month_balance = start_balance
-    if balance_date >= query_start_date:
-        rollback_txns = Transaction.objects.filter(
-            due_date__gte=query_start_date,
-            due_date__lte=balance_date,
-        )
-        for txn in rollback_txns:
-            month_balance -= txn.signed_amount
-    else:
-        forward_txns = Transaction.objects.filter(
-            due_date__gt=balance_date,
-            due_date__lt=query_start_date,
-        )
-        for txn in forward_txns:
-            month_balance += txn.signed_amount
+    # Calcula o saldo inicial do mês de referência (subtraindo transações ocorridas naquele mês antes/na data de referência)
+    ref_first_day = balance_date.replace(day=1)
+    ref_rollback_txns = Transaction.objects.filter(
+        due_date__gte=ref_first_day,
+        due_date__lte=balance_date,
+    )
+    ref_start_balance = start_balance
+    for txn in ref_rollback_txns:
+        ref_start_balance -= txn.signed_amount
 
+    # Inicializa o saldo acumulado. Antes do mês de referência, o saldo histórico começa em 0.
+    month_balance = Decimal('0')
     current_month = start_display_month
 
     while current_month <= end_date:
         month_key = current_month.strftime('%Y-%m')
+
+        # Se chegamos ao mês da data de referência, redefinimos o saldo acumulado para o saldo inicial do mês de referência
+        if current_month.year == balance_date.year and current_month.month == balance_date.month:
+            month_balance = ref_start_balance
+
         data = monthly_data.get(month_key, {'income': Decimal('0'), 'expense': Decimal('0')})
         net = data['income'] - data['expense']
         month_balance += net
