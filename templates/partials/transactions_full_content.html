@@ -169,8 +169,16 @@
 
     <!-- Transaction List Card -->
     <div class="card">
-        <div class="space-y-1" id="full-transaction-list">
+        <div class="space-y-1.5 animate-fade-in" id="full-transaction-list">
             {% for txn in transactions %}
+                {% ifchanged txn.due_date|date:"Y-m" %}
+                    <div class="flex items-center gap-3 pt-5 pb-1.5 {% if not forloop.first %}mt-5 border-t border-white/5{% endif %} first:pt-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-primary-400">
+                            {{ txn.due_date|date:"F Y" }}
+                        </span>
+                        <div class="h-px flex-1 bg-white/5"></div>
+                    </div>
+                {% endifchanged %}
                 {% include 'partials/transaction_row.html' %}
             {% empty %}
                 <div class="empty-state">
