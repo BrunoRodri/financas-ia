@@ -34,7 +34,23 @@
     <div class="grid grid-cols-2 gap-3">
         <div>
             <label class="form-label" for="id_due_date">Data</label>
-            {{ form.due_date }}
+            <div class="date-picker-wrap" id="quick-date-picker">
+                {{ form.due_date }}
+                <button type="button" class="date-picker-toggle" aria-label="Abrir calendário" data-date-toggle>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                </button>
+                <div class="date-picker-panel hidden" data-date-panel>
+                    <div class="date-picker-header">
+                        <button type="button" data-date-prev aria-label="Mês anterior">‹</button>
+                        <span data-date-title></span>
+                        <button type="button" data-date-next aria-label="Próximo mês">›</button>
+                    </div>
+                    <div class="date-picker-weekdays">
+                        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                    </div>
+                    <div class="date-picker-grid" data-date-grid></div>
+                </div>
+            </div>
         </div>
         <div>
             <label class="form-label" for="id_status">Status</label>
@@ -116,7 +132,182 @@
             }
         }
 
-        // Global listeners registration check to prevent duplicates
+        function setupQuickDatePicker() {
+            const wrap = document.getElementById('quick-date-picker');
+            if (!wrap || wrap.dataset.enhanced === 'true') return;
+
+            const input = wrap.querySelector('#id_due_date');
+            const panel = wrap.querySelector('[data-date-panel]');
+            const toggle = wrap.querySelector('[data-date-toggle]');
+            const title = wrap.querySelector('[data-date-title]');
+            const grid = wrap.querySelector('[data-date-grid]');
+            const prev = wrap.querySelector('[data-date-prev]');
+            const next = wrap.querySelector('[data-date-next]');
+
+            if (!input || !panel || !toggle || !title || !grid || !prev || !next) return;
+
+            input.setAttribute('maxlength', '10');
+            input.setAttribute('placeholder', 'dd/mm/aaaa');
+
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            const today = new Date();
+
+            function formatBR(date) {
+                const dd = String(date.getDate()).padStart(2, '0');
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const yyyy = date.getFullYear();
+                return dd + '/' + mm + '/' + yyyy;
+            }
+
+            function parseDate(raw) {
+                if (!raw) return null;
+                const value = raw.trim();
+                let match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                if (match) {
+                    const day = Number(match[1]);
+                    const month = Number(match[2]) - 1;
+                    const year = Number(match[3]);
+                    const parsed = new Date(year, month, day);
+                    return parsed.getFullYear() === year && parsed.getMonth() === month && parsed.getDate() === day ? parsed : null;
+                }
+
+                match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (match) {
+                    const year = Number(match[1]);
+                    const month = Number(match[2]) - 1;
+                    const day = Number(match[3]);
+                    const parsed = new Date(year, month, day);
+                    return parsed.getFullYear() === year && parsed.getMonth() === month && parsed.getDate() === day ? parsed : null;
+                }
+
+                return null;
+            }
+
+            function isSameDate(a, b) {
+                return a && b && a.getDate() === b.getDate() && a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+            }
+
+            let selectedDate = parseDate(input.value) || today;
+            input.value = formatBR(selectedDate);
+            let viewYear = selectedDate.getFullYear();
+            let viewMonth = selectedDate.getMonth();
+
+            function renderCalendar() {
+                title.textContent = months[viewMonth] + ' ' + viewYear;
+                grid.innerHTML = '';
+
+                const monthStart = new Date(viewYear, viewMonth, 1);
+                const monthEnd = new Date(viewYear, viewMonth + 1, 0);
+                const firstWeekday = monthStart.getDay();
+                const daysInMonth = monthEnd.getDate();
+                const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
+
+                for (let i = firstWeekday - 1; i >= 0; i -= 1) {
+                    const day = document.createElement('button');
+                    day.type = 'button';
+                    day.className = 'date-picker-day is-outside';
+                    day.textContent = String(prevMonthDays - i);
+                    day.disabled = true;
+                    grid.appendChild(day);
+                }
+
+                for (let d = 1; d <= daysInMonth; d += 1) {
+                    const current = new Date(viewYear, viewMonth, d);
+                    const day = document.createElement('button');
+                    day.type = 'button';
+                    day.className = 'date-picker-day';
+                    day.textContent = String(d);
+
+                    if (isSameDate(current, today)) day.classList.add('is-today');
+                    if (isSameDate(current, selectedDate)) day.classList.add('is-selected');
+
+                    day.addEventListener('click', function() {
+                        selectedDate = current;
+                        input.value = formatBR(current);
+                        panel.classList.add('hidden');
+                        renderCalendar();
+                    });
+
+                    grid.appendChild(day);
+                }
+
+                const totalCells = firstWeekday + daysInMonth;
+                const trailing = (7 - (totalCells % 7)) % 7;
+                for (let t = 1; t <= trailing; t += 1) {
+                    const day = document.createElement('button');
+                    day.type = 'button';
+                    day.className = 'date-picker-day is-outside';
+                    day.textContent = String(t);
+                    day.disabled = true;
+                    grid.appendChild(day);
+                }
+            }
+
+            function syncFromInput() {
+                const parsed = parseDate(input.value);
+                if (!parsed) return;
+                selectedDate = parsed;
+                viewMonth = parsed.getMonth();
+                viewYear = parsed.getFullYear();
+                input.value = formatBR(parsed);
+                renderCalendar();
+            }
+
+            toggle.addEventListener('click', function() {
+                panel.classList.toggle('hidden');
+                syncFromInput();
+            });
+
+            input.addEventListener('focus', function() {
+                panel.classList.remove('hidden');
+                syncFromInput();
+                setTimeout(function() { input.select(); }, 0);
+            });
+
+            input.addEventListener('click', function() {
+                input.select();
+            });
+
+            input.addEventListener('blur', function() {
+                setTimeout(syncFromInput, 120);
+            });
+
+            input.addEventListener('input', function() {
+                const onlyDigits = input.value.replace(/\D/g, '').slice(0, 8);
+                let masked = onlyDigits;
+                if (onlyDigits.length > 2) masked = onlyDigits.slice(0, 2) + '/' + onlyDigits.slice(2);
+                if (onlyDigits.length > 4) masked = onlyDigits.slice(0, 2) + '/' + onlyDigits.slice(2, 4) + '/' + onlyDigits.slice(4);
+                input.value = masked;
+            });
+
+            prev.addEventListener('click', function() {
+                viewMonth -= 1;
+                if (viewMonth < 0) {
+                    viewMonth = 11;
+                    viewYear -= 1;
+                }
+                renderCalendar();
+            });
+
+            next.addEventListener('click', function() {
+                viewMonth += 1;
+                if (viewMonth > 11) {
+                    viewMonth = 0;
+                    viewYear += 1;
+                }
+                renderCalendar();
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!wrap.contains(event.target)) {
+                    panel.classList.add('hidden');
+                }
+            });
+
+            wrap.dataset.enhanced = 'true';
+            renderCalendar();
+        }
+
         if (!window.hasTransactionFormListeners) {
             window.hasTransactionFormListeners = true;
 
@@ -128,14 +319,20 @@
 
             document.addEventListener('reset', (event) => {
                 if (event.target && event.target.tagName === 'FORM') {
-                    setTimeout(updateTransactionFormFields, 0);
+                    setTimeout(function() {
+                        updateTransactionFormFields();
+                        setupQuickDatePicker();
+                    }, 0);
                 }
             });
 
-            document.addEventListener('htmx:afterSwap', updateTransactionFormFields);
+            document.addEventListener('htmx:afterSwap', function() {
+                updateTransactionFormFields();
+                setupQuickDatePicker();
+            });
         }
 
-        // Run initially
         updateTransactionFormFields();
+        setupQuickDatePicker();
     })();
 </script>

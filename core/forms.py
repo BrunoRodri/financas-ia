@@ -7,6 +7,17 @@ from core.models import CreditCard, Goal, RecurringRule, Tag, Transaction, UserS
 class TransactionForm(forms.ModelForm):
     """Form para lançamento rápido de transações."""
 
+    due_date = forms.DateField(
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'dd/mm/aaaa',
+            'autocomplete': 'off',
+            'inputmode': 'numeric',
+        }),
+        label='Data'
+    )
+
     payment_type = forms.ChoiceField(
         choices=[
             ('other', 'Dinheiro / Pix / Débito'),
@@ -32,10 +43,6 @@ class TransactionForm(forms.ModelForm):
                 'step': '0.01',
                 'min': '0.01',
             }),
-            'due_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-input',
-            }, format='%Y-%m-%d'),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'credit_card': forms.Select(attrs={'class': 'form-select'}),
