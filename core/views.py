@@ -142,6 +142,8 @@ def transaction_list(request):
     # Remover valores nulos e ordenar decrescente
     years_available = sorted([y for y in years_available if y is not None], reverse=True)
 
+    has_advanced = bool(status or month_filter or year_filter or payment_method or card_id or tag)
+
     context = {
         'transactions': transactions,
         'tags': Tag.objects.all(),
@@ -158,6 +160,7 @@ def transaction_list(request):
         'total_income': total_income,
         'total_expense': total_expense,
         'net_balance': net_balance,
+        'has_advanced': has_advanced,
     }
 
     # Retorna o fragmento HTML se for uma requisição HTMX
