@@ -82,6 +82,17 @@ class TransactionForm(forms.ModelForm):
 class RecurringRuleForm(forms.ModelForm):
     """Form para criar regras recorrentes (mensais ou parceladas)."""
 
+    start_date = forms.DateField(
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'dd/mm/aaaa',
+            'autocomplete': 'off',
+            'inputmode': 'numeric',
+        }),
+        label='Data início'
+    )
+
     class Meta:
         model = RecurringRule
         fields = [
@@ -99,10 +110,6 @@ class RecurringRuleForm(forms.ModelForm):
                 'step': '0.01',
                 'min': '0.01',
             }),
-            'start_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-input',
-            }, format='%Y-%m-%d'),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'recurrence_type': forms.Select(attrs={'class': 'form-select'}),
             'total_installments': forms.NumberInput(attrs={
