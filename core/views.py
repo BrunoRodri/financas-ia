@@ -362,12 +362,35 @@ def recurring_toggle(request, pk):
 
 @require_POST
 def recurring_delete(request, pk):
-    """Remove regra recorrente e suas transações pendentes."""
+    """Remove regra recorrente baseando-se nas preferências do usuário."""
     rule = get_object_or_404(RecurringRule, pk=pk)
-    # Remove apenas transações pendentes (pagas ficam como histórico)
-    rule.transactions.filter(status=Transaction.Status.PENDING).delete()
+    delete_all = request.GET.get('delete_all') == 'true'
+
+    if delete_all:
+        # Exclui absolutamente tudo (inclusive transações pagas)
+        rule.transactions.all().delete()
+    else:
+        # Desvincula transações pagas para que não sejam apagadas pelo CASCADE
+        rule.transactions.filter(status=Transaction.Status.PAID).update(recurring_rule=None)
+        # Exclui as transações pendentes
+        rule.transactions.filter(status=Transaction.Status.PENDING).delete()
+
     rule.delete()
     return HttpResponse('')
+
+
+def recurring_delete_confirm(request, pk):
+    """Renderiza o modal de confirmação de exclusão para a regra recorrente."""
+    rule = get_object_or_404(RecurringRule, pk=pk)
+    paid_count = rule.transactions.filter(status=Transaction.Status.PAID).count()
+    total_count = rule.transactions.count()
+
+    context = {
+        'rule': rule,
+        'paid_count': paid_count,
+        'total_count': total_count,
+    }
+    return render(request, 'partials/recurring_delete_modal.html', context)
 
 
 # ─── Goals ───────────────────────────────────────────────────────────────────
