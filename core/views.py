@@ -17,6 +17,29 @@ from core.models import CreditCard, Goal, RecurringRule, Transaction, UserSettin
 from core.services.cash_flow import get_upcoming_transactions, project_cash_flow
 
 
+class VirtualInitialBalance:
+    def __init__(self, amount, date):
+        self.is_initial_balance = True
+        self.amount = abs(amount)
+        self.due_date = date
+        self.type = 'INCOME' if amount >= 0 else 'EXPENSE'
+        self.description = "Saldo de Referência (Configurações)"
+        self.status = 'PAID'
+        self.id = 0
+        self.tags = type('MockTags', (object,), {'all': lambda: []})()
+        self.credit_card = None
+        self.installment_number = None
+        self.recurring_rule = None
+
+    @property
+    def is_income(self):
+        return self.type == 'INCOME'
+
+    @property
+    def is_expense(self):
+        return self.type == 'EXPENSE'
+
+
 # ─── Dashboard ───────────────────────────────────────────────────────────────
 
 def dashboard(request):
@@ -108,6 +131,36 @@ def transaction_list(request):
     total_expense = sum(t.amount for t in transactions if t.is_expense)
     net_balance = total_income - total_expense
 
+    # Carregar saldo inicial das configurações
+    user_settings = UserSettings.load()
+    show_initial_balance = True
+
+    if txn_type:
+        is_positive = user_settings.current_balance >= 0
+        if (txn_type == 'INCOME' and not is_positive) or (txn_type == 'EXPENSE' and is_positive):
+            show_initial_balance = False
+    if tag or card_id or payment_method:
+        show_initial_balance = False
+    if year_filter:
+        try:
+            if user_settings.balance_date.year != int(year_filter):
+                show_initial_balance = False
+        except ValueError:
+            pass
+    if month_filter:
+        try:
+            if user_settings.balance_date.month != int(month_filter):
+                show_initial_balance = False
+        except ValueError:
+            pass
+
+    transactions_list = list(transactions)
+    if show_initial_balance:
+        virtual_bal = VirtualInitialBalance(user_settings.current_balance, user_settings.balance_date)
+        transactions_list.append(virtual_bal)
+        # Ordenação estável: no mesmo dia, o saldo inicial aparece primeiro
+        transactions_list.sort(key=lambda t: (t.due_date, 0 if getattr(t, 'is_initial_balance', False) else 1))
+
     # Opções para popular os dropdowns de filtro na página inteira e HTMX partial
     from core.models import CreditCard, Tag
     cards = CreditCard.objects.all()
@@ -145,7 +198,7 @@ def transaction_list(request):
     has_advanced = bool(status or month_filter or year_filter or payment_method or card_id or tag)
 
     context = {
-        'transactions': transactions,
+        'transactions': transactions_list,
         'tags': Tag.objects.all(),
         'cards': cards,
         'months_available': months_available,
