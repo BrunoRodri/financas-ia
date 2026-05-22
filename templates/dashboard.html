@@ -10,10 +10,13 @@
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white">Projeção Financeira</h1>
-            <p class="text-sm text-gray-400 mt-1">Histórico recente (2 meses) e projeção dos próximos 6 meses</p>
+            <p class="text-sm text-gray-400 mt-1">Projeção dos próximos 6 meses</p>
         </div>
         <div class="flex items-center gap-2 text-sm text-gray-500">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
             Referência: {{ settings.balance_date|date:"d/m/Y" }}
         </div>
     </div>
@@ -25,7 +28,10 @@
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saldo Atual</span>
                 <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-4 h-4 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
             </div>
             <p class="text-2xl font-bold text-white" id="current-balance">{{ projection.current_balance|brl }}</p>
@@ -36,7 +42,10 @@
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Receitas (6m)</span>
                 <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+                    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                    </svg>
                 </div>
             </div>
             <p class="text-2xl font-bold text-income">{{ projection.total_income|brl }}</p>
@@ -47,7 +56,10 @@
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Despesas (6m)</span>
                 <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/></svg>
+                    <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                    </svg>
                 </div>
             </div>
             <p class="text-2xl font-bold text-expense">{{ projection.total_expense|brl }}</p>
@@ -58,7 +70,10 @@
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saldo Final</span>
                 <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
                 </div>
             </div>
             {% with projection.monthly_summary|last as last_month %}
@@ -85,7 +100,10 @@
         <!-- Quick Entry Form -->
         <div class="card card-glow quick-entry-card">
             <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
                 Lançamento Rápido
             </h2>
             <div id="quick-entry-form">
@@ -117,7 +135,8 @@
                             <td class="font-medium text-white">{{ month.month_label }}</td>
                             <td class="text-right text-income">{{ month.income|brl }}</td>
                             <td class="text-right text-expense">{{ month.expense|brl }}</td>
-                            <td class="text-right font-semibold {% if month.end_balance >= 0 %}text-income{% else %}text-expense{% endif %}">
+                            <td
+                                class="text-right font-semibold {% if month.end_balance >= 0 %}text-income{% else %}text-expense{% endif %}">
                                 {{ month.end_balance|brl }}
                             </td>
                         </tr>
@@ -135,17 +154,21 @@
         <div class="card">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold text-white">Próximos 30 dias</h2>
-                <a href="{% url 'transaction_list' %}" class="text-xs text-accent-light hover:text-accent transition-colors">Ver tudo →</a>
+                <a href="{% url 'transaction_list' %}"
+                    class="text-xs text-accent-light hover:text-accent transition-colors">Ver tudo →</a>
             </div>
             <div id="transaction-list" class="space-y-2 max-h-96 overflow-y-auto pr-1">
                 {% for txn in upcoming %}
-                    {% include 'partials/transaction_row.html' %}
+                {% include 'partials/transaction_row.html' %}
                 {% empty %}
-                    <div class="empty-state">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                        <p class="text-sm">Nenhuma transação nos próximos 30 dias</p>
-                        <p class="text-xs mt-1">Use o lançamento rápido para adicionar</p>
-                    </div>
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <p class="text-sm">Nenhuma transação nos próximos 30 dias</p>
+                    <p class="text-xs mt-1">Use o lançamento rápido para adicionar</p>
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -156,11 +179,12 @@
     <div class="card">
         <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold text-white">Metas Financeiras</h2>
-            <a href="{% url 'goal_list' %}" class="text-xs text-accent-light hover:text-accent transition-colors">Gerenciar →</a>
+            <a href="{% url 'goal_list' %}"
+                class="text-xs text-accent-light hover:text-accent transition-colors">Gerenciar →</a>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {% for goal in goals %}
-                {% include 'partials/goal_card.html' %}
+            {% include 'partials/goal_card.html' %}
             {% endfor %}
         </div>
     </div>
@@ -179,7 +203,7 @@
 <script>
     // Cash Flow Chart
     const ctx = document.getElementById('cashFlowChart').getContext('2d');
-    
+
     const labels = JSON.parse(document.getElementById('chart-labels-data').textContent);
     const balances = JSON.parse(document.getElementById('chart-balances-data').textContent).map(Number);
     const income = JSON.parse(document.getElementById('chart-income-data').textContent).map(Number);
@@ -259,9 +283,9 @@
                     titleFont: { family: 'Inter', weight: '600' },
                     bodyFont: { family: 'Inter' },
                     callbacks: {
-                        label: function(context) {
+                        label: function (context) {
                             let value = context.parsed.y;
-                            return context.dataset.label + ': R$ ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                            return context.dataset.label + ': R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
                         }
                     }
                 }
@@ -279,7 +303,7 @@
                     ticks: {
                         color: '#6b7280',
                         font: { family: 'Inter', size: 11 },
-                        callback: function(value) {
+                        callback: function (value) {
                             return 'R$ ' + value.toLocaleString('pt-BR');
                         }
                     }
