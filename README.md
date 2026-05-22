@@ -15,7 +15,12 @@ Com uma interface moderna, dark-mode nativo, glassmorphism e atualizações sem 
   - **Mensalidade / Assinaturas (`MONTHLY`):** Materialização automática on-demand para os próximos 6 meses (ex: mensalidade de streaming).
   - **Compras Parceladas (`INSTALLMENT`):** Geração imediata de todas as parcelas no banco de dados (ex: `1/12`, `2/12`), permitindo editar ou liquidar parcelas individuais no futuro.
 - **🎯 Metas Financeiras (Goals):** Defina objetivos (ex: "Viagem pro Rio"), estipule metas de valor e prazos limites, acompanhando o progresso com barras dinâmicas coloridas.
-- **🛡️ Saldo de Referência:** Ponto de partida flexível atualizável manualmente a qualquer momento para garantir que as projeções reflitam a realidade de suas contas físicas.
+- **🛡️ Saldo de Referência Integrado:** Ponto de partida flexível que aparece inserido em sua posição temporal exata na listagem de transações, servindo de base real para o cálculo de Saldo Líquido. Transações históricas anteriores a este saldo são atenuadas visualmente (`opacity-45`) e assinaladas como "Não computadas" com explicação em tooltip.
+- **🎨 UI/UX Avançada e Controle Inteligente:**
+  - **Filtros Avançados & Agrupamento:** Painel de filtros de transações dinâmico (ocultável) e listagem agrupada de forma elegante por mês cronológico.
+  - **Datepicker Customizado:** Componente de calendário visual clicável integrado com digitação direta e máscara de formatação nacional (`DD/MM/YYYY`).
+  - **Segurança de Deleção:** Modal dinâmico via HTMX ao excluir Regras Recorrentes, permitindo deletar apenas as parcelas futuras/não pagas e manter o histórico de pagamentos passados intacto.
+  - **Desativação Dinâmica:** Ajuste instantâneo de campos de formulário de regras, bloqueando e limpando o campo de parcelas se a recorrência selecionada for mensal.
 
 ---
 

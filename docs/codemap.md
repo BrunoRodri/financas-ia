@@ -50,7 +50,9 @@ financa/
 │       ├── card_row.html
 │       ├── goal_card.html
 │       ├── recurring_row.html
+│       ├── recurring_delete_modal.html # Modal de confirmação para exclusão de regras recorrentes
 │       ├── transaction_form.html
+│       ├── transaction_initial_balance_row.html # Linha especial cronológica para saldo de partida
 │       └── transaction_row.html
 │
 ├── static/                     # Arquivos estáticos
@@ -156,3 +158,28 @@ O coração analítico do sistema reside na função `project_cash_flow(months_a
              │ Chart.js (Grafico) e Tabelas na View   │
              └─────────────────────────────────────────┘
 ```
+
+---
+
+## 💎 Funcionalidades de UI/UX e Regras Especiais
+
+Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e tratamento refinado de dados presentes na aplicação:
+
+### 1. Saldo de Referência Cronológico e Histórico Atenuado
+* **Posicionamento Estável:** O saldo de referência cadastrado nas configurações é dinamicamente inserido em sua posição temporal exata na tabela de transações.
+* **Estilização Neutra:** O valor do Saldo de Referência é exibido em cor cinza neutra, sem o sinal de `+` ou `-`, para refletir que se trata de uma definição de valor físico.
+* **Atenuação Histórica:** Transações ocorridas antes da data de referência do saldo de partida são marcadas como **"Não computadas"** (badge explicativa + tooltip descritivo) e exibidas com opacidade reduzida (`opacity-45`, com transição suave para `100%` ao passar o mouse).
+* **Cálculos Corretos do Fluxo:** Os cards superiores da tela de transações calculam os somatórios considerando apenas as transações *posteriores* à data de referência. O card de **"Saldo Líquido"** soma o Saldo de Referência às receitas ativas e subtrai as despesas ativas.
+
+### 2. Filtros Avançados Inteligentes na Listagem de Transações
+* **Toggle Dinâmico:** Os filtros avançados (busca, tipo, status, cartão, tags e intervalo de datas) começam ocultados por padrão. Um botão dinâmico interativo permite alternar a visibilidade de forma fluida.
+* **Agrupamento Cronológico:** A lista de transações agrupa os lançamentos visualmente por meses cronológicos (ex: "DEZEMBRO 2025") utilizando a tag `ifchanged` do Django Template.
+
+### 3. Datepicker Premium e Desabilitação Condicional de Parcelas
+* **Datepicker Completo:** O campo de data inicial das Regras Recorrentes e nos formulários do dashboard conta com um componente customizado que combina digitação livre direta, máscara automatizada brasileira (`DD/MM/YYYY`) e calendário clicável interativo com tratamento anti-clipping de CSS.
+* **Desabilitação de Parcelas:** Ao selecionar a recorrência "Mensal" no cadastro de regras recorrentes, o campo "Parcelas" é automaticamente zerado, desativado e esmaecido via Javascript.
+
+### 4. Modal de Confirmação para Exclusão de Regras
+* **HTMX Dynamic Popups:** Ao clicar no botão de remoção de uma Regra Recorrente, o sistema consulta via HTMX o status da regra.
+* **Preservação de Histórico:** Se houver transações já pagas pertencentes à regra, o modal (glassmorphism/blur) oferece ao usuário as opções de **"Excluir apenas as NÃO PAGAS"** (preservando o histórico e desvinculando os lançamentos quitados) ou **"Excluir TUDO"**.
+
