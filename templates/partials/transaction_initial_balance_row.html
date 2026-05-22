@@ -22,8 +22,8 @@
 
     <!-- Amount -->
     <div class="flex-shrink-0 text-right mr-2">
-        <span class="text-sm font-bold {% if txn.is_income %}text-income{% else %}text-expense{% endif %}">
-            {% if txn.is_income %}+{% else %}-{% endif %}{{ txn.amount|brl }}
+        <span class="text-sm font-semibold text-gray-200">
+            {{ txn.amount|brl }}
         </span>
     </div>
 

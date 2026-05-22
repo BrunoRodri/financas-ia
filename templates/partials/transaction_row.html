@@ -1,5 +1,5 @@
 {% load currency_filters %}
-<div id="txn-{{ txn.id }}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors group {% if is_new %}new-row{% endif %}">
+<div id="txn-{{ txn.id }}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors group {% if is_new %}new-row{% endif %} {% if txn.is_before_initial_balance %}opacity-45 hover:opacity-100 transition-opacity{% endif %}">
     <!-- Status Toggle -->
     <button hx-post="{% url 'transaction_toggle' txn.id %}"
             hx-target="#txn-{{ txn.id }}"
@@ -32,6 +32,13 @@
             {% for tag in txn.tags.all %}
             <span class="tag-pill" style="--color: {{ tag.color }}; background: color-mix(in srgb, var(--color) 20%, transparent); color: var(--color);">{{ tag.name }}</span>
             {% endfor %}
+            {% if txn.is_before_initial_balance %}
+            <span class="inline-flex items-center gap-1 text-[10px] text-amber-500/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20" 
+                  title="Esta transação ocorreu antes do saldo de partida ({{ user_settings.balance_date|date:'d/m/Y' }}) e não é computada nos somatórios.">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                Não computada
+            </span>
+            {% endif %}
         </div>
     </div>
 

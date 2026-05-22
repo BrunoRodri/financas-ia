@@ -126,13 +126,13 @@ def transaction_list(request):
     if card_id:
         transactions = transactions.filter(credit_card_id=card_id)
 
-    # Calcular somatórios
-    total_income = sum(t.amount for t in transactions if t.is_income)
-    total_expense = sum(t.amount for t in transactions if t.is_expense)
-    net_balance = total_income - total_expense
-
     # Carregar saldo inicial das configurações
     user_settings = UserSettings.load()
+
+    # Calcular somatórios pós-saldo (apenas transações com due_date >= balance_date)
+    total_income = sum(t.amount for t in transactions if t.is_income and t.due_date >= user_settings.balance_date)
+    total_expense = sum(t.amount for t in transactions if t.is_expense and t.due_date >= user_settings.balance_date)
+
     show_initial_balance = True
 
     if txn_type:
@@ -154,7 +154,15 @@ def transaction_list(request):
         except ValueError:
             pass
 
+    # Saldo líquido inclui o saldo de partida (se estiver ativo/exibido nos filtros atuais)
+    net_balance = total_income - total_expense
+    if show_initial_balance:
+        net_balance += user_settings.current_balance
+
     transactions_list = list(transactions)
+    for t in transactions_list:
+        t.is_before_initial_balance = t.due_date < user_settings.balance_date
+
     if show_initial_balance:
         virtual_bal = VirtualInitialBalance(user_settings.current_balance, user_settings.balance_date)
         transactions_list.append(virtual_bal)
@@ -214,6 +222,7 @@ def transaction_list(request):
         'total_expense': total_expense,
         'net_balance': net_balance,
         'has_advanced': has_advanced,
+        'user_settings': user_settings,
     }
 
     # Retorna o fragmento HTML se for uma requisição HTMX
