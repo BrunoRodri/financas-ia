@@ -1,0 +1,78 @@
+<div id="card-{{ card.id }}" class="rounded-xl border border-accent/30 bg-dark-800/60 p-4 animate-fade-in-up">
+    <form hx-post="{% url 'card_edit' card.id %}"
+          hx-target="#card-{{ card.id }}"
+          hx-swap="outerHTML"
+          class="space-y-3">
+        {% csrf_token %}
+
+        <!-- Nome + Cor -->
+        <div class="grid grid-cols-3 gap-3">
+            <div class="col-span-2">
+                <label class="form-label text-xs" for="edit_name_{{ card.id }}">Nome</label>
+                <input type="text" name="name" id="edit_name_{{ card.id }}"
+                       value="{{ card.name }}"
+                       class="form-input w-full" required>
+            </div>
+            <div>
+                <label class="form-label text-xs text-center block" for="edit_color_{{ card.id }}">Cor</label>
+                <input type="color" name="color" id="edit_color_{{ card.id }}"
+                       value="{{ card.color }}"
+                       class="form-input-color w-full h-[38px] p-0 border-0 cursor-pointer rounded-lg">
+            </div>
+        </div>
+
+        <!-- Bandeira + Últimos 4 dígitos -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="form-label text-xs" for="edit_brand_{{ card.id }}">Bandeira</label>
+                <select name="brand" id="edit_brand_{{ card.id }}" class="form-select w-full">
+                    {% for value, label in card.Brand.choices %}
+                    <option value="{{ value }}" {% if card.brand == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="form-label text-xs" for="edit_last_digits_{{ card.id }}">Últimos 4 dígitos</label>
+                <input type="text" name="last_digits" id="edit_last_digits_{{ card.id }}"
+                       value="{{ card.last_digits }}"
+                       maxlength="4"
+                       class="form-input w-full">
+            </div>
+        </div>
+
+        <!-- Fechamento + Vencimento -->
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="form-label text-xs" for="edit_closing_day_{{ card.id }}">Fechamento (dia)</label>
+                <input type="number" name="closing_day" id="edit_closing_day_{{ card.id }}"
+                       value="{{ card.closing_day }}"
+                       min="1" max="31"
+                       class="form-input w-full" required>
+            </div>
+            <div>
+                <label class="form-label text-xs" for="edit_due_day_{{ card.id }}">Vencimento (dia)</label>
+                <input type="number" name="due_day" id="edit_due_day_{{ card.id }}"
+                       value="{{ card.due_day }}"
+                       min="1" max="31"
+                       class="form-input w-full" required>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="flex gap-2 pt-1">
+            <button type="submit" class="btn btn-primary flex-1 flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Salvar
+            </button>
+            <button type="button"
+                    hx-get="{% url 'card_edit' card.id %}"
+                    hx-target="#card-{{ card.id }}"
+                    hx-swap="outerHTML"
+                    hx-vals='{"cancel": "1"}'
+                    class="btn btn-ghost flex items-center justify-center gap-2 px-4">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                Cancelar
+            </button>
+        </div>
+    </form>
+</div>

@@ -30,6 +30,7 @@ urlpatterns = [
     path('cards/', views.card_list, name='card_list'),
     path('cards/create/', views.card_create, name='card_create'),
     path('cards/<int:pk>/delete/', views.card_delete, name='card_delete'),
+    path('cards/<int:pk>/edit/', views.card_edit, name='card_edit'),
 
     # Settings
     path('settings/', views.settings_view, name='settings'),

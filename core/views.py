@@ -478,6 +478,34 @@ def card_delete(request, pk):
     return HttpResponse('')
 
 
+def card_edit(request, pk):
+    """Edita um cartão de crédito via HTMX inline."""
+    card = get_object_or_404(CreditCard, pk=pk)
+
+    if request.method == 'POST':
+        form = CreditCardForm(request.POST, instance=card)
+        if form.is_valid():
+            card = form.save()
+            return render(request, 'partials/card_row.html', {'card': card})
+        # Retorna o formulário com erros de validação
+        return render(request, 'partials/card_edit_form.html', {
+            'form': form, 'card': card,
+        }, status=400)
+
+    # GET com ?cancel=1 → cancela e retorna o item original
+    if request.GET.get('cancel'):
+        return render(request, 'partials/card_row.html', {'card': card})
+
+    # GET comum via HTMX → renderiza o formulário de edição
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/card_edit_form.html', {
+            'form': CreditCardForm(instance=card), 'card': card,
+        })
+
+    # Redirecionamento fallback caso acessado diretamente via URL convencional
+    return redirect('card_list')
+
+
 # ─── Settings ────────────────────────────────────────────────────────────────
 
 def settings_view(request):
