@@ -13,7 +13,7 @@ from core.forms import (
     TransactionForm,
     UserSettingsForm,
 )
-from core.models import CreditCard, Goal, RecurringRule, Transaction, UserSettings
+from core.models import CreditCard, Goal, RecurringRule, Tag, Transaction, UserSettings
 from core.services.cash_flow import get_upcoming_transactions, project_cash_flow
 
 
