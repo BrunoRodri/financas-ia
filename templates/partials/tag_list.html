@@ -1,0 +1,7 @@
+<div id="tag-list" class="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+    {% for tag in tags %}
+        {% include 'partials/tag_row.html' with tag=tag %}
+    {% empty %}
+        <p class="text-xs text-gray-500 text-center py-4">Nenhuma categoria cadastrada ainda.</p>
+    {% endfor %}
+</div>

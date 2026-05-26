@@ -34,4 +34,8 @@ urlpatterns = [
 
     # Settings
     path('settings/', views.settings_view, name='settings'),
+
+    # Tags / Categorias
+    path('tags/create/', views.tag_create, name='tag_create'),
+    path('tags/<int:pk>/delete/', views.tag_delete, name='tag_delete'),
 ]

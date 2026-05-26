@@ -509,7 +509,7 @@ def card_edit(request, pk):
 # ─── Settings ────────────────────────────────────────────────────────────────
 
 def settings_view(request):
-    """Atualiza saldo atual e data de referência."""
+    """Atualiza saldo atual, data de referência e exibe painel de tags."""
     settings = UserSettings.load()
     if request.method == 'POST':
         form = UserSettingsForm(request.POST, instance=settings)
@@ -526,5 +526,27 @@ def settings_view(request):
     context = {
         'form': form,
         'settings': settings,
+        'tags': Tag.objects.all(),
     }
     return render(request, 'settings/edit.html', context)
+
+
+@require_POST
+def tag_create(request):
+    """Cria uma nova tag via HTMX e retorna a listagem atualizada."""
+    name = request.POST.get('name', '').strip()
+    color = request.POST.get('color', '#6366f1').strip()
+    
+    if name:
+        Tag.objects.get_or_create(name=name, defaults={'color': color})
+        
+    tags = Tag.objects.all()
+    return render(request, 'partials/tag_list.html', {'tags': tags})
+
+
+@require_POST
+def tag_delete(request, pk):
+    """Exclui uma tag via HTMX."""
+    tag = get_object_or_404(Tag, pk=pk)
+    tag.delete()
+    return HttpResponse('')

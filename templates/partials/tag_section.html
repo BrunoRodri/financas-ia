@@ -1,0 +1,35 @@
+<div id="tags-management" class="card card-glow">
+    <h2 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+        <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        Categorias (Tags)
+    </h2>
+    <p class="text-xs text-gray-400 mb-4">Crie e exclua as categorias usadas para organizar suas receitas e despesas.</p>
+
+    <!-- Form para adicionar tag via HTMX -->
+    <form hx-post="{% url 'tag_create' %}"
+          hx-target="#tag-list-container"
+          hx-swap="innerHTML"
+          hx-on::after-request="if(event.detail.successful) this.reset()"
+          class="space-y-3 mb-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2">
+                <input type="text" name="name" placeholder="Nova Categoria (ex: Mercado)" class="form-input w-full text-sm" required>
+            </div>
+            <div>
+                <input type="color" name="color" value="#6366f1" class="form-input-color w-full h-[38px] p-0 border-0 cursor-pointer rounded-lg" title="Selecione a cor">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary w-full text-sm flex items-center justify-center gap-2 py-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Adicionar Categoria
+        </button>
+    </form>
+
+    <div class="divider my-3 opacity-10"></div>
+
+    <!-- Lista de tags -->
+    <div id="tag-list-container">
+        {% include 'partials/tag_list.html' with tags=tags %}
+    </div>
+</div>
