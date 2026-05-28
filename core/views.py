@@ -426,6 +426,27 @@ def goal_create(request):
 def goal_update(request, pk):
     """Atualiza meta (valor acumulado)."""
     goal = get_object_or_404(Goal, pk=pk)
+    
+    # Suporte a ajuste rápido inline (aporte/resgate)
+    action_type = request.POST.get('action_type')
+    adjust_amount = request.POST.get('adjust_amount')
+    
+    if action_type and adjust_amount:
+        try:
+            amount = Decimal(adjust_amount)
+            if action_type == 'add':
+                goal.current_amount += amount
+            elif action_type == 'subtract':
+                goal.current_amount = max(goal.current_amount - amount, Decimal('0.00'))
+            goal.save()
+            
+            if request.headers.get('HX-Request'):
+                return render(request, 'partials/goal_card.html', {'goal': goal})
+            return redirect('goal_list')
+        except (ValueError, ArithmeticError):
+            pass
+
+    # Caso contrário, fluxo padrão de form de edição
     form = GoalForm(request.POST, instance=goal)
     if form.is_valid():
         form.save()
@@ -433,6 +454,23 @@ def goal_update(request, pk):
             return render(request, 'partials/goal_card.html', {'goal': goal})
         return redirect('goal_list')
     return render(request, 'partials/goal_form.html', {'form': form}, status=400)
+
+
+def goal_edit(request, pk):
+    """Renderiza o formulário inline de aporte/resgate de uma meta via HTMX."""
+    goal = get_object_or_404(Goal, pk=pk)
+    action_type = request.GET.get('type', 'add')
+    context = {
+        'goal': goal,
+        'action_type': action_type,
+    }
+    return render(request, 'partials/goal_card_adjust_form.html', context)
+
+
+def goal_detail(request, pk):
+    """Renderiza o card de meta em estado normal via HTMX (cancelamento/fallback)."""
+    goal = get_object_or_404(Goal, pk=pk)
+    return render(request, 'partials/goal_card.html', {'goal': goal})
 
 
 @require_POST

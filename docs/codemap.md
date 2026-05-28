@@ -56,6 +56,7 @@ financa/
 │       ├── card_edit_form.html # Formulário inline de edição de cartões de crédito
 │       ├── card_row.html
 │       ├── goal_card.html
+│       ├── goal_card_adjust_form.html # Formulário inline de aporte e resgate de metas
 │       ├── recurring_delete_modal.html # Modal de confirmação para exclusão de regras recorrentes
 │       ├── recurring_row.html
 │       ├── tag_list.html       # Lista de tags na tela de configurações

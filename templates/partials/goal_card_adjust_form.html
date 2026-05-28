@@ -1,0 +1,45 @@
+{% load currency_filters %}
+<div class="p-4 rounded-xl bg-dark-700/50 border border-white/5 animate-fade-in-up">
+    <div class="flex items-center justify-between mb-3">
+        <div>
+            <h3 class="text-sm font-semibold text-white">
+                {% if action_type == 'add' %}Guardar em{% else %}Retirar de{% endif %}
+            </h3>
+            <p class="text-xs text-gray-400 font-medium truncate max-w-[170px]">{{ goal.name }}</p>
+        </div>
+        <span class="text-xs text-gray-500 font-semibold">{{ goal.current_amount|brl }}</span>
+    </div>
+
+    <form hx-post="{% url 'goal_update' goal.id %}"
+          hx-target="this"
+          hx-swap="outerHTML"
+          class="space-y-3">
+        {% csrf_token %}
+        <input type="hidden" name="action_type" value="{{ action_type }}">
+
+        <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-semibold">R$</span>
+            <input type="number" 
+                   name="adjust_amount" 
+                   step="0.01" 
+                   min="0.01" 
+                   required 
+                   class="form-input pl-8 pr-3 py-1.5 text-sm font-semibold" 
+                   placeholder="0,00" 
+                   autofocus>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-sm btn-success flex-1 text-xs">
+                Confirmar
+            </button>
+            <button type="button" 
+                    hx-get="{% url 'goal_detail' goal.id %}" 
+                    hx-target="closest div" 
+                    hx-swap="outerHTML"
+                    class="btn btn-sm btn-ghost px-2 text-xs">
+                Cancelar
+            </button>
+        </div>
+    </form>
+</div>
