@@ -473,6 +473,12 @@ def goal_detail(request, pk):
     return render(request, 'partials/goal_card.html', {'goal': goal})
 
 
+def goal_delete_confirm(request, pk):
+    """Renderiza o modal de confirmação para exclusão de metas."""
+    goal = get_object_or_404(Goal, pk=pk)
+    return render(request, 'partials/goal_delete_modal.html', {'goal': goal})
+
+
 @require_POST
 def goal_delete(request, pk):
     """Remove meta."""
