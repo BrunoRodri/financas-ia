@@ -22,6 +22,12 @@ financa/
 │   ├── urls.py                 # Definição de endpoints internos da aplicação
 │   ├── views.py                # Controladores que lidam com requisições HTTP e HTMX
 │   │
+│   ├── management/             # Comandos de gerenciamento customizados do Django
+│   │   ├── __init__.py
+│   │   └── commands/
+│   │       ├── __init__.py
+│   │       └── seed_db.py      # Comando de sementeira customizado (limpeza e mock dinâmico)
+│   │
 │   ├── services/               # Camada de lógica de negócio isolada
 │   │   ├── __init__.py
 │   │   └── cash_flow.py        # Algoritmo de projeção e materialização de caixa
@@ -47,13 +53,19 @@ financa/
 │   │
 │   └── partials/               # Fragmentos HTML retornados especificamente para HTMX
 │       ├── balance_card.html
+│       ├── card_edit_form.html # Formulário inline de edição de cartões de crédito
 │       ├── card_row.html
 │       ├── goal_card.html
-│       ├── recurring_row.html
 │       ├── recurring_delete_modal.html # Modal de confirmação para exclusão de regras recorrentes
+│       ├── recurring_row.html
+│       ├── tag_list.html       # Lista de tags na tela de configurações
+│       ├── tag_row.html        # Linha para visualização/remoção de uma tag
+│       ├── tag_section.html    # Bloco completo de gerenciamento de tags
+│       ├── transaction_edit_form.html # Formulário inline de edição de transações
 │       ├── transaction_form.html
 │       ├── transaction_initial_balance_row.html # Linha especial cronológica para saldo de partida
-│       └── transaction_row.html
+│       ├── transaction_row.html
+│       └── transactions_full_content.html # Container principal dinâmico de transações com filtros
 │
 ├── static/                     # Arquivos estáticos
 │   └── css/

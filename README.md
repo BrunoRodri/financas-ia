@@ -69,12 +69,15 @@ Crie um arquivo `.env` na raiz do projeto (use o `.env.example` como base):
 cp .env.example .env
 ```
 
-### 4. Executar Migrações e Iniciar o Servidor
+### 4. Executar Migrações, Semear Dados e Iniciar o Servidor
 ```bash
 # Aplique as migrações do banco de dados
 python manage.py migrate
 
-# (Opcional) Crie um usuário admin para gerenciar tags e dados brutos
+# (Recomendado) Popule o banco com dados simulados e dinâmicos de teste de usabilidade
+python manage.py seed_db
+
+# (Opcional) Crie um usuário admin para gerenciar tags e dados brutos no painel do Django
 python manage.py createsuperuser
 
 # Inicie o servidor de desenvolvimento
