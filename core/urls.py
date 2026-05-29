@@ -12,6 +12,7 @@ urlpatterns = [
     path('transactions/<int:pk>/toggle/', views.transaction_toggle, name='transaction_toggle'),
     path('transactions/<int:pk>/edit/', views.transaction_edit, name='transaction_edit'),
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
+    path('transactions/<int:pk>/delete/confirm/', views.transaction_delete_confirm, name='transaction_delete_confirm'),
 
     # Recurring Rules
     path('recurring/', views.recurring_list, name='recurring_list'),

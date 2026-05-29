@@ -269,6 +269,12 @@ def transaction_delete(request, pk):
     return HttpResponse('')
 
 
+def transaction_delete_confirm(request, pk):
+    """Renderiza o modal de confirmação de exclusão para uma transação."""
+    txn = get_object_or_404(Transaction, pk=pk)
+    return render(request, 'partials/transaction_delete_modal.html', {'txn': txn})
+
+
 def transaction_edit(request, pk):
     """Edita uma transação via HTMX inline."""
     txn = get_object_or_404(Transaction, pk=pk)

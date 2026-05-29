@@ -290,4 +290,19 @@ class GoalTransactionTests(TestCase):
         goal.refresh_from_db()
         self.assertEqual(goal.current_amount, Decimal("1000.00"))
 
+    def test_transaction_delete_confirm_view_returns_correct_template_and_context(self):
+        from django.urls import reverse
+        txn = Transaction.objects.create(
+            description="Lanche",
+            amount=Decimal("25.50"),
+            due_date=date(2026, 9, 27),
+            type=Transaction.TransactionType.EXPENSE
+        )
+        
+        response = self.client.get(reverse('transaction_delete_confirm', args=[txn.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'partials/transaction_delete_modal.html')
+        self.assertEqual(response.context['txn'], txn)
+
+
 

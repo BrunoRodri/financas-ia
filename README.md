@@ -19,7 +19,7 @@ Com uma interface moderna, dark-mode nativo, glassmorphism e atualizações sem 
 - **🎨 UI/UX Avançada e Controle Inteligente:**
   - **Filtros Avançados & Agrupamento:** Painel de filtros de transações dinâmico (ocultável) e listagem agrupada de forma elegante por mês cronológico.
   - **Datepicker Customizado:** Componente de calendário visual clicável integrado com digitação direta e máscara de formatação nacional (`DD/MM/YYYY`).
-  - **Segurança de Deleção:** Modal dinâmico via HTMX ao excluir Regras Recorrentes, permitindo deletar apenas as parcelas futuras/não pagas e manter o histórico de pagamentos passados intacto.
+  - **Segurança de Deleção:** Modais dinâmicos via HTMX para confirmar a exclusão de Regras Recorrentes (permitindo poupar parcelas já pagas) e Transações individuais (com aviso inteligente e dinâmico de estorno em metas vinculadas), prevenindo exclusões acidentais.
   - **Desativação Dinâmica:** Ajuste instantâneo de campos de formulário de regras, bloqueando e limpando o campo de parcelas se a recorrência selecionada for mensal.
 
 ---

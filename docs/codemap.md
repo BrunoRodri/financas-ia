@@ -193,9 +193,10 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **Datepicker Completo:** O campo de data inicial das Regras Recorrentes e nos formulários do dashboard conta com um componente customizado que combina digitação livre direta, máscara automatizada brasileira (`DD/MM/YYYY`) e calendário clicável interativo com tratamento anti-clipping de CSS.
 * **Desabilitação de Parcelas:** Ao selecionar a recorrência "Mensal" no cadastro de regras recorrentes, o campo "Parcelas" é automaticamente zerado, desativado e esmaecido via Javascript.
 
-### 4. Modal de Confirmação para Exclusão de Regras
-* **HTMX Dynamic Popups:** Ao clicar no botão de remoção de uma Regra Recorrente, o sistema consulta via HTMX o status da regra.
-* **Preservação de Histórico:** Se houver transações já pagas pertencentes à regra, o modal (glassmorphism/blur) oferece ao usuário as opções de **"Excluir apenas as NÃO PAGAS"** (preservando o histórico e desvinculando os lançamentos quitados) ou **"Excluir TUDO"**.
+### 4. Modais de Confirmação para Exclusão (Regras e Transações)
+* **HTMX Dynamic Popups:** Ao clicar no botão de remoção de uma Regra Recorrente ou de uma Transação avulsa, o sistema consulta via HTMX a rota de confirmação correspondente e exibe um modal glassmorphic (`backdrop-blur-sm` e sombreamentos premium) injetado dinamicamente em `#global-modal`.
+* **Exclusão de Regras (Preservação de Histórico):** Se houver transações já pagas pertencentes à regra, o modal oferece as opções de **"Excluir apenas as NÃO PAGAS"** (preservando o histórico e desvinculando os lançamentos quitados) ou **"Excluir TUDO"**.
+* **Exclusão de Transações (Alerta Inteligente de Metas):** Se a transação estiver vinculada a uma meta financeira, o modal informa dinamicamente o usuário de que a exclusão daquela transação reverterá automaticamente o valor correspondente do progresso acumulado da meta associada.
 
 ### 5. Ocultação Dinâmica de Empty States (CSS :has)
 * **CSS Declarativo Moderno:** Para evitar que mensagens como "Nenhuma meta criada" continuem visíveis ao criar elementos via HTMX (ou reapareçam incorretamente ao deletar), foi implementada uma regra CSS declarativa usando o seletor moderno `:has()`.
