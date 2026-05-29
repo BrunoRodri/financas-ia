@@ -228,3 +228,66 @@ class GoalTransactionTests(TestCase):
         self.assertEqual(goal.current_amount, Decimal("1500.00"))
         self.assertEqual(Transaction.objects.count(), initial_txn_count)
 
+    def test_transaction_update_adjusts_goal_current_amount(self):
+        from core.models import Goal
+        goal = Goal.objects.create(
+            name="Viagem Rio",
+            target_amount=Decimal("7000.00"),
+            current_amount=Decimal("1000.00"),
+            deadline=date(2026, 9, 27)
+        )
+        
+        # An EXPENSE (Aporte) is created linked to goal: increases goal amount
+        txn = Transaction.objects.create(
+            description="Aporte teste",
+            amount=Decimal("200.00"),
+            due_date=date(2026, 9, 27),
+            type=Transaction.TransactionType.EXPENSE,
+            goal=goal
+        )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1200.00"))
+        
+        # Let's update the transaction amount: increase it to 350.00
+        txn.amount = Decimal("350.00")
+        txn.save()
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1350.00"))
+        
+        # Let's change it to INCOME (Resgate) with value 100.00
+        txn.amount = Decimal("100.00")
+        txn.type = Transaction.TransactionType.INCOME
+        txn.save()
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("900.00")) # 1000 original + 0 expense - 100 income = 900
+
+    def test_transaction_delete_reverts_goal_current_amount(self):
+        from core.models import Goal
+        goal = Goal.objects.create(
+            name="Viagem Rio",
+            target_amount=Decimal("7000.00"),
+            current_amount=Decimal("1000.00"),
+            deadline=date(2026, 9, 27)
+        )
+        
+        txn = Transaction.objects.create(
+            description="Aporte teste",
+            amount=Decimal("300.00"),
+            due_date=date(2026, 9, 27),
+            type=Transaction.TransactionType.EXPENSE,
+            goal=goal
+        )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1300.00"))
+        
+        # Delete transaction
+        txn.delete()
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1000.00"))
+
+

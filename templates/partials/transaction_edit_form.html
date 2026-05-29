@@ -49,6 +49,17 @@
             </div>
         </div>
 
+        <!-- Meta Vinculada -->
+        <div>
+            <label class="form-label text-xs" for="edit_goal_{{ txn.id }}">Meta Vinculada</label>
+            <select name="goal" id="edit_goal_{{ txn.id }}" class="form-select w-full">
+                <option value="">Sem meta</option>
+                {% for goal in goals %}
+                    <option value="{{ goal.id }}" {% if txn.goal_id == goal.id %}selected{% endif %}>{{ goal.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
         <!-- Botões -->
         <div class="flex gap-2 pt-1">
             <button type="submit" class="btn btn-primary flex-1 flex items-center justify-center gap-2">

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -222,6 +223,10 @@ class Transaction(models.Model):
         CreditCard, on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name='Cartão', related_name='transactions',
     )
+    goal = models.ForeignKey(
+        'Goal', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Meta vinculada', related_name='transactions',
+    )
     installment_number = models.PositiveIntegerField(
         'Parcela nº', null=True, blank=True,
         help_text='Número da parcela (ex: 3 de 12)',
@@ -254,6 +259,66 @@ class Transaction(models.Model):
         if self.is_income:
             return self.amount
         return -self.amount
+
+    def save(self, *args, **kwargs):
+        # Controle de consistência de Metas vinculadas
+        original_goal = None
+        original_amount = Decimal('0.00')
+        original_type = None
+
+        if self.pk is not None:
+            # Transação existente: vamos ver o estado anterior
+            try:
+                from core.models import Transaction
+                original = Transaction.objects.get(pk=self.pk)
+                original_goal = original.goal
+                original_amount = original.amount
+                original_type = original.type
+            except Transaction.DoesNotExist:
+                pass
+
+        # Executa o save original
+        super().save(*args, **kwargs)
+
+        # Se houver meta anterior ou atual, ajustamos o progresso
+        if original_goal or self.goal:
+            # 1. Reverter o impacto original se havia uma meta
+            if original_goal:
+                goal_obj = original_goal
+                if original_type == self.TransactionType.EXPENSE:
+                    # Despesa (Aporte) original adicionou ao saldo da meta. Revertemos subtraindo.
+                    goal_obj.current_amount = max(goal_obj.current_amount - original_amount, Decimal('0.00'))
+                elif original_type == self.TransactionType.INCOME:
+                    # Receita (Resgate) original subtraiu do saldo da meta. Revertemos somando.
+                    goal_obj.current_amount += original_amount
+                goal_obj.save()
+
+            # 2. Aplicar o novo impacto se houver uma meta atualmente vinculada
+            if self.goal:
+                # Se for a mesma meta do passo anterior, recarregamos para ter o saldo já revertido
+                goal_obj = self.goal
+                if original_goal and original_goal.pk == self.goal.pk:
+                    goal_obj.refresh_from_db()
+                
+                if self.type == self.TransactionType.EXPENSE:
+                    # Despesa (Aporte) adiciona à meta
+                    goal_obj.current_amount += self.amount
+                elif self.type == self.TransactionType.INCOME:
+                    # Receita (Resgate) subtrai da meta (limitado a zero)
+                    goal_obj.current_amount = max(goal_obj.current_amount - self.amount, Decimal('0.00'))
+                goal_obj.save()
+
+    def delete(self, *args, **kwargs):
+        # Ao excluir, reverte o impacto na meta vinculada
+        if self.goal:
+            goal_obj = self.goal
+            if self.type == self.TransactionType.EXPENSE:
+                goal_obj.current_amount = max(goal_obj.current_amount - self.amount, Decimal('0.00'))
+            elif self.type == self.TransactionType.INCOME:
+                goal_obj.current_amount += self.amount
+            goal_obj.save()
+
+        super().delete(*args, **kwargs)
 
 
 class Goal(models.Model):

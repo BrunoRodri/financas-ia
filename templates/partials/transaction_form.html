@@ -73,6 +73,15 @@
         {% endif %}
     </div>
 
+    <!-- Meta Vinculada -->
+    <div>
+        <label class="form-label" for="id_goal">Meta Vinculada (Opcional)</label>
+        {{ form.goal }}
+        {% if form.goal.errors %}
+            <p class="form-error">{{ form.goal.errors.0 }}</p>
+        {% endif %}
+    </div>
+
     <!-- Tags -->
     {% if form.tags.field.queryset.exists %}
     <div>

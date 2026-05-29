@@ -272,6 +272,7 @@ def transaction_delete(request, pk):
 def transaction_edit(request, pk):
     """Edita uma transação via HTMX inline."""
     txn = get_object_or_404(Transaction, pk=pk)
+    goals = Goal.objects.all()
 
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=txn)
@@ -280,7 +281,7 @@ def transaction_edit(request, pk):
             return render(request, 'partials/transaction_row.html', {'txn': txn})
         # Form inválido: retorna o form com erros
         return render(request, 'partials/transaction_edit_form.html', {
-            'form': form, 'txn': txn,
+            'form': form, 'txn': txn, 'goals': goals,
         }, status=400)
 
     # GET com ?cancel=1 → cancela e retorna a row original sem salvar
@@ -290,12 +291,12 @@ def transaction_edit(request, pk):
     # GET sem cancel → retorna o form inline de edição
     if request.headers.get('HX-Request'):
         return render(request, 'partials/transaction_edit_form.html', {
-            'form': TransactionForm(instance=txn), 'txn': txn,
+            'form': TransactionForm(instance=txn), 'txn': txn, 'goals': goals,
         })
 
     # Fallback página completa (não HTMX)
     form = TransactionForm(instance=txn)
-    return render(request, 'transactions/edit.html', {'form': form, 'txn': txn})
+    return render(request, 'transactions/edit.html', {'form': form, 'txn': txn, 'goals': goals})
 
 
 # ─── Recurring Rules ────────────────────────────────────────────────────────
@@ -436,7 +437,6 @@ def goal_update(request, pk):
         try:
             amount = Decimal(adjust_amount)
             if action_type == 'add':
-                goal.current_amount += amount
                 if create_transaction:
                     # Garantir que a tag "Metas" exista
                     tag, _ = Tag.objects.get_or_create(
@@ -448,31 +448,42 @@ def goal_update(request, pk):
                         amount=amount,
                         due_date=timezone.localdate(),
                         type=Transaction.TransactionType.EXPENSE,
-                        status=Transaction.Status.PAID
+                        status=Transaction.Status.PAID,
+                        goal=goal
                     )
                     txn.tags.add(tag)
+                    goal.refresh_from_db()
+                else:
+                    goal.current_amount += amount
+                    goal.save()
             elif action_type == 'subtract':
                 # Só gera transação sobre o valor real resgatado (limitado ao atual acumulado da meta)
                 actual_subtracted = min(amount, goal.current_amount)
-                goal.current_amount = max(goal.current_amount - amount, Decimal('0.00'))
-                if create_transaction and actual_subtracted > 0:
-                    tag, _ = Tag.objects.get_or_create(
-                        name="Metas",
-                        defaults={"color": "#8b5cf6"}
-                    )
-                    txn = Transaction.objects.create(
-                        description=f"Resgate: {goal.name}",
-                        amount=actual_subtracted,
-                        due_date=timezone.localdate(),
-                        type=Transaction.TransactionType.INCOME,
-                        status=Transaction.Status.PAID
-                    )
-                    txn.tags.add(tag)
-            goal.save()
+                if create_transaction:
+                    if actual_subtracted > 0:
+                        tag, _ = Tag.objects.get_or_create(
+                            name="Metas",
+                            defaults={"color": "#8b5cf6"}
+                        )
+                        txn = Transaction.objects.create(
+                            description=f"Resgate: {goal.name}",
+                            amount=actual_subtracted,
+                            due_date=timezone.localdate(),
+                            type=Transaction.TransactionType.INCOME,
+                            status=Transaction.Status.PAID,
+                            goal=goal
+                        )
+                        txn.tags.add(tag)
+                        goal.refresh_from_db()
+                else:
+                    goal.current_amount = max(goal.current_amount - amount, Decimal('0.00'))
+                    goal.save()
             
             if request.headers.get('HX-Request'):
                 return render(request, 'partials/goal_card.html', {'goal': goal})
             return redirect('goal_list')
+        except (ValueError, ArithmeticError):
+            pass
         except (ValueError, ArithmeticError):
             pass
 

@@ -30,7 +30,7 @@ class TransactionForm(forms.ModelForm):
 
     class Meta:
         model = Transaction
-        fields = ['description', 'amount', 'due_date', 'type', 'status', 'credit_card', 'tags']
+        fields = ['description', 'amount', 'due_date', 'type', 'status', 'credit_card', 'tags', 'goal']
         widgets = {
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Mercado, Salário, Netflix...',
@@ -47,6 +47,7 @@ class TransactionForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'credit_card': forms.Select(attrs={'class': 'form-select'}),
             'tags': forms.CheckboxSelectMultiple(),
+            'goal': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -55,6 +56,8 @@ class TransactionForm(forms.ModelForm):
         self.fields['credit_card'].required = False
         self.fields['credit_card'].empty_label = 'Sem cartão'
         self.fields['tags'].required = False
+        self.fields['goal'].required = False
+        self.fields['goal'].empty_label = 'Sem meta'
 
         if self.instance and self.instance.pk:
             if self.instance.credit_card:
