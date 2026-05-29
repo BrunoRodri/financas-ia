@@ -36,9 +36,25 @@
         <div class="grid grid-cols-2 gap-3">
             <div>
                 <label class="form-label text-xs" for="edit_due_date_{{ txn.id }}">Data</label>
-                <input type="date" name="due_date" id="edit_due_date_{{ txn.id }}"
-                       value="{{ txn.due_date|date:'Y-m-d' }}"
-                       class="form-input w-full" required>
+                <div class="date-picker-wrap">
+                    <input type="text" name="due_date" id="edit_due_date_{{ txn.id }}"
+                           value="{{ txn.due_date|date:'d/m/Y' }}"
+                           class="form-input w-full" autocomplete="off" inputmode="numeric" required>
+                    <button type="button" class="date-picker-toggle" aria-label="Abrir calendário" data-date-toggle>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    </button>
+                    <div class="date-picker-panel hidden" data-date-panel>
+                        <div class="date-picker-header">
+                            <button type="button" data-date-prev aria-label="Mês anterior">‹</button>
+                            <span data-date-title></span>
+                            <button type="button" data-date-next aria-label="Próximo mês">›</button>
+                        </div>
+                        <div class="date-picker-weekdays">
+                            <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                        </div>
+                        <div class="date-picker-grid" data-date-grid></div>
+                    </div>
+                </div>
             </div>
             <div>
                 <label class="form-label text-xs" for="edit_status_{{ txn.id }}">Status</label>

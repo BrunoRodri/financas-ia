@@ -189,8 +189,10 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **Toggle Dinâmico:** Os filtros avançados (busca, tipo, status, cartão, tags e intervalo de datas) começam ocultados por padrão. Um botão dinâmico interativo permite alternar a visibilidade de forma fluida.
 * **Agrupamento Cronológico:** A lista de transações agrupa os lançamentos visualmente por meses cronológicos (ex: "DEZEMBRO 2025") utilizando a tag `ifchanged` do Django Template.
 
-### 3. Datepicker Premium e Desabilitação Condicional de Parcelas
-* **Datepicker Completo:** O campo de data inicial das Regras Recorrentes e nos formulários do dashboard conta com um componente customizado que combina digitação livre direta, máscara automatizada brasileira (`DD/MM/YYYY`) e calendário clicável interativo com tratamento anti-clipping de CSS.
+### 3. Datepicker Premium Unificado e Desabilitação Condicional de Parcelas
+* **Datepicker Global Unificado:** A lógica do calendário customizado foi generalizada e centralizada em uma única função JavaScript global `setupDatePickers()` no template base `base.html`.
+* **Inicialização Automatizada (HTMX & DOM):** O script monitora o carregamento inicial da página (`DOMContentLoaded`) e settle do HTMX (`htmx:afterSettle`). Qualquer campo de data que esteja encapsulado no wrapper `.date-picker-wrap` é automaticamente inicializado e ganha digitação direta mascarada (`DD/MM/YYYY`) e calendário visual interativo sem código redundante.
+* **Cobertura Completa:** Aplica-se a todos os inputs de data do sistema: Lançamento Rápido, Regras Recorrentes, Edição Inline de Transações, Criação de Metas Financeiras e Data de Referência do Saldo.
 * **Desabilitação de Parcelas:** Ao selecionar a recorrência "Mensal" no cadastro de regras recorrentes, o campo "Parcelas" é automaticamente zerado, desativado e esmaecido via Javascript.
 
 ### 4. Modais de Confirmação para Exclusão (Regras e Transações)

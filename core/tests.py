@@ -304,5 +304,46 @@ class GoalTransactionTests(TestCase):
         self.assertTemplateUsed(response, 'partials/transaction_delete_modal.html')
         self.assertEqual(response.context['txn'], txn)
 
+    def test_goal_form_supports_both_date_formats(self):
+        from core.forms import GoalForm
+        
+        # Test YYYY-MM-DD
+        form1 = GoalForm(data={
+            'name': 'Viagem',
+            'target_amount': '5000.00',
+            'current_amount': '1000.00',
+            'deadline': '2026-10-31',
+            'color': '#ff0000'
+        })
+        self.assertTrue(form1.is_valid())
+        
+        # Test DD/MM/YYYY
+        form2 = GoalForm(data={
+            'name': 'Viagem',
+            'target_amount': '5000.00',
+            'current_amount': '1000.00',
+            'deadline': '31/10/2026',
+            'color': '#ff0000'
+        })
+        self.assertTrue(form2.is_valid())
+
+    def test_user_settings_form_supports_both_date_formats(self):
+        from core.forms import UserSettingsForm
+        
+        # Test YYYY-MM-DD
+        form1 = UserSettingsForm(data={
+            'current_balance': '12500.50',
+            'balance_date': '2026-05-29'
+        })
+        self.assertTrue(form1.is_valid())
+        
+        # Test DD/MM/YYYY
+        form2 = UserSettingsForm(data={
+            'current_balance': '12500.50',
+            'balance_date': '29/05/2026'
+        })
+        self.assertTrue(form2.is_valid())
+
+
 
 

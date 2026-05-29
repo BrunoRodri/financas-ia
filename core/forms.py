@@ -154,6 +154,17 @@ class RecurringRuleForm(forms.ModelForm):
 class GoalForm(forms.ModelForm):
     """Form para criar/editar metas financeiras."""
 
+    deadline = forms.DateField(
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'dd/mm/aaaa',
+            'autocomplete': 'off',
+            'inputmode': 'numeric',
+        }),
+        label='Data Limite'
+    )
+
     class Meta:
         model = Goal
         fields = ['name', 'target_amount', 'current_amount', 'deadline', 'color']
@@ -172,10 +183,6 @@ class GoalForm(forms.ModelForm):
                 'class': 'form-input',
                 'step': '0.01',
             }),
-            'deadline': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-input',
-            }, format='%Y-%m-%d'),
             'color': forms.TextInput(attrs={
                 'type': 'color',
                 'class': 'form-input-color',
@@ -220,6 +227,17 @@ class CreditCardForm(forms.ModelForm):
 class UserSettingsForm(forms.ModelForm):
     """Form para atualizar o saldo atual."""
 
+    balance_date = forms.DateField(
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'dd/mm/aaaa',
+            'autocomplete': 'off',
+            'inputmode': 'numeric',
+        }),
+        label='Data de Referência'
+    )
+
     class Meta:
         model = UserSettings
         fields = ['current_balance', 'balance_date']
@@ -228,8 +246,4 @@ class UserSettingsForm(forms.ModelForm):
                 'class': 'form-input',
                 'step': '0.01',
             }),
-            'balance_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'form-input',
-            }, format='%Y-%m-%d'),
         }
