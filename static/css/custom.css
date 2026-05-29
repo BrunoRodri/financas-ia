@@ -602,3 +602,17 @@
 .quick-entry-card {
     overflow: visible;
 }
+
+/* Dynamic display of empty states when container has items */
+#goals-grid:has(> :not(.empty-state)) > .empty-state {
+    display: none !important;
+}
+
+#cards-list:has(> :not(.empty-state)) > .empty-state {
+    display: none !important;
+}
+
+#recurring-list:has(> :not(.empty-state)) > .empty-state {
+    display: none !important;
+}
+

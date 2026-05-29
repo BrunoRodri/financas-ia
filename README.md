@@ -110,3 +110,5 @@ A aplicação utiliza uma paleta de cores escura personalizada com acentos vibra
 - **Verde Dinâmico (Entradas/Income):** `#22c55e` (Aumento de saldo).
 - **Vermelho Dinâmico (Saídas/Expense):** `#ef4444` (Queda de saldo).
 - **Micro-animações:** Efeitos suaves de hover em botões, transições de status HTMX e animações `@keyframes` personalizadas definidas em `static/css/custom.css`.
+- **Empty States Inteligentes:** Ocultação/exibição automatizada e declarativa das mensagens de lista vazia (ex: "Nenhuma meta criada") via seletor CSS `:has()`, garantindo comportamento fluído nas inserções e remoções assíncronas do HTMX sem javascript imperativo adicional.
+

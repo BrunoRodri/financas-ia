@@ -197,3 +197,8 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **HTMX Dynamic Popups:** Ao clicar no botão de remoção de uma Regra Recorrente, o sistema consulta via HTMX o status da regra.
 * **Preservação de Histórico:** Se houver transações já pagas pertencentes à regra, o modal (glassmorphism/blur) oferece ao usuário as opções de **"Excluir apenas as NÃO PAGAS"** (preservando o histórico e desvinculando os lançamentos quitados) ou **"Excluir TUDO"**.
 
+### 5. Ocultação Dinâmica de Empty States (CSS :has)
+* **CSS Declarativo Moderno:** Para evitar que mensagens como "Nenhuma meta criada" continuem visíveis ao criar elementos via HTMX (ou reapareçam incorretamente ao deletar), foi implementada uma regra CSS declarativa usando o seletor moderno `:has()`.
+* **Sem Código Imperativo:** Quando o grid/lista de metas, cartões ou regras recorrentes passa a ter qualquer filho que não seja o próprio container de empty state (`:has(> :not(.empty-state))`), a mensagem de estado vazio é ocultada automaticamente com `display: none`. Se todos os itens forem deletados, ela é reexibida instantaneamente sem a necessidade de scripts JS ou swaps HTMX adicionais.
+
+
