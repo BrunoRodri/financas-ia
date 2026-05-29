@@ -201,4 +201,10 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **CSS Declarativo Moderno:** Para evitar que mensagens como "Nenhuma meta criada" continuem visíveis ao criar elementos via HTMX (ou reapareçam incorretamente ao deletar), foi implementada uma regra CSS declarativa usando o seletor moderno `:has()`.
 * **Sem Código Imperativo:** Quando o grid/lista de metas, cartões ou regras recorrentes passa a ter qualquer filho que não seja o próprio container de empty state (`:has(> :not(.empty-state))`), a mensagem de estado vazio é ocultada automaticamente com `display: none`. Se todos os itens forem deletados, ela é reexibida instantaneamente sem a necessidade de scripts JS ou swaps HTMX adicionais.
 
+### 6. Lançamento Automático de Transações por Metas (Aporte/Resgate)
+* **Integração com Fluxo de Caixa:** Ao guardar ou retirar valores de uma meta financeira, o formulário oferece um seletor dropdown premium que permite ao usuário decidir se deseja registrar essa movimentação como uma transação correspondente no fluxo de caixa ("Sim, lançar no fluxo" vs. "Não, apenas atualizar meta").
+* **Mapeamento de Tipos:** Aportes (guardar) geram transações do tipo **Saída (EXPENSE)**, pois reduzem o saldo líquido disponível. Resgates (retirar) geram transações do tipo **Entrada (INCOME)**.
+* **Auto-Categorização com Tags:** Toda transação gerada dessa forma é automaticamente marcada com a tag `"Metas"` (cor violeta `#8b5cf6`, criada de forma resiliente se inexistente) e configurada com status **Pago (PAID)**, fornecendo consistência contábil instantânea.
+
+
 

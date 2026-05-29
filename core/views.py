@@ -430,14 +430,44 @@ def goal_update(request, pk):
     # Suporte a ajuste rápido inline (aporte/resgate)
     action_type = request.POST.get('action_type')
     adjust_amount = request.POST.get('adjust_amount')
+    create_transaction = request.POST.get('create_transaction') == 'true'
     
     if action_type and adjust_amount:
         try:
             amount = Decimal(adjust_amount)
             if action_type == 'add':
                 goal.current_amount += amount
+                if create_transaction:
+                    # Garantir que a tag "Metas" exista
+                    tag, _ = Tag.objects.get_or_create(
+                        name="Metas",
+                        defaults={"color": "#8b5cf6"}
+                    )
+                    txn = Transaction.objects.create(
+                        description=f"Aporte: {goal.name}",
+                        amount=amount,
+                        due_date=timezone.localdate(),
+                        type=Transaction.TransactionType.EXPENSE,
+                        status=Transaction.Status.PAID
+                    )
+                    txn.tags.add(tag)
             elif action_type == 'subtract':
+                # Só gera transação sobre o valor real resgatado (limitado ao atual acumulado da meta)
+                actual_subtracted = min(amount, goal.current_amount)
                 goal.current_amount = max(goal.current_amount - amount, Decimal('0.00'))
+                if create_transaction and actual_subtracted > 0:
+                    tag, _ = Tag.objects.get_or_create(
+                        name="Metas",
+                        defaults={"color": "#8b5cf6"}
+                    )
+                    txn = Transaction.objects.create(
+                        description=f"Resgate: {goal.name}",
+                        amount=actual_subtracted,
+                        due_date=timezone.localdate(),
+                        type=Transaction.TransactionType.INCOME,
+                        status=Transaction.Status.PAID
+                    )
+                    txn.tags.add(tag)
             goal.save()
             
             if request.headers.get('HX-Request'):

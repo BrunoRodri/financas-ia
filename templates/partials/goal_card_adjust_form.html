@@ -29,6 +29,17 @@
                    autofocus>
         </div>
 
+        <div>
+            <label class="form-label !text-[9px] !mb-1" for="create_transaction">Lançar no Fluxo de Caixa?</label>
+            <select name="create_transaction" 
+                    id="create_transaction" 
+                    class="form-select !py-1 !text-xs !bg-dark-800/60 !h-8 !border-white/10 focus:!border-accent-light">
+                <option value="true" selected>Sim, lançar no fluxo</option>
+                <option value="false">Não, apenas atualizar meta</option>
+            </select>
+        </div>
+
+
         <div class="flex gap-2">
             <button type="submit" class="btn btn-sm btn-success flex-1 text-xs">
                 Confirmar

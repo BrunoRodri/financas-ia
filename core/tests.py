@@ -137,3 +137,94 @@ class CashFlowProjectionTests(TestCase):
         self.assertEqual(by_month['2026-03']['end_balance'], Decimal('900.00'))
         self.assertEqual(by_month['2026-04']['end_balance'], Decimal('200.00'))
         self.assertEqual(by_month['2026-05']['end_balance'], Decimal('200.00'))
+
+
+class GoalTransactionTests(TestCase):
+    def test_goal_deposit_creates_expense_transaction_when_flag_is_true(self):
+        from django.urls import reverse
+        from core.models import Goal
+        
+        goal = Goal.objects.create(
+            name="Viagem Rio",
+            target_amount=Decimal("7000.00"),
+            current_amount=Decimal("1000.00"),
+            deadline=date(2026, 9, 27)
+        )
+        
+        response = self.client.post(
+            reverse('goal_update', args=[goal.id]),
+            {
+                'action_type': 'add',
+                'adjust_amount': '500.00',
+                'create_transaction': 'true'
+            }
+        )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1500.00"))
+        
+        # Verify transaction was created
+        txn = Transaction.objects.latest('created_at')
+        self.assertEqual(txn.description, "Aporte: Viagem Rio")
+        self.assertEqual(txn.amount, Decimal("500.00"))
+        self.assertEqual(txn.type, Transaction.TransactionType.EXPENSE)
+        self.assertEqual(txn.status, Transaction.Status.PAID)
+        self.assertTrue(txn.tags.filter(name="Metas").exists())
+
+    def test_goal_withdraw_creates_income_transaction_when_flag_is_true(self):
+        from django.urls import reverse
+        from core.models import Goal
+        
+        goal = Goal.objects.create(
+            name="Viagem Rio",
+            target_amount=Decimal("7000.00"),
+            current_amount=Decimal("1000.00"),
+            deadline=date(2026, 9, 27)
+        )
+        
+        response = self.client.post(
+            reverse('goal_update', args=[goal.id]),
+            {
+                'action_type': 'subtract',
+                'adjust_amount': '300.00',
+                'create_transaction': 'true'
+            }
+        )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("700.00"))
+        
+        # Verify transaction was created
+        txn = Transaction.objects.latest('created_at')
+        self.assertEqual(txn.description, "Resgate: Viagem Rio")
+        self.assertEqual(txn.amount, Decimal("300.00"))
+        self.assertEqual(txn.type, Transaction.TransactionType.INCOME)
+        self.assertEqual(txn.status, Transaction.Status.PAID)
+        self.assertTrue(txn.tags.filter(name="Metas").exists())
+
+    def test_goal_deposit_no_transaction_when_flag_is_false(self):
+        from django.urls import reverse
+        from core.models import Goal
+        
+        goal = Goal.objects.create(
+            name="Viagem Rio",
+            target_amount=Decimal("7000.00"),
+            current_amount=Decimal("1000.00"),
+            deadline=date(2026, 9, 27)
+        )
+        
+        initial_txn_count = Transaction.objects.count()
+        
+        response = self.client.post(
+            reverse('goal_update', args=[goal.id]),
+            {
+                'action_type': 'add',
+                'adjust_amount': '500.00',
+                'create_transaction': 'false'
+            }
+        )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1500.00"))
+        self.assertEqual(Transaction.objects.count(), initial_txn_count)
+
