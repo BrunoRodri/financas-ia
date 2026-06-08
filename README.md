@@ -18,7 +18,7 @@ Com uma interface moderna, dark-mode nativo, glassmorphism e atualizações sem 
 - **🗄️ Sistema de Arquivamento (Finalização):** Arquive metas concluídas ou regras recorrentes obsoletas para evitar poluição visual nas listagens principais, sem perder o rastreamento das tags e transações históricas geradas.
   - **Auto-Arquivamento:** Regras parceladas (`INSTALLMENT`) são arquivadas de forma automática assim que ultrapassam a data final de vencimento de suas parcelas.
   - **Manual:** Outras regras e metas financeiras podem ser arquivadas e restauradas manualmente a qualquer momento.
-  - **Filtro CSS de Alta Performance:** A alternância entre abas de ativos e arquivados funciona de maneira ultra-rápida no front-end por meio de classes de estado e seletores CSS avançados.
+  - **Filtro CSS de Alta Performance:** A alternância entre abas de ativos e arquivados funciona de maneira ultra-rápida no front-end por meio de classes de estado e seletores CSS avançados (com cache-busting do arquivo estático para evitar inconsistências no navegador).
 - **🛡️ Saldo de Referência Integrado:** Ponto de partida flexível que aparece inserido em sua posição temporal exata na listagem de transações, servindo de base real para o cálculo de Saldo Líquido. Transações históricas anteriores a este saldo são atenuadas visualmente (`opacity-45`) e assinaladas como "Não computadas" com explicação em tooltip.
 - **🎨 UI/UX Avançada e Controle Inteligente:**
   - **Filtros Avançados & Agrupamento:** Painel de filtros de transações dinâmico (ocultável) e listagem agrupada de forma elegante por mês cronológico.
