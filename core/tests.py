@@ -361,6 +361,51 @@ class GoalTransactionTests(TestCase):
         goal.refresh_from_db()
         self.assertEqual(goal.current_amount, Decimal("1000.00"))
 
+    def test_recurring_rule_with_goal_propagates_goal_to_transactions(self):
+        from core.models import Goal, RecurringRule
+        goal = Goal.objects.create(
+            name="Equipamentos",
+            target_amount=Decimal("5000.00"),
+            current_amount=Decimal("3000.00"),
+            deadline=date(2026, 12, 31)
+        )
+        
+        # Create an INSTALLMENT expense rule linked to the goal
+        rule = RecurringRule.objects.create(
+            description="Notebook",
+            amount=Decimal("200.00"),
+            type=Transaction.TransactionType.EXPENSE,
+            recurrence_type=RecurringRule.RecurrenceType.INSTALLMENT,
+            total_installments=5,
+            start_date=date(2026, 6, 8),
+            goal=goal
+        )
+        
+        # Generate the transactions
+        txns = rule.generate_installment_transactions()
+        self.assertEqual(len(txns), 5)
+        
+        # Check that all transactions are linked to the goal
+        for txn in txns:
+            self.assertEqual(txn.goal, goal)
+            self.assertEqual(txn.recurring_rule, rule)
+            
+        # Check that the goal current_amount was correctly updated.
+        # Since description is "Notebook (1/5)" etc, it does not start with "Aporte".
+        # Therefore, these are treated as manual expenses and should SUBTRACT from the goal.
+        # Original current_amount: 3000.00. 5 installments of 200.00 total 1000.00.
+        # 3000.00 - 1000.00 = 2000.00.
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("2000.00"))
+
+        # Test deletion via the view to make sure goal balance is reverted
+        from django.urls import reverse
+        response = self.client.post(reverse('recurring_delete', args=[rule.id]) + '?delete_all=true')
+        self.assertEqual(response.status_code, 200)
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("3000.00"))
+
     def test_transaction_delete_confirm_view_returns_correct_template_and_context(self):
         from django.urls import reverse
         txn = Transaction.objects.create(

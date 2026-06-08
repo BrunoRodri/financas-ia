@@ -101,6 +101,12 @@
                     </div>
                 </div>
 
+                <!-- Meta Vinculada -->
+                <div>
+                    <label class="form-label" for="id_goal">Meta Vinculada</label>
+                    {{ form.goal }}
+                </div>
+
                 {% if form.tags.field.queryset.exists %}
                 <div>
                     <label class="form-label">Tags</label>

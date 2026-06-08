@@ -95,6 +95,10 @@ class RecurringRule(models.Model):
         CreditCard, on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name='Cartão', related_name='recurring_rules',
     )
+    goal = models.ForeignKey(
+        'Goal', on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Meta vinculada', related_name='recurring_rules',
+    )
     tags = models.ManyToManyField(Tag, blank=True, verbose_name='Tags',
                                   related_name='recurring_rules')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -144,13 +148,15 @@ class RecurringRule(models.Model):
                 recurring_rule=self,
                 credit_card=self.credit_card,
                 installment_number=i,
+                goal=self.goal,
             )
             transactions.append(txn)
 
-        created = Transaction.objects.bulk_create(transactions)
-        # Copy tags to each created transaction
-        for txn in created:
+        created = []
+        for txn in transactions:
+            txn.save()
             txn.tags.set(self.tags.all())
+            created.append(txn)
         return created
 
     def materialize_monthly_transactions(self, months_ahead=6):
@@ -165,8 +171,6 @@ class RecurringRule(models.Model):
         end_horizon = today + relativedelta(months=months_ahead)
 
         start_materialize = self.start_date
-
-
 
         existing_dates = set(
             self.transactions.values_list('due_date', flat=True)
@@ -184,13 +188,16 @@ class RecurringRule(models.Model):
                     status=Transaction.Status.PENDING,
                     recurring_rule=self,
                     credit_card=self.credit_card,
+                    goal=self.goal,
                 )
                 transactions.append(txn)
             current += relativedelta(months=1)
 
-        created = Transaction.objects.bulk_create(transactions)
-        for txn in created:
+        created = []
+        for txn in transactions:
+            txn.save()
             txn.tags.set(self.tags.all())
+            created.append(txn)
         return created
 
 

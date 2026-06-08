@@ -108,6 +108,7 @@ Abaixo estão descritos os atributos chaves dos modelos principais do projeto:
 - `end_date` (DateField, auto-calculado): Fim da regra (calculado para parcelamentos).
 - `is_active` (BooleanField): Ativa ou inativa a geração de novos lançamentos.
 - `credit_card` (ForeignKey): Cartão de crédito associado à regra.
+- `goal` (ForeignKey): Meta vinculada à regra (opcional).
 - `tags` (ManyToManyField): Associação flexível de marcadores.
 
 ### 4. `Transaction`
@@ -205,7 +206,7 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **Sem Código Imperativo:** Quando o grid/lista de metas, cartões ou regras recorrentes passa a ter qualquer filho que não seja o próprio container de empty state (`:has(> :not(.empty-state))`), a mensagem de estado vazio é ocultada automaticamente com `display: none`. Se todos os itens forem deletados, ela é reexibida instantaneamente sem a necessidade de scripts JS ou swaps HTMX adicionais.
 
 ### 6. Sincronização Automática e Bidirecional de Metas e Transações
-* **Relacionamento Direto (ForeignKey):** A model `Transaction` possui uma chave estrangeira opcional `goal` apontando para `Goal`. Transações geradas a partir do formulário de metas recebem essa referência automaticamente, e transações criadas manualmente podem ser vinculadas a metas através do campo "Meta Vinculada" no painel de lançamento rápido.
+* **Relacionamento Direto (ForeignKey):** A model `Transaction` possui uma chave estrangeira opcional `goal` apontando para `Goal`. Transações geradas a partir do formulário de metas recebem essa referência automaticamente, e transações criadas manualmente podem ser vinculadas a metas através do campo "Meta Vinculada" no painel de lançamento rápido. Adicionalmente, regras recorrentes (`RecurringRule`) também podem ser vinculadas diretamente a uma meta, propagando essa referência automaticamente para todas as suas transações geradas (seja no momento da criação da regra ou durante a materialização mensal).
 * **Mapeamento de Fluxos:** Aportes oficiais (tipo **EXPENSE** com descrição começando por "Aporte" case-insensitive) e entradas manuais comuns (tipo **INCOME** sem descrição de "Resgate") aumentam o progresso acumulado da meta. Resgates oficiais (tipo **INCOME** com descrição começando por "Resgate" case-insensitive) e saídas/despesas manuais comuns (tipo **EXPENSE** sem descrição de "Aporte") reduzem o valor acumulado da meta.
 * **Sincronização no Ciclo de Vida da Model (Save/Delete):**
   - **Criação/Edição:** Ao salvar uma transação vinculada a uma meta, o Django intercepta o salvamento (`save()`), detecta se houve alteração de valor, tipo, descrição ou mudança de meta. Ele reverte o impacto antigo na meta anterior e aplica o novo impacto na meta atual de forma atômica e resiliente.

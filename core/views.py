@@ -375,12 +375,14 @@ def recurring_delete(request, pk):
 
     if delete_all:
         # Exclui absolutamente tudo (inclusive transações pagas)
-        rule.transactions.all().delete()
+        for txn in list(rule.transactions.all()):
+            txn.delete()
     else:
         # Desvincula transações pagas para que não sejam apagadas pelo CASCADE
         rule.transactions.filter(status=Transaction.Status.PAID).update(recurring_rule=None)
         # Exclui as transações pendentes
-        rule.transactions.filter(status=Transaction.Status.PENDING).delete()
+        for txn in list(rule.transactions.filter(status=Transaction.Status.PENDING)):
+            txn.delete()
 
     rule.delete()
     return HttpResponse('')

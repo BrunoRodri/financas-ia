@@ -100,7 +100,7 @@ class RecurringRuleForm(forms.ModelForm):
         model = RecurringRule
         fields = [
             'description', 'amount', 'type', 'recurrence_type',
-            'total_installments', 'start_date', 'credit_card', 'tags',
+            'total_installments', 'start_date', 'credit_card', 'goal', 'tags',
         ]
         widgets = {
             'description': forms.TextInput(attrs={
@@ -121,6 +121,7 @@ class RecurringRuleForm(forms.ModelForm):
                 'min': '2',
             }),
             'credit_card': forms.Select(attrs={'class': 'form-select'}),
+            'goal': forms.Select(attrs={'class': 'form-select'}),
             'tags': forms.CheckboxSelectMultiple(),
         }
 
@@ -129,6 +130,8 @@ class RecurringRuleForm(forms.ModelForm):
         self.fields['start_date'].initial = timezone.localdate()
         self.fields['credit_card'].required = False
         self.fields['credit_card'].empty_label = 'Sem cartão'
+        self.fields['goal'].required = False
+        self.fields['goal'].empty_label = 'Sem meta'
         self.fields['total_installments'].required = False
         self.fields['tags'].required = False
 
