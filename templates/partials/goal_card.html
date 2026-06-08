@@ -1,16 +1,32 @@
 {% load currency_filters %}
-<div id="goal-card-{{ goal.id }}" class="p-4 rounded-xl bg-dark-700/50 border border-white/5 {% if is_new %}new-row{% endif %}">
+<div id="goal-card-{{ goal.id }}" class="goal-card p-4 rounded-xl bg-dark-700/50 border border-white/5 {% if goal.is_archived %}is-archived-goal{% else %}is-active-goal{% endif %} {% if is_new %}new-row{% endif %}">
     <div class="flex items-start justify-between mb-3">
         <div>
             <h3 class="text-sm font-semibold text-white">{{ goal.name }}</h3>
             <p class="text-xs text-gray-500 mt-0.5">Meta até {{ goal.deadline|date:"d/m/Y" }}</p>
         </div>
-        <button hx-get="{% url 'goal_delete_confirm' goal.id %}"
-                hx-target="#global-modal"
-                class="p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400 transition-colors cursor-pointer"
-                title="Excluir meta">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
+        <div class="flex gap-1 items-center">
+            <!-- Botão de Arquivar / Restaurar -->
+            <button hx-post="{% url 'goal_toggle_archive' goal.id %}"
+                    hx-target="#goal-card-{{ goal.id }}"
+                    hx-swap="outerHTML"
+                    class="p-1 rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors cursor-pointer"
+                    title="{% if goal.is_archived %}Restaurar meta{% else %}Arquivar meta{% endif %}">
+                {% if goal.is_archived %}
+                    <!-- Restore Icon -->
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                {% else %}
+                    <!-- Archive Icon -->
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8"/></svg>
+                {% endif %}
+            </button>
+            <button hx-get="{% url 'goal_delete_confirm' goal.id %}"
+                    hx-target="#global-modal"
+                    class="p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400 transition-colors cursor-pointer"
+                    title="Excluir meta">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
     </div>
 
     <!-- Progress Bar -->

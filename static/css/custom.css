@@ -603,15 +603,23 @@
 }
 
 /* Dynamic display of empty states when container has items */
-#goals-grid:has(> :not(.empty-state)) > .empty-state {
-    display: none !important;
-}
-
 #cards-list:has(> :not(.empty-state)) > .empty-state {
     display: none !important;
 }
 
-#recurring-list:has(> :not(.empty-state)) > .empty-state {
-    display: none !important;
-}
+/* Seleção de Abas de Metas */
+#goals-grid.tab-active-selected .is-archived-goal { display: none !important; }
+#goals-grid.tab-archived-selected .is-active-goal { display: none !important; }
+
+/* Exibição condicional do empty state de metas com :has */
+#goals-grid.tab-active-selected:has(.goal-card.is-active-goal) .empty-state-active { display: none !important; }
+#goals-grid.tab-archived-selected:has(.goal-card.is-archived-goal) .empty-state-archived { display: none !important; }
+
+/* Seleção de Abas de Regras Recorrentes */
+#recurring-list.tab-active-selected .is-archived-rule { display: none !important; }
+#recurring-list.tab-archived-selected .is-active-rule { display: none !important; }
+
+/* Exibição condicional do empty state de regras recorrentes com :has */
+#recurring-list.tab-active-selected:has(.recurring-row.is-active-rule) .empty-state-active { display: none !important; }
+#recurring-list.tab-archived-selected:has(.recurring-row.is-archived-rule) .empty-state-archived { display: none !important; }
 

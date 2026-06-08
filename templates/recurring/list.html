@@ -12,18 +12,43 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- List -->
-        <div class="lg:col-span-2 card">
-            <h2 class="text-lg font-semibold text-white mb-4">Suas Regras</h2>
-            <div class="space-y-1" id="recurring-list">
+        <div class="lg:col-span-2 card space-y-4">
+            <h2 class="text-lg font-semibold text-white">Suas Regras</h2>
+            
+            <!-- Tabs de Regras Recorrentes -->
+            <div class="flex gap-2 border-b border-white/5 pb-px">
+                <button type="button" 
+                        id="btn-active-rules" 
+                        class="px-4 py-2 text-sm font-semibold border-b-2 border-accent text-white transition-all cursor-pointer"
+                        onclick="switchTab('recurring-list', 'active', 'btn-active-rules', 'btn-archived-rules')">
+                    Ativas ({{ active_rules_count }})
+                </button>
+                <button type="button" 
+                        id="btn-archived-rules" 
+                        class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition-all cursor-pointer"
+                        onclick="switchTab('recurring-list', 'archived', 'btn-active-rules', 'btn-archived-rules')">
+                    Arquivadas ({{ archived_rules_count }})
+                </button>
+            </div>
+
+            <div class="space-y-1 tab-active-selected" id="recurring-list">
                 {% for rule in rules %}
                     {% include 'partials/recurring_row.html' %}
-                {% empty %}
-                    <div class="empty-state">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        <p class="text-sm">Nenhuma regra recorrente cadastrada</p>
-                        <p class="text-xs mt-1">Adicione assinaturas e compras parceladas</p>
-                    </div>
                 {% endfor %}
+
+                <!-- Empty State Ativo -->
+                <div class="empty-state empty-state-active is-active-rule">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    <p class="text-sm">Nenhuma regra recorrente ativa cadastrada</p>
+                    <p class="text-xs mt-1">Adicione assinaturas e compras parceladas</p>
+                </div>
+
+                <!-- Empty State Arquivado -->
+                <div class="empty-state empty-state-archived is-archived-rule">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                    <p class="text-sm">Nenhuma regra recorrente arquivada</p>
+                    <p class="text-xs mt-1">As regras que você finalizar serão exibidas aqui</p>
+                </div>
             </div>
         </div>
 
@@ -187,9 +212,47 @@
     if (recurrenceSelect) recurrenceSelect.addEventListener('change', updateInstallmentsAvailability);
     if (typeSelect) typeSelect.addEventListener('change', updateCardAvailability);
 
+    window.switchTab = function(containerId, tabType, activeBtnId, archivedBtnId) {
+        const container = document.getElementById(containerId);
+        const activeBtn = document.getElementById(activeBtnId);
+        const archivedBtn = document.getElementById(archivedBtnId);
+        
+        if (tabType === 'active') {
+            container.classList.remove('tab-archived-selected');
+            container.classList.add('tab-active-selected');
+            
+            activeBtn.classList.remove('border-transparent', 'text-gray-400');
+            activeBtn.classList.add('border-accent', 'text-white');
+            
+            archivedBtn.classList.remove('border-accent', 'text-white');
+            archivedBtn.classList.add('border-transparent', 'text-gray-400');
+        } else {
+            container.classList.remove('tab-active-selected');
+            container.classList.add('tab-archived-selected');
+            
+            archivedBtn.classList.remove('border-transparent', 'text-gray-400');
+            archivedBtn.classList.add('border-accent', 'text-white');
+            
+            activeBtn.classList.remove('border-accent', 'text-white');
+            activeBtn.classList.add('border-transparent', 'text-gray-400');
+        }
+    };
+
+    function updateRecurringCounters() {
+        const activeCount = document.querySelectorAll('#recurring-list .recurring-row.is-active-rule').length;
+        const archivedCount = document.querySelectorAll('#recurring-list .recurring-row.is-archived-rule').length;
+        
+        const activeBtn = document.getElementById('btn-active-rules');
+        const archivedBtn = document.getElementById('btn-archived-rules');
+        
+        if (activeBtn) activeBtn.textContent = `Ativas (${activeCount})`;
+        if (archivedBtn) archivedBtn.textContent = `Arquivadas (${archivedCount})`;
+    }
+
     document.addEventListener('htmx:afterSwap', function() {
         updateInstallmentsAvailability();
         updateCardAvailability();
+        updateRecurringCounters();
     });
 
     // Reset listener to correctly reset dynamic field states
@@ -198,6 +261,7 @@
             setTimeout(function() {
                 updateInstallmentsAvailability();
                 updateCardAvailability();
+                updateRecurringCounters();
             }, 0);
         }
     });

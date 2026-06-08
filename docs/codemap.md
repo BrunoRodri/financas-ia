@@ -107,6 +107,7 @@ Abaixo estão descritos os atributos chaves dos modelos principais do projeto:
 - `start_date` (DateField): Data inicial do ciclo.
 - `end_date` (DateField, auto-calculado): Fim da regra (calculado para parcelamentos).
 - `is_active` (BooleanField): Ativa ou inativa a geração de novos lançamentos.
+- `is_archived` (BooleanField): Indica se a regra foi arquivada (regras arquivadas são ocultadas por padrão na UI e não geram transações).
 - `credit_card` (ForeignKey): Cartão de crédito associado à regra.
 - `goal` (ForeignKey): Meta vinculada à regra (opcional).
 - `tags` (ManyToManyField): Associação flexível de marcadores.
@@ -127,6 +128,7 @@ Abaixo estão descritos os atributos chaves dos modelos principais do projeto:
 - `current_amount` (Decimal): Capital atualmente acumulado.
 - `deadline` (DateField): Prazo final limite.
 - `color` (CharField): Cor personalizada.
+- `is_archived` (BooleanField): Indica se a meta foi arquivada/encerrada (metas arquivadas são ocultadas por padrão na UI e excluídas dos formulários de transação).
 
 ### 6. `UserSettings`
 - `current_balance` (Decimal): Saldo unificado inicial.
@@ -212,6 +214,14 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
   - **Criação/Edição:** Ao salvar uma transação vinculada a uma meta, o Django intercepta o salvamento (`save()`), detecta se houve alteração de valor, tipo, descrição ou mudança de meta. Ele reverte o impacto antigo na meta anterior e aplica o novo impacto na meta atual de forma atômica e resiliente.
   - **Exclusão:** Ao excluir uma transação vinculada, o método `delete()` é interceptado para desfazer automaticamente o impacto correspondente no saldo acumulado da meta (revertendo o aporte, resgate ou despesa).
 * **Exibição Visual Premium:** Transações integradas a metas recebem uma badge exclusiva `🎯 Nome da Meta` na listagem de transações, facilitando a identificação imediata do propósito contábil.
+
+### 7. Sistema de Arquivamento (Finalização) de Metas e Regras Recorrentes
+* **Organização e Redução de Poluição:** Metas encerradas e regras recorrentes antigas podem ser arquivadas para liberar espaço visual na tela, sem a necessidade de excluí-las (o que destruiria o histórico de transações e tags).
+* **Arquivamento Manual e Automático:**
+  - **Metas e Regras Gerais:** Podem ser arquivadas ou restauradas manualmente através do ícone correspondente na interface.
+  - **Regras Parceladas (`INSTALLMENT`):** São arquivadas de forma 100% automatizada pelo sistema assim que a última parcela expira (quando a data atual ultrapassa a data final da regra recorrente). Esse processo roda em background no carregamento das listagens.
+* **Abas e Seletores Ultra-Rápidos:** A visualização utiliza abas nativas com filtragem CSS de alta performance (`:has()`). Ao invés de fazer requisições extras ao banco de dados para filtrar itens, o navegador oculta instantaneamente os itens arquivados ou ativos conforme a aba selecionada no container pai.
+* **Contadores Dinâmicos:** Os cabeçalhos das abas exibem a quantidade exata de itens ativos e arquivados/encerrados, atualizados automaticamente em tempo real após qualquer ação HTMX (criação, remoção ou alteração de estado).
 
 
 

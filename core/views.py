@@ -1,6 +1,7 @@
 import json
 from decimal import Decimal
 
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -44,9 +45,10 @@ class VirtualInitialBalance:
 
 def dashboard(request):
     """Página principal com projeção de saldo e lançamento rápido."""
+    RecurringRule.auto_archive_expired_rules()
     projection = project_cash_flow(months_ahead=6)
     upcoming = get_upcoming_transactions(days=30)
-    goals = Goal.objects.all()
+    goals = Goal.objects.filter(is_archived=False)
     settings = UserSettings.load()
 
     # Dados para o gráfico (Chart.js)
@@ -278,7 +280,7 @@ def transaction_delete_confirm(request, pk):
 def transaction_edit(request, pk):
     """Edita uma transação via HTMX inline."""
     txn = get_object_or_404(Transaction, pk=pk)
-    goals = Goal.objects.all()
+    goals = Goal.objects.filter(Q(is_archived=False) | Q(pk=txn.goal_id))
 
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=txn)
@@ -309,10 +311,13 @@ def transaction_edit(request, pk):
 
 def recurring_list(request):
     """Lista de regras recorrentes."""
+    RecurringRule.auto_archive_expired_rules()
     rules = RecurringRule.objects.select_related('credit_card').prefetch_related('tags').all()
     form = RecurringRuleForm()
     context = {
         'rules': rules,
+        'active_rules_count': rules.filter(is_archived=False).count(),
+        'archived_rules_count': rules.filter(is_archived=True).count(),
         'form': form,
     }
     return render(request, 'recurring/list.html', context)
@@ -410,6 +415,8 @@ def goal_list(request):
     form = GoalForm()
     context = {
         'goals': goals,
+        'active_goals_count': goals.filter(is_archived=False).count(),
+        'archived_goals_count': goals.filter(is_archived=True).count(),
         'form': form,
     }
     return render(request, 'goals/list.html', context)
@@ -643,3 +650,29 @@ def tag_delete(request, pk):
     tag = get_object_or_404(Tag, pk=pk)
     tag.delete()
     return HttpResponse('')
+
+
+@require_POST
+def goal_toggle_archive(request, pk):
+    """Alterna o status arquivado de uma meta."""
+    goal = get_object_or_404(Goal, pk=pk)
+    goal.is_archived = not goal.is_archived
+    goal.save()
+    
+    # Se a requisição vier com HX-Request, retornamos o card atualizado.
+    # Caso contrário, redirecionamos para a lista.
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/goal_card.html', {'goal': goal})
+    return redirect('goal_list')
+
+
+@require_POST
+def recurring_toggle_archive(request, pk):
+    """Alterna o status arquivado de uma regra recorrente."""
+    rule = get_object_or_404(RecurringRule, pk=pk)
+    rule.is_archived = not rule.is_archived
+    rule.save()
+    
+    if request.headers.get('HX-Request'):
+        return render(request, 'partials/recurring_row.html', {'rule': rule})
+    return redirect('recurring_list')

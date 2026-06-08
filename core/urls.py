@@ -18,6 +18,7 @@ urlpatterns = [
     path('recurring/', views.recurring_list, name='recurring_list'),
     path('recurring/create/', views.recurring_create, name='recurring_create'),
     path('recurring/<int:pk>/toggle/', views.recurring_toggle, name='recurring_toggle'),
+    path('recurring/<int:pk>/toggle-archive/', views.recurring_toggle_archive, name='recurring_toggle_archive'),
     path('recurring/<int:pk>/delete/', views.recurring_delete, name='recurring_delete'),
     path('recurring/<int:pk>/delete/confirm/', views.recurring_delete_confirm, name='recurring_delete_confirm'),
 
@@ -25,6 +26,7 @@ urlpatterns = [
     path('goals/', views.goal_list, name='goal_list'),
     path('goals/create/', views.goal_create, name='goal_create'),
     path('goals/<int:pk>/update/', views.goal_update, name='goal_update'),
+    path('goals/<int:pk>/toggle-archive/', views.goal_toggle_archive, name='goal_toggle_archive'),
     path('goals/<int:pk>/delete/', views.goal_delete, name='goal_delete'),
     path('goals/<int:pk>/delete/confirm/', views.goal_delete_confirm, name='goal_delete_confirm'),
     path('goals/<int:pk>/edit/', views.goal_edit, name='goal_edit'),

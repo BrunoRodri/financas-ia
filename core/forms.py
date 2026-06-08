@@ -1,6 +1,7 @@
 from django import forms
 from django.utils import timezone
 
+from django.db.models import Q
 from core.models import CreditCard, Goal, RecurringRule, Tag, Transaction, UserSettings
 
 
@@ -58,6 +59,14 @@ class TransactionForm(forms.ModelForm):
         self.fields['tags'].required = False
         self.fields['goal'].required = False
         self.fields['goal'].empty_label = 'Sem meta'
+
+        # Filter active goals, but preserve current goal if editing
+        goals_qs = Goal.objects.filter(is_archived=False)
+        if self.instance and self.instance.pk and self.instance.goal_id:
+            goals_qs = Goal.objects.filter(
+                Q(is_archived=False) | Q(pk=self.instance.goal_id)
+            )
+        self.fields['goal'].queryset = goals_qs
 
         if self.instance and self.instance.pk:
             if self.instance.credit_card:
@@ -134,6 +143,14 @@ class RecurringRuleForm(forms.ModelForm):
         self.fields['goal'].empty_label = 'Sem meta'
         self.fields['total_installments'].required = False
         self.fields['tags'].required = False
+
+        # Filter active goals, but preserve current goal if editing
+        goals_qs = Goal.objects.filter(is_archived=False)
+        if self.instance and self.instance.pk and self.instance.goal_id:
+            goals_qs = Goal.objects.filter(
+                Q(is_archived=False) | Q(pk=self.instance.goal_id)
+            )
+        self.fields['goal'].queryset = goals_qs
 
     def clean(self):
         cleaned_data = super().clean()

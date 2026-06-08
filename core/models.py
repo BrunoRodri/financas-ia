@@ -91,6 +91,7 @@ class RecurringRule(models.Model):
     end_date = models.DateField('Data de término', null=True, blank=True,
                                 help_text='Calculado automaticamente para parcelados')
     is_active = models.BooleanField('Ativo', default=True)
+    is_archived = models.BooleanField('Arquivado', default=False)
     credit_card = models.ForeignKey(
         CreditCard, on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name='Cartão', related_name='recurring_rules',
@@ -164,7 +165,7 @@ class RecurringRule(models.Model):
         Gera transações mensais para os próximos N meses que ainda não existam.
         Chamado quando o dashboard é acessado.
         """
-        if self.recurrence_type != self.RecurrenceType.MONTHLY or not self.is_active:
+        if self.recurrence_type != self.RecurrenceType.MONTHLY or not self.is_active or self.is_archived:
             return []
 
         today = timezone.localdate()
@@ -199,6 +200,24 @@ class RecurringRule(models.Model):
             txn.tags.set(self.tags.all())
             created.append(txn)
         return created
+
+    @classmethod
+    def auto_archive_expired_rules(cls):
+        """
+        Arquiva automaticamente regras parceladas vencidas (cujo end_date < hoje).
+        """
+        today = timezone.localdate()
+        expired_rules = cls.objects.filter(
+            recurrence_type=cls.RecurrenceType.INSTALLMENT,
+            is_archived=False
+        )
+        to_update = []
+        for rule in expired_rules:
+            if rule.end_date and rule.end_date < today:
+                rule.is_archived = True
+                to_update.append(rule)
+        if to_update:
+            cls.objects.bulk_update(to_update, ['is_archived'])
 
 
 
@@ -349,6 +368,7 @@ class Goal(models.Model):
                                          default=0)
     deadline = models.DateField('Data limite')
     color = models.CharField('Cor', max_length=7, default='#22c55e')
+    is_archived = models.BooleanField('Arquivado', default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

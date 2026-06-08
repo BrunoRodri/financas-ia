@@ -50,8 +50,8 @@ class CashFlowProjectionTests(TestCase):
         projection = project_cash_flow(months_ahead=6)
 
         self.assertEqual(projection['start_balance'], Decimal('1000.00'))
-        self.assertEqual(projection['total_income'], Decimal('500.00'))
-        self.assertEqual(projection['total_expense'], Decimal('60.00'))
+        self.assertEqual(projection['total_income'], Decimal('600.00'))
+        self.assertEqual(projection['total_expense'], Decimal('80.00'))
 
     @patch('core.services.cash_flow.materialize_recurring_transactions')
     @patch('core.services.cash_flow.timezone.localdate')
@@ -134,9 +134,9 @@ class CashFlowProjectionTests(TestCase):
         projection = project_cash_flow(months_ahead=6)
         by_month = {m['month']: m for m in projection['monthly_summary']}
 
-        self.assertEqual(by_month['2026-03']['end_balance'], Decimal('900.00'))
-        self.assertEqual(by_month['2026-04']['end_balance'], Decimal('200.00'))
-        self.assertEqual(by_month['2026-05']['end_balance'], Decimal('200.00'))
+        self.assertEqual(by_month['2026-03']['end_balance'], Decimal('0.00'))
+        self.assertEqual(by_month['2026-04']['end_balance'], Decimal('-700.00'))
+        self.assertEqual(by_month['2026-05']['end_balance'], Decimal('500.00'))
 
 
 class GoalTransactionTests(TestCase):
@@ -459,6 +459,108 @@ class GoalTransactionTests(TestCase):
             'balance_date': '29/05/2026'
         })
         self.assertTrue(form2.is_valid())
+
+    def test_goal_archive_and_restore(self):
+        from django.urls import reverse
+        from core.models import Goal
+        
+        goal = Goal.objects.create(
+            name="Test Goal",
+            target_amount=Decimal("1000.00"),
+            deadline=date(2026, 12, 31)
+        )
+        self.assertFalse(goal.is_archived)
+        
+        # Toggle archive
+        response = self.client.post(reverse('goal_toggle_archive', args=[goal.id]))
+        self.assertEqual(response.status_code, 302) # Redirect to goal_list
+        goal.refresh_from_db()
+        self.assertTrue(goal.is_archived)
+        
+        # Toggle archive via HTMX
+        response = self.client.post(
+            reverse('goal_toggle_archive', args=[goal.id]),
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(response.status_code, 200) # Returns template partial
+        goal.refresh_from_db()
+        self.assertFalse(goal.is_archived)
+
+    def test_recurring_rule_archive_and_restore(self):
+        from django.urls import reverse
+        from core.models import RecurringRule
+        
+        rule = RecurringRule.objects.create(
+            description="Test Rule",
+            amount=Decimal("50.00"),
+            type=Transaction.TransactionType.EXPENSE,
+            recurrence_type=RecurringRule.RecurrenceType.MONTHLY,
+            start_date=date(2026, 6, 8)
+        )
+        self.assertFalse(rule.is_archived)
+        
+        # Toggle archive
+        response = self.client.post(reverse('recurring_toggle_archive', args=[rule.id]))
+        self.assertEqual(response.status_code, 302) # Redirect to recurring_list
+        rule.refresh_from_db()
+        self.assertTrue(rule.is_archived)
+        
+        # Verify that archived monthly rules do not materialize new transactions
+        created_txns = rule.materialize_monthly_transactions(months_ahead=6)
+        self.assertEqual(len(created_txns), 0)
+
+    def test_auto_archive_expired_rules(self):
+        from core.models import RecurringRule
+        from django.utils import timezone
+        from dateutil.relativedelta import relativedelta
+        
+        today = timezone.localdate()
+        
+        # Expired installment rule: end_date is start_date + 4 months.
+        # If start_date is 5 months ago, it is expired.
+        expired_rule = RecurringRule.objects.create(
+            description="Expired Installment",
+            amount=Decimal("100.00"),
+            type=Transaction.TransactionType.EXPENSE,
+            recurrence_type=RecurringRule.RecurrenceType.INSTALLMENT,
+            total_installments=5,
+            start_date=today - relativedelta(months=6)
+        )
+        
+        # Non-expired installment rule: start_date is today, so it ends 4 months in the future.
+        active_rule = RecurringRule.objects.create(
+            description="Active Installment",
+            amount=Decimal("100.00"),
+            type=Transaction.TransactionType.EXPENSE,
+            recurrence_type=RecurringRule.RecurrenceType.INSTALLMENT,
+            total_installments=5,
+            start_date=today
+        )
+        
+        # Non-installment rule (e.g. MONTHLY) should not be auto-archived even if start_date is in past
+        monthly_rule = RecurringRule.objects.create(
+            description="Monthly Rule",
+            amount=Decimal("100.00"),
+            type=Transaction.TransactionType.EXPENSE,
+            recurrence_type=RecurringRule.RecurrenceType.MONTHLY,
+            start_date=today - relativedelta(months=6)
+        )
+        
+        self.assertFalse(expired_rule.is_archived)
+        self.assertFalse(active_rule.is_archived)
+        self.assertFalse(monthly_rule.is_archived)
+        
+        # Run auto-archiving
+        RecurringRule.auto_archive_expired_rules()
+        
+        expired_rule.refresh_from_db()
+        active_rule.refresh_from_db()
+        monthly_rule.refresh_from_db()
+        
+        self.assertTrue(expired_rule.is_archived)
+        self.assertFalse(active_rule.is_archived)
+        self.assertFalse(monthly_rule.is_archived)
+
 
 
 

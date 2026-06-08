@@ -12,17 +12,41 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Goals Grid -->
-        <div class="lg:col-span-2">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="goals-grid">
+        <div class="lg:col-span-2 space-y-4">
+            <!-- Tabs de Metas -->
+            <div class="flex gap-2 border-b border-white/5 pb-px">
+                <button type="button" 
+                        id="btn-active-goals" 
+                        class="px-4 py-2 text-sm font-semibold border-b-2 border-accent text-white transition-all cursor-pointer"
+                        onclick="switchTab('goals-grid', 'active', 'btn-active-goals', 'btn-archived-goals')">
+                    Ativas ({{ active_goals_count }})
+                </button>
+                <button type="button" 
+                        id="btn-archived-goals" 
+                        class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition-all cursor-pointer"
+                        onclick="switchTab('goals-grid', 'archived', 'btn-active-goals', 'btn-archived-goals')">
+                    Encerradas ({{ archived_goals_count }})
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 tab-active-selected" id="goals-grid">
                 {% for goal in goals %}
                     {% include 'partials/goal_card.html' %}
-                {% empty %}
-                    <div class="sm:col-span-2 empty-state card">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
-                        <p class="text-sm">Nenhuma meta criada</p>
-                        <p class="text-xs mt-1">Defina metas para acompanhar seu progresso</p>
-                    </div>
                 {% endfor %}
+
+                <!-- Empty State Ativo -->
+                <div class="sm:col-span-2 empty-state card empty-state-active is-active-goal">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                    <p class="text-sm">Nenhuma meta ativa criada</p>
+                    <p class="text-xs mt-1">Defina metas para acompanhar seu progresso</p>
+                </div>
+
+                <!-- Empty State Arquivado -->
+                <div class="sm:col-span-2 empty-state card empty-state-archived is-archived-goal">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                    <p class="text-sm">Nenhuma meta encerrada</p>
+                    <p class="text-xs mt-1">As metas que você finalizar serão exibidas aqui</p>
+                </div>
             </div>
         </div>
 
@@ -90,4 +114,49 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function switchTab(containerId, tabType, activeBtnId, archivedBtnId) {
+    const container = document.getElementById(containerId);
+    const activeBtn = document.getElementById(activeBtnId);
+    const archivedBtn = document.getElementById(archivedBtnId);
+    
+    if (tabType === 'active') {
+        container.classList.remove('tab-archived-selected');
+        container.classList.add('tab-active-selected');
+        
+        activeBtn.classList.remove('border-transparent', 'text-gray-400');
+        activeBtn.classList.add('border-accent', 'text-white');
+        
+        archivedBtn.classList.remove('border-accent', 'text-white');
+        archivedBtn.classList.add('border-transparent', 'text-gray-400');
+    } else {
+        container.classList.remove('tab-active-selected');
+        container.classList.add('tab-archived-selected');
+        
+        archivedBtn.classList.remove('border-transparent', 'text-gray-400');
+        archivedBtn.classList.add('border-accent', 'text-white');
+        
+        activeBtn.classList.remove('border-accent', 'text-white');
+        activeBtn.classList.add('border-transparent', 'text-gray-400');
+    }
+}
+
+function updateGoalsCounters() {
+    const activeCount = document.querySelectorAll('#goals-grid .goal-card.is-active-goal').length;
+    const archivedCount = document.querySelectorAll('#goals-grid .goal-card.is-archived-goal').length;
+    
+    const activeBtn = document.getElementById('btn-active-goals');
+    const archivedBtn = document.getElementById('btn-archived-goals');
+    
+    if (activeBtn) activeBtn.textContent = `Ativas (${activeCount})`;
+    if (archivedBtn) archivedBtn.textContent = `Encerradas (${archivedCount})`;
+}
+
+document.addEventListener('htmx:afterSwap', function() {
+    updateGoalsCounters();
+});
+</script>
 {% endblock %}
