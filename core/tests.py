@@ -259,6 +259,7 @@ class GoalTransactionTests(TestCase):
         # Let's change it to INCOME (Resgate) with value 100.00
         txn.amount = Decimal("100.00")
         txn.type = Transaction.TransactionType.INCOME
+        txn.description = "Resgate teste"
         txn.save()
         
         goal.refresh_from_db()
@@ -280,6 +281,76 @@ class GoalTransactionTests(TestCase):
             type=Transaction.TransactionType.EXPENSE,
             goal=goal
         )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1300.00"))
+        
+        # Delete transaction
+        txn.delete()
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1000.00"))
+
+    def test_manual_expense_transaction_subtracts_from_goal(self):
+        from core.models import Goal
+        goal = Goal.objects.create(
+            name="Viagem Rio",
+            target_amount=Decimal("7000.00"),
+            current_amount=Decimal("1000.00"),
+            deadline=date(2026, 9, 27)
+        )
+        
+        # A manual EXPENSE (Saída) linked to a goal (e.g. description "Compra de passagens")
+        # should subtract from the goal amount
+        txn = Transaction.objects.create(
+            description="Compra de passagens",
+            amount=Decimal("300.00"),
+            due_date=date(2026, 9, 27),
+            type=Transaction.TransactionType.EXPENSE,
+            goal=goal
+        )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("700.00"))
+        
+        # Update amount: change to 400.00
+        txn.amount = Decimal("400.00")
+        txn.save()
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("600.00"))
+        
+        # Delete transaction
+        txn.delete()
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1000.00"))
+
+    def test_manual_income_transaction_adds_to_goal(self):
+        from core.models import Goal
+        goal = Goal.objects.create(
+            name="Viagem Rio",
+            target_amount=Decimal("7000.00"),
+            current_amount=Decimal("1000.00"),
+            deadline=date(2026, 9, 27)
+        )
+        
+        # A manual INCOME (Entrada) linked to a goal (e.g. description "Presente de aniversario")
+        # should add to the goal amount
+        txn = Transaction.objects.create(
+            description="Presente de aniversario",
+            amount=Decimal("200.00"),
+            due_date=date(2026, 9, 27),
+            type=Transaction.TransactionType.INCOME,
+            goal=goal
+        )
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal("1200.00"))
+        
+        # Update amount: change to 300.00
+        txn.amount = Decimal("300.00")
+        txn.save()
         
         goal.refresh_from_db()
         self.assertEqual(goal.current_amount, Decimal("1300.00"))

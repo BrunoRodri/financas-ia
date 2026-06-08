@@ -206,10 +206,10 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 
 ### 6. Sincronização Automática e Bidirecional de Metas e Transações
 * **Relacionamento Direto (ForeignKey):** A model `Transaction` possui uma chave estrangeira opcional `goal` apontando para `Goal`. Transações geradas a partir do formulário de metas recebem essa referência automaticamente, e transações criadas manualmente podem ser vinculadas a metas através do campo "Meta Vinculada" no painel de lançamento rápido.
-* **Mapeamento de Fluxos:** Aportes geram transações do tipo **Saída (EXPENSE)** e aumentam o progresso acumulado da meta. Resgates geram transações do tipo **Entrada (INCOME)** e reduzem o valor acumulado da meta.
+* **Mapeamento de Fluxos:** Aportes oficiais (tipo **EXPENSE** com descrição começando por "Aporte" case-insensitive) e entradas manuais comuns (tipo **INCOME** sem descrição de "Resgate") aumentam o progresso acumulado da meta. Resgates oficiais (tipo **INCOME** com descrição começando por "Resgate" case-insensitive) e saídas/despesas manuais comuns (tipo **EXPENSE** sem descrição de "Aporte") reduzem o valor acumulado da meta.
 * **Sincronização no Ciclo de Vida da Model (Save/Delete):**
-  - **Criação/Edição:** Ao salvar uma transação vinculada a uma meta, o Django intercepta o salvamento (`save()`), detecta se houve alteração de valor, tipo ou mudança de meta. Ele reverte o impacto antigo na meta anterior e aplica o novo valor na meta atual de forma atômica e resiliente.
-  - **Exclusão:** Ao excluir uma transação vinculada, o método `delete()` é interceptado para desfazer automaticamente o aporte ou resgate correspondente no saldo acumulado da meta.
+  - **Criação/Edição:** Ao salvar uma transação vinculada a uma meta, o Django intercepta o salvamento (`save()`), detecta se houve alteração de valor, tipo, descrição ou mudança de meta. Ele reverte o impacto antigo na meta anterior e aplica o novo impacto na meta atual de forma atômica e resiliente.
+  - **Exclusão:** Ao excluir uma transação vinculada, o método `delete()` é interceptado para desfazer automaticamente o impacto correspondente no saldo acumulado da meta (revertendo o aporte, resgate ou despesa).
 * **Exibição Visual Premium:** Transações integradas a metas recebem uma badge exclusiva `🎯 Nome da Meta` na listagem de transações, facilitando a identificação imediata do propósito contábil.
 
 

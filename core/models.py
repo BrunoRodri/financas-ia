@@ -265,6 +265,7 @@ class Transaction(models.Model):
         original_goal = None
         original_amount = Decimal('0.00')
         original_type = None
+        original_description = ""
 
         if self.pk is not None:
             # Transação existente: vamos ver o estado anterior
@@ -274,6 +275,7 @@ class Transaction(models.Model):
                 original_goal = original.goal
                 original_amount = original.amount
                 original_type = original.type
+                original_description = original.description
             except Transaction.DoesNotExist:
                 pass
 
@@ -285,11 +287,14 @@ class Transaction(models.Model):
             # 1. Reverter o impacto original se havia uma meta
             if original_goal:
                 goal_obj = original_goal
-                if original_type == self.TransactionType.EXPENSE:
-                    # Despesa (Aporte) original adicionou ao saldo da meta. Revertemos subtraindo.
+                is_original_aporte = (original_type == self.TransactionType.EXPENSE and original_description.strip().lower().startswith('aporte'))
+                is_original_resgate = (original_type == self.TransactionType.INCOME and original_description.strip().lower().startswith('resgate'))
+
+                if is_original_aporte or (original_type == self.TransactionType.INCOME and not is_original_resgate):
+                    # Adicionou à meta originalmente (Aporte ou Entrada manual). Revertemos subtraindo.
                     goal_obj.current_amount = max(goal_obj.current_amount - original_amount, Decimal('0.00'))
-                elif original_type == self.TransactionType.INCOME:
-                    # Receita (Resgate) original subtraiu do saldo da meta. Revertemos somando.
+                else:
+                    # Subtraiu da meta originalmente (Resgate ou Saída manual). Revertemos somando.
                     goal_obj.current_amount += original_amount
                 goal_obj.save()
 
@@ -300,11 +305,14 @@ class Transaction(models.Model):
                 if original_goal and original_goal.pk == self.goal.pk:
                     goal_obj.refresh_from_db()
                 
-                if self.type == self.TransactionType.EXPENSE:
-                    # Despesa (Aporte) adiciona à meta
+                is_aporte = (self.type == self.TransactionType.EXPENSE and self.description.strip().lower().startswith('aporte'))
+                is_resgate = (self.type == self.TransactionType.INCOME and self.description.strip().lower().startswith('resgate'))
+
+                if is_aporte or (self.type == self.TransactionType.INCOME and not is_resgate):
+                    # Aporte ou Entrada manual comum: adiciona à meta
                     goal_obj.current_amount += self.amount
-                elif self.type == self.TransactionType.INCOME:
-                    # Receita (Resgate) subtrai da meta (limitado a zero)
+                else:
+                    # Resgate ou Saída manual comum: subtrai da meta (limitado a zero)
                     goal_obj.current_amount = max(goal_obj.current_amount - self.amount, Decimal('0.00'))
                 goal_obj.save()
 
@@ -312,9 +320,14 @@ class Transaction(models.Model):
         # Ao excluir, reverte o impacto na meta vinculada
         if self.goal:
             goal_obj = self.goal
-            if self.type == self.TransactionType.EXPENSE:
+            is_aporte = (self.type == self.TransactionType.EXPENSE and self.description.strip().lower().startswith('aporte'))
+            is_resgate = (self.type == self.TransactionType.INCOME and self.description.strip().lower().startswith('resgate'))
+
+            if is_aporte or (self.type == self.TransactionType.INCOME and not is_resgate):
+                # Se adicionou, subtraímos para reverter
                 goal_obj.current_amount = max(goal_obj.current_amount - self.amount, Decimal('0.00'))
-            elif self.type == self.TransactionType.INCOME:
+            else:
+                # Se subtraiu, somamos para reverter
                 goal_obj.current_amount += self.amount
             goal_obj.save()
 
