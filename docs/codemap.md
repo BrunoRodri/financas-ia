@@ -226,7 +226,7 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 
 ### 8. Atualização Dinâmica do Dashboard e Listas (Sem Refresh)
 * **Comunicação por Eventos (`HX-Trigger`):** A comunicação entre as ações de backend (criar, editar, excluir ou marcar como pago/pendente uma transação, além de depósitos/resgates em metas) e a interface é feita de forma assíncrona usando o cabeçalho HTTP `HX-Trigger: transactionUpdated`.
-* **Recarregamento Reativo dos Contêineres:** O contêiner do Dashboard (`#dashboard-container`) e o da página de Transações (`#transactions-page-container`) escutam o evento `transactionUpdated from:body`. Ao recebê-lo, realizam uma requisição GET transparente e automática (`hx-get=""` com `hx-select`), recarregando todos os dados, tabelas e cards.
+* **Recarregamento Reativo dos Contêineres:** O contêiner do Dashboard (`#dashboard-container`) e o da página de Transações (`#transactions-page-container`) escutam o evento `transactionUpdated from:body`. Ao recebê-lo, realizam uma requisição GET transparente e automática (`hx-get="{{ request.get_full_path }}"` com `hx-select`), recarregando todos os dados, tabelas e cards com as query parameters de filtros ativas preservadas.
 * **Ciclo de Vida do Gráfico de Projeção:** O gráfico de projeção de saldo (`Chart.js`) e seus respectivos dados JSON estão contidos dentro do `#dashboard-container`. Ao recarregar o fragmento, os novos dados são injetados e a inicialização é re-executada. Para evitar o erro de canvas em uso (`Canvas is already in use`), a instância anterior (`window.cashFlowChartInstance`) é detectada e destruída com segurança (`.destroy()`) antes de instanciar o novo gráfico.
 
 

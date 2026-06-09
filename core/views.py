@@ -240,10 +240,13 @@ def transaction_create(request):
     form = TransactionForm(request.POST)
     if form.is_valid():
         transaction = form.save()
+        user_settings = UserSettings.load()
+        transaction.is_before_initial_balance = transaction.due_date < user_settings.balance_date
         # Retorna o partial para HTMX inserir na lista
         response = render(request, 'partials/transaction_row.html', {
             'txn': transaction,
             'is_new': True,
+            'user_settings': user_settings,
         })
         response['HX-Trigger'] = 'transactionUpdated'
         return response
@@ -262,7 +265,12 @@ def transaction_toggle(request, pk):
     else:
         txn.status = Transaction.Status.PENDING
     txn.save()
-    response = render(request, 'partials/transaction_row.html', {'txn': txn})
+    user_settings = UserSettings.load()
+    txn.is_before_initial_balance = txn.due_date < user_settings.balance_date
+    response = render(request, 'partials/transaction_row.html', {
+        'txn': txn,
+        'user_settings': user_settings,
+    })
     response['HX-Trigger'] = 'transactionUpdated'
     return response
 
@@ -292,7 +300,12 @@ def transaction_edit(request, pk):
         form = TransactionForm(request.POST, instance=txn)
         if form.is_valid():
             txn = form.save()
-            response = render(request, 'partials/transaction_row.html', {'txn': txn})
+            user_settings = UserSettings.load()
+            txn.is_before_initial_balance = txn.due_date < user_settings.balance_date
+            response = render(request, 'partials/transaction_row.html', {
+                'txn': txn,
+                'user_settings': user_settings,
+            })
             response['HX-Trigger'] = 'transactionUpdated'
             return response
         # Form inválido: retorna o form com erros
