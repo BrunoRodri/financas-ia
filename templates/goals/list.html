@@ -155,7 +155,7 @@ function updateGoalsCounters() {
     if (archivedBtn) archivedBtn.textContent = `Encerradas (${archivedCount})`;
 }
 
-document.addEventListener('htmx:afterSwap', function() {
+document.addEventListener('htmx:afterSettle', function() {
     updateGoalsCounters();
 });
 </script>

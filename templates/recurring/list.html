@@ -249,7 +249,7 @@
         if (archivedBtn) archivedBtn.textContent = `Arquivadas (${archivedCount})`;
     }
 
-    document.addEventListener('htmx:afterSwap', function() {
+    document.addEventListener('htmx:afterSettle', function() {
         updateInstallmentsAvailability();
         updateCardAvailability();
         updateRecurringCounters();

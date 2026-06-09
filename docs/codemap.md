@@ -221,7 +221,7 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
   - **Metas e Regras Gerais:** Podem ser arquivadas ou restauradas manualmente através do ícone correspondente na interface.
   - **Regras Parceladas (`INSTALLMENT`):** São arquivadas de forma 100% automatizada pelo sistema assim que a última parcela expira (quando a data atual ultrapassa a data final da regra recorrente). Esse processo roda em background no carregamento das listagens.
 * **Abas e Seletores Ultra-Rápidos:** A visualização utiliza abas nativas com filtragem CSS de alta performance (`:has()`). Ao invés de fazer requisições extras ao banco de dados para filtrar itens, o navegador oculta instantaneamente os itens arquivados ou ativos conforme a aba selecionada no container pai.
-* **Contadores Dinâmicos:** Os cabeçalhos das abas exibem a quantidade exata de itens ativos e arquivados/encerrados, atualizados automaticamente em tempo real após qualquer ação HTMX (criação, remoção ou alteração de estado).
+* **Contadores Dinâmicos:** Os cabeçalhos das abas exibem a quantidade exata de itens ativos e arquivados/encerrados, atualizados automaticamente em tempo real após a estabilização do HTMX (`htmx:afterSettle`) decorrente de qualquer ação (criação, remoção ou alteração de estado).
 * **Prevenção de Cache no Navegador:** Foi adicionado um parâmetro de versão (`?v=2`) à importação do `custom.css` no template base, garantindo que o navegador não utilize versões em cache desatualizadas do CSS e aplique corretamente as regras de exibição e ocultação baseadas nas abas de ativos/arquivados.
 
 
