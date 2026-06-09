@@ -562,6 +562,89 @@ class GoalTransactionTests(TestCase):
         self.assertFalse(monthly_rule.is_archived)
 
 
+class TransactionUpdateTriggerTests(TestCase):
+    def setUp(self):
+        from core.models import Goal
+        self.txn = Transaction.objects.create(
+            description="Test Transaction",
+            amount=Decimal("100.00"),
+            due_date=date(2026, 6, 9),
+            type=Transaction.TransactionType.EXPENSE
+        )
+        self.goal = Goal.objects.create(
+            name="Test Goal",
+            target_amount=Decimal("5000.00"),
+            deadline=date(2026, 12, 31)
+        )
+
+    def test_transaction_create_triggers_event(self):
+        from django.urls import reverse
+        response = self.client.post(
+            reverse('transaction_create'),
+            {
+                'description': 'New Transaction',
+                'amount': '50.00',
+                'type': 'EXPENSE',
+                'due_date': '2026-06-09',
+                'status': 'PENDING',
+                'payment_type': 'other',
+            },
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get('HX-Trigger'), 'transactionUpdated')
+
+    def test_transaction_toggle_triggers_event(self):
+        from django.urls import reverse
+        response = self.client.post(
+            reverse('transaction_toggle', args=[self.txn.id]),
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get('HX-Trigger'), 'transactionUpdated')
+
+    def test_transaction_delete_triggers_event(self):
+        from django.urls import reverse
+        response = self.client.post(
+            reverse('transaction_delete', args=[self.txn.id]),
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get('HX-Trigger'), 'transactionUpdated')
+
+    def test_transaction_edit_triggers_event(self):
+        from django.urls import reverse
+        response = self.client.post(
+            reverse('transaction_edit', args=[self.txn.id]),
+            {
+                'description': 'Updated Transaction',
+                'amount': '150.00',
+                'type': 'EXPENSE',
+                'due_date': '2026-06-09',
+                'status': 'PAID',
+                'payment_type': 'other',
+            },
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get('HX-Trigger'), 'transactionUpdated')
+
+    def test_goal_update_triggers_event(self):
+        from django.urls import reverse
+        response = self.client.post(
+            reverse('goal_update', args=[self.goal.id]),
+            {
+                'action_type': 'add',
+                'adjust_amount': '500.00',
+                'create_transaction': 'false',
+            },
+            HTTP_HX_REQUEST='true'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get('HX-Trigger'), 'transactionUpdated')
+
+
+
 
 
 

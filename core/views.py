@@ -241,10 +241,12 @@ def transaction_create(request):
     if form.is_valid():
         transaction = form.save()
         # Retorna o partial para HTMX inserir na lista
-        return render(request, 'partials/transaction_row.html', {
+        response = render(request, 'partials/transaction_row.html', {
             'txn': transaction,
             'is_new': True,
         })
+        response['HX-Trigger'] = 'transactionUpdated'
+        return response
     # Se inválido, retorna o form com erros
     return render(request, 'partials/transaction_form.html', {
         'form': form,
@@ -260,7 +262,9 @@ def transaction_toggle(request, pk):
     else:
         txn.status = Transaction.Status.PENDING
     txn.save()
-    return render(request, 'partials/transaction_row.html', {'txn': txn})
+    response = render(request, 'partials/transaction_row.html', {'txn': txn})
+    response['HX-Trigger'] = 'transactionUpdated'
+    return response
 
 
 @require_POST
@@ -268,7 +272,9 @@ def transaction_delete(request, pk):
     """Remove transação via HTMX."""
     txn = get_object_or_404(Transaction, pk=pk)
     txn.delete()
-    return HttpResponse('')
+    response = HttpResponse('')
+    response['HX-Trigger'] = 'transactionUpdated'
+    return response
 
 
 def transaction_delete_confirm(request, pk):
@@ -286,7 +292,9 @@ def transaction_edit(request, pk):
         form = TransactionForm(request.POST, instance=txn)
         if form.is_valid():
             txn = form.save()
-            return render(request, 'partials/transaction_row.html', {'txn': txn})
+            response = render(request, 'partials/transaction_row.html', {'txn': txn})
+            response['HX-Trigger'] = 'transactionUpdated'
+            return response
         # Form inválido: retorna o form com erros
         return render(request, 'partials/transaction_edit_form.html', {
             'form': form, 'txn': txn, 'goals': goals,
@@ -495,7 +503,9 @@ def goal_update(request, pk):
                     goal.save()
             
             if request.headers.get('HX-Request'):
-                return render(request, 'partials/goal_card.html', {'goal': goal})
+                response = render(request, 'partials/goal_card.html', {'goal': goal})
+                response['HX-Trigger'] = 'transactionUpdated'
+                return response
             return redirect('goal_list')
         except (ValueError, ArithmeticError):
             pass
@@ -507,7 +517,9 @@ def goal_update(request, pk):
     if form.is_valid():
         form.save()
         if request.headers.get('HX-Request'):
-            return render(request, 'partials/goal_card.html', {'goal': goal})
+            response = render(request, 'partials/goal_card.html', {'goal': goal})
+            response['HX-Trigger'] = 'transactionUpdated'
+            return response
         return redirect('goal_list')
     return render(request, 'partials/goal_form.html', {'form': form}, status=400)
 

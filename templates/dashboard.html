@@ -4,7 +4,11 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-6" id="dashboard-container"
+     hx-get=""
+     hx-trigger="transactionUpdated from:body"
+     hx-select="#dashboard-container"
+     hx-swap="outerHTML">
 
     <!-- Header -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -190,126 +194,130 @@
     </div>
     {% endif %}
 
-</div>
-{% endblock %}
+    <!-- JSON Scripts para passar variáveis com segurança para o JavaScript sem alertar o linter -->
+    {{ chart_labels|json_script:"chart-labels-data" }}
+    {{ chart_balances|json_script:"chart-balances-data" }}
+    {{ chart_income|json_script:"chart-income-data" }}
+    {{ chart_expense|json_script:"chart-expense-data" }}
 
-{% block extra_scripts %}
-<!-- JSON Scripts para passar variáveis com segurança para o JavaScript sem alertar o linter -->
-{{ chart_labels|json_script:"chart-labels-data" }}
-{{ chart_balances|json_script:"chart-balances-data" }}
-{{ chart_income|json_script:"chart-income-data" }}
-{{ chart_expense|json_script:"chart-expense-data" }}
-
-<script>
-    // Cash Flow Chart
-    const ctx = document.getElementById('cashFlowChart').getContext('2d');
-
-    const labels = JSON.parse(document.getElementById('chart-labels-data').textContent);
-    const balances = JSON.parse(document.getElementById('chart-balances-data').textContent).map(Number);
-    const income = JSON.parse(document.getElementById('chart-income-data').textContent).map(Number);
-    const expense = JSON.parse(document.getElementById('chart-expense-data').textContent).map(Number);
-
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Saldo do Mês',
-                    data: balances,
-                    borderColor: '#818cf8',
-                    backgroundColor: 'rgba(129, 140, 248, 0.1)',
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 2.5,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#818cf8',
-                    pointBorderColor: '#0f1629',
-                    pointBorderWidth: 2,
-                    pointHoverRadius: 6,
-                },
-                {
-                    label: 'Receitas',
-                    data: income,
-                    borderColor: '#4ade80',
-                    backgroundColor: 'rgba(74, 222, 128, 0.05)',
-                    fill: false,
-                    tension: 0.4,
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    pointRadius: 3,
-                    pointBackgroundColor: '#4ade80',
-                },
-                {
-                    label: 'Despesas',
-                    data: expense,
-                    borderColor: '#f87171',
-                    backgroundColor: 'rgba(248, 113, 113, 0.05)',
-                    fill: false,
-                    tension: 0.4,
-                    borderWidth: 1.5,
-                    borderDash: [4, 4],
-                    pointRadius: 3,
-                    pointBackgroundColor: '#f87171',
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        color: '#9ca3af',
-                        font: { family: 'Inter', size: 11 },
-                        padding: 16,
-                        usePointStyle: true,
-                        pointStyleWidth: 8,
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(15, 22, 41, 0.95)',
-                    titleColor: '#fff',
-                    bodyColor: '#d1d5db',
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    borderWidth: 1,
-                    cornerRadius: 8,
-                    padding: 12,
-                    titleFont: { family: 'Inter', weight: '600' },
-                    bodyFont: { family: 'Inter' },
-                    callbacks: {
-                        label: function (context) {
-                            let value = context.parsed.y;
-                            return context.dataset.label + ': R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { color: 'rgba(255,255,255,0.03)' },
-                    ticks: {
-                        color: '#6b7280',
-                        font: { family: 'Inter', size: 11 },
-                    }
-                },
-                y: {
-                    grid: { color: 'rgba(255,255,255,0.03)' },
-                    ticks: {
-                        color: '#6b7280',
-                        font: { family: 'Inter', size: 11 },
-                        callback: function (value) {
-                            return 'R$ ' + value.toLocaleString('pt-BR');
-                        }
-                    }
-                }
+    <script>
+        (function() {
+            // Destruir instância anterior do gráfico se existir para evitar erros
+            if (window.cashFlowChartInstance) {
+                window.cashFlowChartInstance.destroy();
             }
-        }
-    });
-</script>
+
+            // Cash Flow Chart
+            const ctx = document.getElementById('cashFlowChart').getContext('2d');
+
+            const labels = JSON.parse(document.getElementById('chart-labels-data').textContent);
+            const balances = JSON.parse(document.getElementById('chart-balances-data').textContent).map(Number);
+            const income = JSON.parse(document.getElementById('chart-income-data').textContent).map(Number);
+            const expense = JSON.parse(document.getElementById('chart-expense-data').textContent).map(Number);
+
+            window.cashFlowChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Saldo do Mês',
+                            data: balances,
+                            borderColor: '#818cf8',
+                            backgroundColor: 'rgba(129, 140, 248, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#818cf8',
+                            pointBorderColor: '#0f1629',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 6,
+                        },
+                        {
+                            label: 'Receitas',
+                            data: income,
+                            borderColor: '#4ade80',
+                            backgroundColor: 'rgba(74, 222, 128, 0.05)',
+                            fill: false,
+                            tension: 0.4,
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
+                            pointRadius: 3,
+                            pointBackgroundColor: '#4ade80',
+                        },
+                        {
+                            label: 'Despesas',
+                            data: expense,
+                            borderColor: '#f87171',
+                            backgroundColor: 'rgba(248, 113, 113, 0.05)',
+                            fill: false,
+                            tension: 0.4,
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
+                            pointRadius: 3,
+                            pointBackgroundColor: '#f87171',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#9ca3af',
+                                font: { family: 'Inter', size: 11 },
+                                padding: 16,
+                                usePointStyle: true,
+                                pointStyleWidth: 8,
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 22, 41, 0.95)',
+                            titleColor: '#fff',
+                            bodyColor: '#d1d5db',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12,
+                            titleFont: { family: 'Inter', weight: '600' },
+                            bodyFont: { family: 'Inter' },
+                            callbacks: {
+                                label: function (context) {
+                                    let value = context.parsed.y;
+                                    return context.dataset.label + ': R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: {
+                                color: '#6b7280',
+                                font: { family: 'Inter', size: 11 },
+                            }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: {
+                                color: '#6b7280',
+                                font: { family: 'Inter', size: 11 },
+                                callback: function (value) {
+                                    return 'R$ ' + value.toLocaleString('pt-BR');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        })();
+    </script>
+</div>
 {% endblock %}

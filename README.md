@@ -9,7 +9,7 @@ Com uma interface moderna, dark-mode nativo, glassmorphism e atualizações sem 
 ## 🚀 Principais Funcionalidades
 
 - **🔮 Projeção de Saldo Futuro (Cash Flow):** Gráfico interativo de linha (Chart.js) e tabela de fluxo consolidado que projetam seu saldo dia a dia e mês a mês para os próximos 6 meses.
-- **⚡ Lançamento Rápido (HTMX):** Form inline otimizado para adicionar receitas e despesas com o mínimo de cliques e atualização em tempo real sem dar refresh na página.
+- **⚡ Lançamento Rápido & Atualizações Reativas (HTMX):** Form inline otimizado para adicionar receitas e despesas com o mínimo de cliques. Qualquer alteração (criar, editar, excluir ou marcar como pago) atualiza os cards de estatísticas (saldo atual, despesas, receitas), o gráfico interativo de projeção e a listagem filtrada de forma 100% dinâmica (reativa por eventos HTMX) e sem dar refresh na página.
 - **💳 Gestão de Cartões de Crédito:** Cadastre múltiplos cartões (ex: Nubank, MercadoPago) com controle de dia de fechamento, dia de vencimento e cores visuais customizadas para organizar suas compras.
 - **🔄 Regras Recorrentes Híbridas:**
   - **Mensalidade / Assinaturas (`MONTHLY`):** Materialização automática on-demand para os próximos 6 meses (ex: mensalidade de streaming).
