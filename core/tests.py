@@ -384,12 +384,11 @@ class GoalTransactionTests(TestCase):
             self.assertEqual(txn.goal, goal)
             self.assertEqual(txn.recurring_rule, rule)
             
-        # Check that the goal current_amount was NOT decreased.
-        # Since these are regular transactions and funded_by_goal=False by default,
-        # they do not affect current_amount or spent_amount.
+        # Check that the goal current_amount was NOT decreased, but spent_amount was increased,
+        # because the regular transactions linked to the goal are automatically treated as funded.
         goal.refresh_from_db()
         self.assertEqual(goal.current_amount, Decimal("3000.00"))
-        self.assertEqual(goal.spent_amount, Decimal("0.00"))
+        self.assertEqual(goal.spent_amount, Decimal("1000.00"))
 
         # Test deletion via the view
         from django.urls import reverse
@@ -398,6 +397,7 @@ class GoalTransactionTests(TestCase):
         
         goal.refresh_from_db()
         self.assertEqual(goal.current_amount, Decimal("3000.00"))
+        self.assertEqual(goal.spent_amount, Decimal("0.00"))
 
     def test_transaction_delete_confirm_view_returns_correct_template_and_context(self):
         from django.urls import reverse

@@ -31,7 +31,7 @@ class TransactionForm(forms.ModelForm):
 
     class Meta:
         model = Transaction
-        fields = ['description', 'amount', 'due_date', 'type', 'status', 'credit_card', 'tags', 'goal', 'funded_by_goal']
+        fields = ['description', 'amount', 'due_date', 'type', 'status', 'credit_card', 'tags', 'goal']
         widgets = {
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Mercado, Salário, Netflix...',
@@ -67,8 +67,6 @@ class TransactionForm(forms.ModelForm):
                 Q(is_archived=False) | Q(pk=self.instance.goal_id)
             )
         self.fields['goal'].queryset = goals_qs
-        self.fields['funded_by_goal'].required = False
-        self.fields['funded_by_goal'].widget = forms.HiddenInput()
 
         if self.instance and self.instance.pk:
             if self.instance.credit_card:

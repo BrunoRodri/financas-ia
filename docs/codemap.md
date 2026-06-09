@@ -215,12 +215,13 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **Mapeamento de Fluxos:** 
   - Aportes oficiais (tipo **EXPENSE** com descrição começando por "Aporte" case-insensitive) adicionam ao valor acumulado da meta (`current_amount`).
   - Resgates oficiais (tipo **INCOME** com descrição começando por "Resgate" case-insensitive) subtraem do valor acumulado da meta (`current_amount`).
-  - Transações com `funded_by_goal=True` representam despesas financiadas pelo dinheiro guardado da meta. Elas adicionam ao valor utilizado da meta (`spent_amount`) em vez de diminuir o `current_amount`, mantendo intacta a contagem de progresso da meta, e são excluídas da projeção de fluxo de caixa (dashboard) para evitar duplicidade.
+  - Despesas regulares (tipo **EXPENSE**) vinculadas a uma meta que não sejam Aportes são **automaticamente** consideradas como financiadas pela meta (`funded_by_goal = True`) ao salvar no banco, sem a necessidade de flags ou checkboxes na UI. Elas somam ao valor utilizado da meta (`spent_amount`) em vez de diminuir o acumulado (`current_amount`).
+  - Transações com `funded_by_goal=True` são automaticamente excluídas tanto da projeção de fluxo de caixa (dashboard) quanto dos somatórios de despesas e saldo líquido dos cards na página de transações para evitar dupla contabilidade.
   - Outros tipos de transação associados à meta não têm impacto de saldo.
 * **Sincronização no Ciclo de Vida da Model (Save/Delete):**
   - **Criação/Edição:** Ao salvar uma transação vinculada a uma meta, o Django intercepta o salvamento (`save()`), detecta se houve alteração de valor, tipo, descrição, `funded_by_goal` ou mudança de meta. Ele reverte o impacto antigo na meta anterior e aplica o novo impacto na meta atual de forma atômica e resiliente.
   - **Exclusão:** Ao excluir uma transação vinculada, o método `delete()` é interceptado para desfazer automaticamente o impacto correspondente (revertendo o aporte, resgate ou gasto utilizado da meta).
-* **Exibição Visual Premium:** Transações integradas a metas recebem uma badge exclusiva `🎯 Nome da Meta` na listagem de transações, e aquelas marcadas como financiadas pela meta exibem uma badge distintiva na cor âmbar com o ícone de dinheiro `💰 Nome da Meta`.
+* **Exibição Visual Premium:** Transações integradas a metas recebem uma badge na cor âmbar com o ícone de dinheiro `💰 Nome da Meta` na listagem de transações para demonstrar de forma clara que foram financiadas pela meta e não interferem no fluxo de caixa líquido.
 
 ### 7. Sistema de Arquivamento (Finalização) de Metas e Regras Recorrentes
 * **Organização e Redução de Poluição:** Metas encerradas e regras recorrentes antigas podem ser arquivadas para liberar espaço visual na tela, sem a necessidade de excluí-las (o que destruiria o histórico de transações e tags).

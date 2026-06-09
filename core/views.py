@@ -131,9 +131,9 @@ def transaction_list(request):
     # Carregar saldo inicial das configurações
     user_settings = UserSettings.load()
 
-    # Calcular somatórios pós-saldo (apenas transações com due_date >= balance_date)
-    total_income = sum(t.amount for t in transactions if t.is_income and t.due_date >= user_settings.balance_date)
-    total_expense = sum(t.amount for t in transactions if t.is_expense and t.due_date >= user_settings.balance_date)
+    # Calcular somatórios pós-saldo (apenas transações com due_date >= balance_date e não financiadas por meta)
+    total_income = sum(t.amount for t in transactions if t.is_income and t.due_date >= user_settings.balance_date and not t.funded_by_goal)
+    total_expense = sum(t.amount for t in transactions if t.is_expense and t.due_date >= user_settings.balance_date and not t.funded_by_goal)
 
     show_initial_balance = True
 

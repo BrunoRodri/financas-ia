@@ -341,6 +341,16 @@ class Transaction(models.Model):
             except Transaction.DoesNotExist:
                 pass
 
+        # Definição automática de funded_by_goal:
+        # Se for uma despesa vinculada a uma meta e não for um Aporte, é considerada financiada pela meta.
+        if self.type == self.TransactionType.EXPENSE and self.goal is not None:
+            if not self._is_aporte():
+                self.funded_by_goal = True
+            else:
+                self.funded_by_goal = False
+        else:
+            self.funded_by_goal = False
+
         super().save(*args, **kwargs)
 
         # Ajustar metas se houver meta anterior ou atual
