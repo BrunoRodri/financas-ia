@@ -82,6 +82,18 @@
         {% endif %}
     </div>
 
+    <!-- Financiado pela meta (aparece quando uma meta é selecionada) -->
+    <div id="funded-by-goal-container" class="hidden">
+        <label class="flex items-center gap-2 cursor-pointer group">
+            <input type="checkbox" id="funded_by_goal_checkbox"
+                   class="w-4 h-4 rounded border-white/20 bg-dark-800 text-amber-500 focus:ring-amber-500/30 cursor-pointer">
+            <span class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">
+                💰 Financiado pela meta <span class="text-[10px] text-gray-600">(não afeta o fluxo de caixa)</span>
+            </span>
+        </label>
+        {{ form.funded_by_goal }}
+    </div>
+
     <!-- Tags -->
     {% if form.tags.field.queryset.exists %}
     <div>
@@ -112,6 +124,11 @@
             const creditCardField = document.getElementById('id_credit_card');
             const paymentTypeContainer = document.getElementById('payment-type-container');
             const creditCardContainer = document.getElementById('credit-card-container');
+            
+            const goalField = document.getElementById('id_goal');
+            const fundedContainer = document.getElementById('funded-by-goal-container');
+            const fundedCheckbox = document.getElementById('funded_by_goal_checkbox');
+            const fundedHiddenInput = document.getElementById('id_funded_by_goal');
 
             if (!typeField || !paymentTypeField || !creditCardField || !paymentTypeContainer || !creditCardContainer) {
                 return;
@@ -139,14 +156,31 @@
                 creditCardField.value = '';
                 creditCardField.disabled = true;
             }
+
+            // Funded by Goal visibility logic
+            if (goalField && fundedContainer && fundedCheckbox && fundedHiddenInput) {
+                if (isExpense && goalField.value !== '') {
+                    fundedContainer.classList.remove('hidden');
+                } else {
+                    fundedContainer.classList.add('hidden');
+                    fundedCheckbox.checked = false;
+                    fundedHiddenInput.value = 'false';
+                }
+            }
         }
 
         if (!window.hasTransactionFormListeners) {
             window.hasTransactionFormListeners = true;
 
             document.addEventListener('change', (event) => {
-                if (event.target && (event.target.id === 'id_type' || event.target.id === 'id_payment_type')) {
+                if (event.target && (event.target.id === 'id_type' || event.target.id === 'id_payment_type' || event.target.id === 'id_goal')) {
                     updateTransactionFormFields();
+                }
+                if (event.target && event.target.id === 'funded_by_goal_checkbox') {
+                    const hiddenInput = document.getElementById('id_funded_by_goal');
+                    if (hiddenInput) {
+                        hiddenInput.value = event.target.checked ? 'true' : 'false';
+                    }
                 }
             });
 
@@ -154,6 +188,12 @@
                 if (event.target && event.target.tagName === 'FORM') {
                     setTimeout(function() {
                         updateTransactionFormFields();
+                        const checkbox = document.getElementById('funded_by_goal_checkbox');
+                        const hiddenInput = document.getElementById('id_funded_by_goal');
+                        if (checkbox && hiddenInput) {
+                            checkbox.checked = false;
+                            hiddenInput.value = 'false';
+                        }
                     }, 0);
                 }
             });

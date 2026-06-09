@@ -23,7 +23,12 @@
                 {{ txn.credit_card.name }}
             </span>
             {% endif %}
-            {% if txn.goal %}
+            {% if txn.goal and txn.funded_by_goal %}
+            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0 font-medium"
+                  title="Financiado pelo dinheiro guardado na meta — não afeta o fluxo de caixa">
+                💰 {{ txn.goal.name }}
+            </span>
+            {% elif txn.goal %}
             <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex-shrink-0 font-medium">
                 🎯 {{ txn.goal.name }}
             </span>

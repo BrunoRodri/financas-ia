@@ -73,6 +73,8 @@ def project_cash_flow(months_ahead=6):
     transactions_in_horizon = Transaction.objects.filter(
         due_date__gte=query_start_date,
         due_date__lte=end_date,
+    ).exclude(
+        funded_by_goal=True
     ).select_related('recurring_rule', 'credit_card').prefetch_related('tags').order_by('due_date')
 
     # Projeção diária para hoje em diante
@@ -90,13 +92,13 @@ def project_cash_flow(months_ahead=6):
     if start_balance == Decimal('0') and balance_date == today:
         past_transactions = Transaction.objects.filter(
             due_date__lt=today,
-        )
+        ).exclude(funded_by_goal=True)
     else:
         # Caso contrário, respeita a data de referência definida nas configurações.
         past_transactions = Transaction.objects.filter(
             due_date__gt=balance_date,
             due_date__lt=today,
-        )
+        ).exclude(funded_by_goal=True)
 
     for txn in past_transactions:
         running_balance += txn.signed_amount
@@ -148,7 +150,7 @@ def project_cash_flow(months_ahead=6):
         forward_txns = Transaction.objects.filter(
             due_date__gt=balance_date,
             due_date__lt=query_start_date,
-        )
+        ).exclude(funded_by_goal=True)
         for txn in forward_txns:
             month_balance += txn.signed_amount
     else:

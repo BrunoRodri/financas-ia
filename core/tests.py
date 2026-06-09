@@ -297,34 +297,40 @@ class GoalTransactionTests(TestCase):
             name="Viagem Rio",
             target_amount=Decimal("7000.00"),
             current_amount=Decimal("1000.00"),
+            spent_amount=Decimal("0.00"),
             deadline=date(2026, 9, 27)
         )
         
-        # A manual EXPENSE (Saída) linked to a goal (e.g. description "Compra de passagens")
-        # should subtract from the goal amount
+        # A manual EXPENSE (Saída) linked to a goal with funded_by_goal=True
+        # should increase spent_amount but NOT decrease current_amount
         txn = Transaction.objects.create(
             description="Compra de passagens",
             amount=Decimal("300.00"),
             due_date=date(2026, 9, 27),
             type=Transaction.TransactionType.EXPENSE,
-            goal=goal
+            goal=goal,
+            funded_by_goal=True
         )
         
         goal.refresh_from_db()
-        self.assertEqual(goal.current_amount, Decimal("700.00"))
+        self.assertEqual(goal.current_amount, Decimal("1000.00"))
+        self.assertEqual(goal.spent_amount, Decimal("300.00"))
+        self.assertEqual(goal.available_amount, Decimal("700.00"))
         
         # Update amount: change to 400.00
         txn.amount = Decimal("400.00")
         txn.save()
         
         goal.refresh_from_db()
-        self.assertEqual(goal.current_amount, Decimal("600.00"))
+        self.assertEqual(goal.current_amount, Decimal("1000.00"))
+        self.assertEqual(goal.spent_amount, Decimal("400.00"))
         
         # Delete transaction
         txn.delete()
         
         goal.refresh_from_db()
         self.assertEqual(goal.current_amount, Decimal("1000.00"))
+        self.assertEqual(goal.spent_amount, Decimal("0.00"))
 
     def test_manual_income_transaction_adds_to_goal(self):
         from core.models import Goal
@@ -335,8 +341,8 @@ class GoalTransactionTests(TestCase):
             deadline=date(2026, 9, 27)
         )
         
-        # A manual INCOME (Entrada) linked to a goal (e.g. description "Presente de aniversario")
-        # should add to the goal amount
+        # A manual INCOME (Entrada) linked to a goal (not starting with Resgate)
+        # should NOT add to the goal amount automatically
         txn = Transaction.objects.create(
             description="Presente de aniversario",
             amount=Decimal("200.00"),
@@ -346,20 +352,8 @@ class GoalTransactionTests(TestCase):
         )
         
         goal.refresh_from_db()
-        self.assertEqual(goal.current_amount, Decimal("1200.00"))
-        
-        # Update amount: change to 300.00
-        txn.amount = Decimal("300.00")
-        txn.save()
-        
-        goal.refresh_from_db()
-        self.assertEqual(goal.current_amount, Decimal("1300.00"))
-        
-        # Delete transaction
-        txn.delete()
-        
-        goal.refresh_from_db()
         self.assertEqual(goal.current_amount, Decimal("1000.00"))
+        self.assertEqual(goal.spent_amount, Decimal("0.00"))
 
     def test_recurring_rule_with_goal_propagates_goal_to_transactions(self):
         from core.models import Goal, RecurringRule
@@ -390,15 +384,14 @@ class GoalTransactionTests(TestCase):
             self.assertEqual(txn.goal, goal)
             self.assertEqual(txn.recurring_rule, rule)
             
-        # Check that the goal current_amount was correctly updated.
-        # Since description is "Notebook (1/5)" etc, it does not start with "Aporte".
-        # Therefore, these are treated as manual expenses and should SUBTRACT from the goal.
-        # Original current_amount: 3000.00. 5 installments of 200.00 total 1000.00.
-        # 3000.00 - 1000.00 = 2000.00.
+        # Check that the goal current_amount was NOT decreased.
+        # Since these are regular transactions and funded_by_goal=False by default,
+        # they do not affect current_amount or spent_amount.
         goal.refresh_from_db()
-        self.assertEqual(goal.current_amount, Decimal("2000.00"))
+        self.assertEqual(goal.current_amount, Decimal("3000.00"))
+        self.assertEqual(goal.spent_amount, Decimal("0.00"))
 
-        # Test deletion via the view to make sure goal balance is reverted
+        # Test deletion via the view
         from django.urls import reverse
         response = self.client.post(reverse('recurring_delete', args=[rule.id]) + '?delete_all=true')
         self.assertEqual(response.status_code, 200)

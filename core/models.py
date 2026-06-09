@@ -253,6 +253,10 @@ class Transaction(models.Model):
         'Goal', on_delete=models.SET_NULL, null=True, blank=True,
         verbose_name='Meta vinculada', related_name='transactions',
     )
+    funded_by_goal = models.BooleanField(
+        'Financiado pela meta', default=False,
+        help_text='Se True, esta despesa foi paga com dinheiro já guardado na meta e não afeta o fluxo de caixa.',
+    )
     installment_number = models.PositiveIntegerField(
         'Parcela nº', null=True, blank=True,
         help_text='Número da parcela (ex: 3 de 12)',
@@ -286,76 +290,103 @@ class Transaction(models.Model):
             return self.amount
         return -self.amount
 
+    def _is_aporte(self, txn_type=None, desc=None):
+        """Verifica se é um Aporte oficial (despesa com descrição 'Aporte...')."""
+        t = txn_type or self.type
+        d = desc or self.description
+        return t == self.TransactionType.EXPENSE and d.strip().lower().startswith('aporte')
+
+    def _is_resgate(self, txn_type=None, desc=None):
+        """Verifica se é um Resgate oficial (entrada com descrição 'Resgate...')."""
+        t = txn_type or self.type
+        d = desc or self.description
+        return t == self.TransactionType.INCOME and d.strip().lower().startswith('resgate')
+
+    def _goal_impact(self, txn_type=None, desc=None, funded=None):
+        """
+        Retorna o tipo de impacto na meta:
+        - 'add': soma ao current_amount (Aporte)
+        - 'subtract': subtrai do current_amount (Resgate)
+        - 'spend': soma ao spent_amount (gasto financiado pela meta)
+        - None: sem impacto na meta
+        """
+        t = txn_type or self.type
+        d = desc or self.description
+        f = funded if funded is not None else self.funded_by_goal
+
+        if self._is_aporte(t, d):
+            return 'add'
+        if self._is_resgate(t, d):
+            return 'subtract'
+        if f:
+            return 'spend'
+        return None
+
     def save(self, *args, **kwargs):
         # Controle de consistência de Metas vinculadas
         original_goal = None
         original_amount = Decimal('0.00')
         original_type = None
         original_description = ""
+        original_funded = False
 
         if self.pk is not None:
-            # Transação existente: vamos ver o estado anterior
             try:
-                from core.models import Transaction
                 original = Transaction.objects.get(pk=self.pk)
                 original_goal = original.goal
                 original_amount = original.amount
                 original_type = original.type
                 original_description = original.description
+                original_funded = original.funded_by_goal
             except Transaction.DoesNotExist:
                 pass
 
-        # Executa o save original
         super().save(*args, **kwargs)
 
-        # Se houver meta anterior ou atual, ajustamos o progresso
+        # Ajustar metas se houver meta anterior ou atual
         if original_goal or self.goal:
-            # 1. Reverter o impacto original se havia uma meta
+            # 1. Reverter impacto original
             if original_goal:
+                impact = self._goal_impact(original_type, original_description, original_funded)
                 goal_obj = original_goal
-                is_original_aporte = (original_type == self.TransactionType.EXPENSE and original_description.strip().lower().startswith('aporte'))
-                is_original_resgate = (original_type == self.TransactionType.INCOME and original_description.strip().lower().startswith('resgate'))
-
-                if is_original_aporte or (original_type == self.TransactionType.INCOME and not is_original_resgate):
-                    # Adicionou à meta originalmente (Aporte ou Entrada manual). Revertemos subtraindo.
+                if impact == 'add':
                     goal_obj.current_amount = max(goal_obj.current_amount - original_amount, Decimal('0.00'))
-                else:
-                    # Subtraiu da meta originalmente (Resgate ou Saída manual). Revertemos somando.
+                elif impact == 'subtract':
                     goal_obj.current_amount += original_amount
-                goal_obj.save()
+                elif impact == 'spend':
+                    goal_obj.spent_amount = max(goal_obj.spent_amount - original_amount, Decimal('0.00'))
+                if impact:
+                    goal_obj.save()
 
-            # 2. Aplicar o novo impacto se houver uma meta atualmente vinculada
+            # 2. Aplicar novo impacto
             if self.goal:
-                # Se for a mesma meta do passo anterior, recarregamos para ter o saldo já revertido
                 goal_obj = self.goal
                 if original_goal and original_goal.pk == self.goal.pk:
                     goal_obj.refresh_from_db()
-                
-                is_aporte = (self.type == self.TransactionType.EXPENSE and self.description.strip().lower().startswith('aporte'))
-                is_resgate = (self.type == self.TransactionType.INCOME and self.description.strip().lower().startswith('resgate'))
 
-                if is_aporte or (self.type == self.TransactionType.INCOME and not is_resgate):
-                    # Aporte ou Entrada manual comum: adiciona à meta
+                impact = self._goal_impact()
+                if impact == 'add':
                     goal_obj.current_amount += self.amount
-                else:
-                    # Resgate ou Saída manual comum: subtrai da meta (limitado a zero)
+                elif impact == 'subtract':
                     goal_obj.current_amount = max(goal_obj.current_amount - self.amount, Decimal('0.00'))
-                goal_obj.save()
+                elif impact == 'spend':
+                    goal_obj.spent_amount += self.amount
+                if impact:
+                    goal_obj.save()
 
     def delete(self, *args, **kwargs):
         # Ao excluir, reverte o impacto na meta vinculada
         if self.goal:
             goal_obj = self.goal
-            is_aporte = (self.type == self.TransactionType.EXPENSE and self.description.strip().lower().startswith('aporte'))
-            is_resgate = (self.type == self.TransactionType.INCOME and self.description.strip().lower().startswith('resgate'))
-
-            if is_aporte or (self.type == self.TransactionType.INCOME and not is_resgate):
-                # Se adicionou, subtraímos para reverter
+            impact = self._goal_impact()
+            if impact == 'add':
                 goal_obj.current_amount = max(goal_obj.current_amount - self.amount, Decimal('0.00'))
-            else:
-                # Se subtraiu, somamos para reverter
+            elif impact == 'subtract':
                 goal_obj.current_amount += self.amount
-            goal_obj.save()
+            elif impact == 'spend':
+                goal_obj.spent_amount = max(goal_obj.spent_amount - self.amount, Decimal('0.00'))
+            if impact:
+                goal_obj.save()
 
         super().delete(*args, **kwargs)
 
@@ -366,6 +397,9 @@ class Goal(models.Model):
     target_amount = models.DecimalField('Valor alvo', max_digits=12, decimal_places=2)
     current_amount = models.DecimalField('Valor acumulado', max_digits=12, decimal_places=2,
                                          default=0)
+    spent_amount = models.DecimalField('Valor utilizado', max_digits=12, decimal_places=2,
+                                       default=0,
+                                       help_text='Quanto do dinheiro guardado já foi gasto no propósito da meta.')
     deadline = models.DateField('Data limite')
     color = models.CharField('Cor', max_length=7, default='#22c55e')
     is_archived = models.BooleanField('Arquivado', default=False)
@@ -388,6 +422,11 @@ class Goal(models.Model):
     @property
     def remaining(self):
         return max(self.target_amount - self.current_amount, 0)
+
+    @property
+    def available_amount(self):
+        """Quanto do dinheiro guardado ainda está disponível para uso."""
+        return max(self.current_amount - self.spent_amount, Decimal('0.00'))
 
 
 class UserSettings(models.Model):

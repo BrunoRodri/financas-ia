@@ -121,11 +121,14 @@ Abaixo estão descritos os atributos chaves dos modelos principais do projeto:
 - `recurring_rule` (ForeignKey): Regra geradora (nula para transações avulsas).
 - `credit_card` (ForeignKey): Cartão vinculado.
 - `installment_number` (IntegerField): Indicador ordinal da parcela (Ex: 3).
+- `funded_by_goal` (BooleanField): Indica se a despesa foi financiada pelo saldo acumulado de uma meta (não afeta fluxo de caixa).
 
 ### 5. `Goal`
 - `name` (CharField): Nome do objetivo.
 - `target_amount` (Decimal): Meta total de capital.
 - `current_amount` (Decimal): Capital atualmente acumulado.
+- `spent_amount` (Decimal): Capital já utilizado/gasto da meta.
+- `available_amount` (property): Capital disponível para uso (`current_amount - spent_amount`).
 - `deadline` (DateField): Prazo final limite.
 - `color` (CharField): Cor personalizada.
 - `is_archived` (BooleanField): Indica se a meta foi arquivada/encerrada (metas arquivadas são ocultadas por padrão na UI e excluídas dos formulários de transação).
@@ -209,11 +212,15 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 
 ### 6. Sincronização Automática e Bidirecional de Metas e Transações
 * **Relacionamento Direto (ForeignKey):** A model `Transaction` possui uma chave estrangeira opcional `goal` apontando para `Goal`. Transações geradas a partir do formulário de metas recebem essa referência automaticamente, e transações criadas manualmente podem ser vinculadas a metas através do campo "Meta Vinculada" no painel de lançamento rápido. Adicionalmente, regras recorrentes (`RecurringRule`) também podem ser vinculadas diretamente a uma meta, propagando essa referência automaticamente para todas as suas transações geradas (seja no momento da criação da regra ou durante a materialização mensal).
-* **Mapeamento de Fluxos:** Aportes oficiais (tipo **EXPENSE** com descrição começando por "Aporte" case-insensitive) e entradas manuais comuns (tipo **INCOME** sem descrição de "Resgate") aumentam o progresso acumulado da meta. Resgates oficiais (tipo **INCOME** com descrição começando por "Resgate" case-insensitive) e saídas/despesas manuais comuns (tipo **EXPENSE** sem descrição de "Aporte") reduzem o valor acumulado da meta.
+* **Mapeamento de Fluxos:** 
+  - Aportes oficiais (tipo **EXPENSE** com descrição começando por "Aporte" case-insensitive) adicionam ao valor acumulado da meta (`current_amount`).
+  - Resgates oficiais (tipo **INCOME** com descrição começando por "Resgate" case-insensitive) subtraem do valor acumulado da meta (`current_amount`).
+  - Transações com `funded_by_goal=True` representam despesas financiadas pelo dinheiro guardado da meta. Elas adicionam ao valor utilizado da meta (`spent_amount`) em vez de diminuir o `current_amount`, mantendo intacta a contagem de progresso da meta, e são excluídas da projeção de fluxo de caixa (dashboard) para evitar duplicidade.
+  - Outros tipos de transação associados à meta não têm impacto de saldo.
 * **Sincronização no Ciclo de Vida da Model (Save/Delete):**
-  - **Criação/Edição:** Ao salvar uma transação vinculada a uma meta, o Django intercepta o salvamento (`save()`), detecta se houve alteração de valor, tipo, descrição ou mudança de meta. Ele reverte o impacto antigo na meta anterior e aplica o novo impacto na meta atual de forma atômica e resiliente.
-  - **Exclusão:** Ao excluir uma transação vinculada, o método `delete()` é interceptado para desfazer automaticamente o impacto correspondente no saldo acumulado da meta (revertendo o aporte, resgate ou despesa).
-* **Exibição Visual Premium:** Transações integradas a metas recebem uma badge exclusiva `🎯 Nome da Meta` na listagem de transações, facilitando a identificação imediata do propósito contábil.
+  - **Criação/Edição:** Ao salvar uma transação vinculada a uma meta, o Django intercepta o salvamento (`save()`), detecta se houve alteração de valor, tipo, descrição, `funded_by_goal` ou mudança de meta. Ele reverte o impacto antigo na meta anterior e aplica o novo impacto na meta atual de forma atômica e resiliente.
+  - **Exclusão:** Ao excluir uma transação vinculada, o método `delete()` é interceptado para desfazer automaticamente o impacto correspondente (revertendo o aporte, resgate ou gasto utilizado da meta).
+* **Exibição Visual Premium:** Transações integradas a metas recebem uma badge exclusiva `🎯 Nome da Meta` na listagem de transações, e aquelas marcadas como financiadas pela meta exibem uma badge distintiva na cor âmbar com o ícone de dinheiro `💰 Nome da Meta`.
 
 ### 7. Sistema de Arquivamento (Finalização) de Metas e Regras Recorrentes
 * **Organização e Redução de Poluição:** Metas encerradas e regras recorrentes antigas podem ser arquivadas para liberar espaço visual na tela, sem a necessidade de excluí-las (o que destruiria o histórico de transações e tags).

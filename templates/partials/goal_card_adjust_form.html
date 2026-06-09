@@ -3,11 +3,16 @@
     <div class="flex items-center justify-between mb-3">
         <div>
             <h3 class="text-sm font-semibold text-white">
-                {% if action_type == 'add' %}Guardar em{% else %}Retirar de{% endif %}
+                {% if action_type == 'add' %}Guardar em{% elif action_type == 'use' %}Utilizar de{% else %}Retirar de{% endif %}
             </h3>
             <p class="text-xs text-gray-400 font-medium truncate max-w-[170px]">{{ goal.name }}</p>
         </div>
-        <span class="text-xs text-gray-500 font-semibold">{{ goal.current_amount|brl }}</span>
+        <div class="text-right">
+            <span class="text-xs text-gray-500 font-semibold block">{{ goal.current_amount|brl }}</span>
+            {% if action_type == 'use' %}
+            <span class="text-[10px] text-gray-600">Disponível: {{ goal.available_amount|brl }}</span>
+            {% endif %}
+        </div>
     </div>
 
     <form hx-post="{% url 'goal_update' goal.id %}"
@@ -17,18 +22,33 @@
         {% csrf_token %}
         <input type="hidden" name="action_type" value="{{ action_type }}">
 
+        {% if action_type == 'use' %}
+        <!-- Descrição do gasto (apenas para Utilizar) -->
+        <div>
+            <label class="form-label !text-[9px] !mb-1" for="use_description">Descrição do gasto</label>
+            <input type="text"
+                   name="description"
+                   id="use_description"
+                   class="form-input !py-1 !text-xs"
+                   placeholder="Ex: Passagem aérea, Hotel..."
+                   autofocus>
+        </div>
+        {% endif %}
+
         <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-semibold">R$</span>
             <input type="number" 
                    name="adjust_amount" 
                    step="0.01" 
                    min="0.01" 
+                   {% if action_type == 'use' %}max="{{ goal.available_amount|stringformat:'.2f' }}"{% endif %}
                    required 
                    class="form-input pl-8 pr-3 py-1.5 text-sm font-semibold" 
                    placeholder="0,00" 
-                   autofocus>
+                   {% if action_type != 'use' %}autofocus{% endif %}>
         </div>
 
+        {% if action_type != 'use' %}
         <div>
             <label class="form-label !text-[9px] !mb-1" for="create_transaction">Lançar no Fluxo de Caixa?</label>
             <select name="create_transaction" 
@@ -38,10 +58,16 @@
                 <option value="false">Não, apenas atualizar meta</option>
             </select>
         </div>
+        {% endif %}
 
+        {% if action_type == 'use' %}
+        <p class="text-[9px] text-gray-600 leading-tight">
+            💡 Este gasto será registrado como financiado pela meta e <strong class="text-gray-400">não afetará</strong> o fluxo de caixa.
+        </p>
+        {% endif %}
 
         <div class="flex gap-2">
-            <button type="submit" class="btn btn-sm btn-success flex-1 text-xs">
+            <button type="submit" class="btn btn-sm {% if action_type == 'use' %}btn-primary{% else %}btn-success{% endif %} flex-1 text-xs">
                 Confirmar
             </button>
             <button type="button" 

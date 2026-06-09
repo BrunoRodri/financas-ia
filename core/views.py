@@ -464,10 +464,11 @@ def goal_update(request, pk):
     """Atualiza meta (valor acumulado)."""
     goal = get_object_or_404(Goal, pk=pk)
     
-    # Suporte a ajuste rápido inline (aporte/resgate)
+    # Suporte a ajuste rápido inline (aporte/resgate/utilizar)
     action_type = request.POST.get('action_type')
     adjust_amount = request.POST.get('adjust_amount')
     create_transaction = request.POST.get('create_transaction') == 'true'
+    description = request.POST.get('description', '').strip()
     
     if action_type and adjust_amount:
         try:
@@ -514,14 +515,33 @@ def goal_update(request, pk):
                 else:
                     goal.current_amount = max(goal.current_amount - amount, Decimal('0.00'))
                     goal.save()
+            elif action_type == 'use':
+                # Utilizar: gasto financiado pelo dinheiro já guardado na meta
+                available = goal.available_amount
+                actual_used = min(amount, available)
+                if actual_used > 0:
+                    tag, _ = Tag.objects.get_or_create(
+                        name="Metas",
+                        defaults={"color": "#8b5cf6"}
+                    )
+                    txn_desc = description or f"Gasto: {goal.name}"
+                    txn = Transaction.objects.create(
+                        description=txn_desc,
+                        amount=actual_used,
+                        due_date=timezone.localdate(),
+                        type=Transaction.TransactionType.EXPENSE,
+                        status=Transaction.Status.PAID,
+                        goal=goal,
+                        funded_by_goal=True,
+                    )
+                    txn.tags.add(tag)
+                    goal.refresh_from_db()
             
             if request.headers.get('HX-Request'):
                 response = render(request, 'partials/goal_card.html', {'goal': goal})
                 response['HX-Trigger'] = 'transactionUpdated'
                 return response
             return redirect('goal_list')
-        except (ValueError, ArithmeticError):
-            pass
         except (ValueError, ArithmeticError):
             pass
 
