@@ -25,8 +25,7 @@ financa/
 │   ├── management/             # Comandos de gerenciamento customizados do Django
 │   │   ├── __init__.py
 │   │   └── commands/
-│   │       ├── __init__.py
-│   │       └── seed_db.py      # Comando de sementeira customizado (limpeza e mock dinâmico)
+│   │       └── __init__.py
 │   │
 │   ├── services/               # Camada de lógica de negócio isolada
 │   │   ├── __init__.py
@@ -207,6 +206,8 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **Exclusão de Regras (Preservação de Histórico):** Se houver transações já pagas pertencentes à regra, o modal oferece as opções de **"Excluir apenas as NÃO PAGAS"** (preservando o histórico e desvinculando os lançamentos quitados) ou **"Excluir TUDO"**.
 * **Exclusão de Transações (Alerta Inteligente de Metas):** Se a transação estiver vinculada a uma meta financeira, o modal informa dinamicamente o usuário de que a exclusão daquela transação reverterá automaticamente o valor correspondente do progresso acumulado da meta associada.
 * **Resiliência, Foco e Fechamento Autocontido via Reset de Placeholder:** O container global de modais (`#global-modal`) é um placeholder `div` simples sem estilos na raiz do documento, garantindo que não interfira no fluxo ou nos cliques da página quando vazio. Quando um modal é carregado, o overlay interno é posicionado com `fixed inset-0 z-[105]` para capturar eventos e escurecer a tela. O fechamento é feito diretamente pelo modal no DOM removendo a div de overlay (`.remove()`), permitindo aberturas e fechamentos ilimitados e independentes.
+* **Regra de swap obrigatória (`hx-swap="innerHTML"`):** Todos os botões que abrem modais (`transaction_row.html`, `recurring_row.html`, `goal_card.html`) devem declarar explicitamente `hx-swap="innerHTML"` no botão que aponta para `#global-modal`. Sem isso, o HTMX herda `hx-swap="outerHTML"` do container pai (`#transactions-page-container`) e substitui o elemento `#global-modal` inteiro pelo overlay, removendo-o do DOM ao fechar e quebrando todas as aberturas subsequentes.
+* **Listener `htmx:afterRequest` com filtro de verbo:** O listener em `base.html` que limpa o `#global-modal` após uma exclusão verifica `config.verb === 'post'` antes de agir. Isso é necessário porque as rotas de confirmação (`/delete/confirm/`) são GETs e contêm `/delete/` na URL — sem o filtro de verbo, o modal seria limpo imediatamente após ser carregado.
 
 ### 5. Ocultação Dinâmica de Empty States (CSS :has)
 * **CSS Declarativo Moderno:** Para evitar que mensagens como "Nenhuma meta criada" continuem visíveis ao criar elementos via HTMX (ou reapareçam incorretamente ao deletar), foi implementada uma regra CSS declarativa usando o seletor moderno `:has()`.

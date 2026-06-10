@@ -495,11 +495,11 @@
                 }
             });
 
-            // Fechar modal global ao deletar com sucesso
+            // Fechar modal global ao deletar com sucesso (apenas POSTs, não GETs de confirm)
             document.body.addEventListener('htmx:afterRequest', function(evt) {
                 const xhr = evt.detail.xhr;
                 const config = evt.detail.requestConfig;
-                if (xhr && xhr.status === 200 && config && config.path) {
+                if (xhr && xhr.status === 200 && config && config.path && config.verb === 'post') {
                     if (config.path.includes('/delete/')) {
                         closeGlobalModal();
                     }

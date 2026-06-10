@@ -22,6 +22,7 @@
             </button>
             <button hx-get="{% url 'goal_delete_confirm' goal.id %}"
                     hx-target="#global-modal"
+                    hx-swap="innerHTML"
                     class="p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400 transition-colors cursor-pointer"
                     title="Excluir meta">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
