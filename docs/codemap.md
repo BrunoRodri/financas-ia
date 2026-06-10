@@ -237,6 +237,11 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **Recarregamento Reativo dos Contêineres:** O contêiner do Dashboard (`#dashboard-container`) e o da página de Transações (`#transactions-page-container`) escutam o evento `transactionUpdated from:body`. Ao recebê-lo, realizam uma requisição GET transparente e automática (`hx-get="{{ request.get_full_path }}"` com `hx-select`), recarregando todos os dados, tabelas e cards com as query parameters de filtros ativas preservadas.
 * **Ciclo de Vida do Gráfico de Projeção:** O gráfico de projeção de saldo (`Chart.js`) e seus respectivos dados JSON estão contidos dentro do `#dashboard-container`. Ao recarregar o fragmento, os novos dados são injetados e a inicialização é re-executada. Para evitar o erro de canvas em uso (`Canvas is already in use`), a instância anterior (`window.cashFlowChartInstance`) é detectada e destruída com segurança (`.destroy()`) antes de instanciar o novo gráfico.
 
-
-
-
+### 9. Arquitetura de Navegação: Sidebar Responsiva
+* **Layout Unificado (Sidebar):** Substituiu o menu superior anterior por uma barra lateral esquerda fixa de 256px (`w-64`) em telas grandes. O conteúdo principal (`<main>`) é deslocado lateralmente com `md:pl-64` para manter o grid estrutural intocado.
+* **Responsividade e Comportamento Mobile:**
+  - Em telas menores (mobile/tablet < md), um cabeçalho fixo no topo (`header`) é exibido com o botão Hamburguer.
+  - A Sidebar é ocultada (`-translate-x-full`) e, ao clicar no Hamburguer, desliza na tela a partir da esquerda (`translate-x-0`) como uma gaveta (drawer) sobreposta.
+  - Um overlay de fundo escurecido e desfocado (`#sidebar-overlay` com `.bg-black/60` e `.backdrop-blur-sm`) cobre o resto da tela. Clicar no overlay ou no botão fechar (X) desliza a Sidebar de volta para fora da tela.
+  - O script em `base.html` escuta o evento `htmx:afterSwap` para fechar automaticamente a Sidebar no mobile quando um link é clicado e a requisição HTMX é concluída.
+* **Estilização Premium:** Os links utilizam a classe `.sidebar-link` com efeito hover translúcido suave, e o link correspondente à página ativa recebe `.sidebar-link-active` que destaca o item com cor roxo/indigo e uma borda vertical esquerda distintiva de 3px (`border-left`).

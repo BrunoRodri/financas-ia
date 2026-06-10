@@ -23,6 +23,7 @@ Com uma interface moderna, dark-mode nativo, glassmorphism e atualizações sem 
 - **🎨 UI/UX Avançada e Controle Inteligente:**
   - **Filtros Avançados & Agrupamento:** Painel de filtros de transações dinâmico (ocultável) e listagem agrupada de forma elegante por mês cronológico.
   - **Datepicker Unificado Global:** Componente de calendário visual clicável dark/glassmorphic integrado com digitação direta e máscara brasileira (`DD/MM/YYYY`) unificado de forma totalmente automatizada em todo o sistema (lançamentos rápidos, metas, edição inline e configurações).
+  - **Sidebar Responsiva (Menu Lateral):** Navegação principal redesenhada para uma barra lateral esquerda de 256px (`w-64`) fixa no desktop, que se converte automaticamente em uma gaveta deslizante (drawer) com overlay escurecido e blur no mobile, garantindo escalabilidade para novas abas futuras.
   - **Segurança de Deleção:** Modais dinâmicos via HTMX para confirmar a exclusão de Regras Recorrentes (permitindo poupar parcelas já pagas) e Transações individuais (com aviso inteligente e dinâmico de estorno em metas vinculadas), prevenindo exclusões acidentais.
   - **Desativação Dinâmica:** Ajuste instantâneo de campos de formulário de regras, bloqueando e limpando o campo de parcelas se a recorrência selecionada for mensal.
 

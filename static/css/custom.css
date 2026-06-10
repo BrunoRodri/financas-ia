@@ -53,43 +53,6 @@
     opacity: 1;
 }
 
-/* ─── Navigation ─────────────────────────────────────────────── */
-.nav-link {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: rgba(156, 163, 175, 1);
-    transition: all 0.2s ease;
-}
-
-.nav-link:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.nav-link-active {
-    color: white;
-    background: rgba(99, 102, 241, 0.15);
-}
-
-.mobile-nav-link {
-    display: block;
-    padding: 0.625rem 0.75rem;
-    border-radius: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: rgba(156, 163, 175, 1);
-    transition: all 0.2s ease;
-}
-
-.mobile-nav-link:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.05);
-}
 
 /* ─── Form Elements ──────────────────────────────────────────── */
 .form-input {
