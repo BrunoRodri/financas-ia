@@ -77,6 +77,31 @@ def dashboard(request):
 
 # ─── Transactions ────────────────────────────────────────────────────────────
 
+import calendar
+
+def get_bill_period(card, year, month):
+    """
+    Retorna o período de compras (start_date, end_date) de uma fatura de cartão de crédito.
+    A fatura do mês M/Y fecha no dia `card.closing_day` de M/Y.
+    O período de compras vai do dia do fechamento anterior até um dia antes do fechamento atual.
+    """
+    closing_day = card.closing_day
+    
+    # Fechamento atual (M/Y)
+    _, last_day_current = calendar.monthrange(year, month)
+    actual_closing_day_current = min(closing_day, last_day_current)
+    closing_date_current = datetime.date(year, month, actual_closing_day_current)
+    end_date = closing_date_current - datetime.timedelta(days=1)
+    
+    # Fechamento anterior (M-1/Y)
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    _, last_day_prev = calendar.monthrange(prev_year, prev_month)
+    actual_closing_day_prev = min(closing_day, last_day_prev)
+    start_date = datetime.date(prev_year, prev_month, actual_closing_day_prev)
+    
+    return start_date, end_date
+
 def transaction_list(request):
     """Lista completa de transações com filtros."""
     # Materializa recorrências mensais pendentes antes de listar para garantir dados atualizados
@@ -95,6 +120,7 @@ def transaction_list(request):
     year_filter = request.GET.get('year')
     payment_method = request.GET.get('payment_method')
     card_id = request.GET.get('card')
+    view_by_bill = request.GET.get('view_by_bill') == 'true'
 
     # Suporte a redirecionamentos do dashboard no formato YYYY-MM
     if month_filter and '-' in month_filter:
@@ -110,16 +136,31 @@ def transaction_list(request):
         transactions = transactions.filter(type=txn_type)
     if tag:
         transactions = transactions.filter(tags__id=tag)
-    if year_filter:
+        
+    applied_bill_filter = False
+    if view_by_bill and card_id:
         try:
-            transactions = transactions.filter(due_date__year=int(year_filter))
-        except ValueError:
+            from core.models import CreditCard
+            card = CreditCard.objects.get(id=card_id)
+            target_year = int(year_filter) if year_filter else timezone.localdate().year
+            target_month = int(month_filter) if month_filter else timezone.localdate().month
+            start_date, end_date = get_bill_period(card, target_year, target_month)
+            transactions = transactions.filter(due_date__range=(start_date, end_date))
+            applied_bill_filter = True
+        except (ValueError, CreditCard.DoesNotExist):
             pass
-    if month_filter:
-        try:
-            transactions = transactions.filter(due_date__month=int(month_filter))
-        except ValueError:
-            pass
+
+    if not applied_bill_filter:
+        if year_filter:
+            try:
+                transactions = transactions.filter(due_date__year=int(year_filter))
+            except ValueError:
+                pass
+        if month_filter:
+            try:
+                transactions = transactions.filter(due_date__month=int(month_filter))
+            except ValueError:
+                pass
     if payment_method:
         if payment_method == 'other':
             transactions = transactions.filter(credit_card__isnull=True)
@@ -220,6 +261,7 @@ def transaction_list(request):
         'current_year': year_filter,
         'current_payment_method': payment_method,
         'current_card': card_id,
+        'view_by_bill': view_by_bill,
         'total_income': total_income,
         'total_expense': total_expense,
         'net_balance': net_balance,

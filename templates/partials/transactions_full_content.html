@@ -18,7 +18,7 @@
         <form hx-get="{% url 'transaction_list' %}"
               hx-target="#transactions-page-container"
               hx-swap="outerHTML"
-              hx-trigger="change from:select, submit"
+              hx-trigger="change from:select, change from:input[type=checkbox], submit"
               hx-push-url="true"
               id="filter-form"
               class="space-y-4">
@@ -105,6 +105,14 @@
                         </select>
                     </div>
                     
+                    <!-- Filtro por Fatura -->
+                    <div id="filter_card_bill_container" class="{% if current_payment_method != 'card' or not current_card %}hidden{% endif %} flex items-center">
+                        <label class="relative flex items-center gap-2 cursor-pointer select-none" style="margin-top: 1.5rem;">
+                            <input type="checkbox" name="view_by_bill" id="filter_view_by_bill" value="true" class="sr-only peer" {% if view_by_bill %}checked{% endif %}>
+                            <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                            <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Ver Fatura</span>
+                        </label>
+                    </div>
                     <!-- Status -->
                     <div>
                         <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_status">Status</label>
@@ -207,15 +215,39 @@
             function updateFilterCardVisibility() {
                 const methodField = document.getElementById('filter_payment_method');
                 const cardContainer = document.getElementById('filter_card_container');
+                const billContainer = document.getElementById('filter_card_bill_container');
+                const cardSelect = document.getElementById('filter_card');
+                
                 if (methodField && cardContainer) {
                     if (methodField.value === 'card') {
                         cardContainer.classList.remove('hidden');
+                        if (cardSelect && cardSelect.value && billContainer) {
+                            billContainer.classList.remove('hidden');
+                        } else if (billContainer) {
+                            billContainer.classList.add('hidden');
+                            const viewByBillCheckbox = document.getElementById('filter_view_by_bill');
+                            if (viewByBillCheckbox) viewByBillCheckbox.checked = false;
+                        }
                     } else {
                         cardContainer.classList.add('hidden');
-                        const cardSelect = document.getElementById('filter_card');
                         if (cardSelect) cardSelect.value = '';
+                        if (billContainer) {
+                            billContainer.classList.add('hidden');
+                            const viewByBillCheckbox = document.getElementById('filter_view_by_bill');
+                            if (viewByBillCheckbox) viewByBillCheckbox.checked = false;
+                        }
                     }
                 }
+            }
+
+            const methodField = document.getElementById('filter_payment_method');
+            if (methodField) {
+                methodField.addEventListener('change', updateFilterCardVisibility);
+            }
+            
+            const cardSelect = document.getElementById('filter_card');
+            if (cardSelect) {
+                cardSelect.addEventListener('change', updateFilterCardVisibility);
             }
 
             // Toggle do painel de filtros avançados
