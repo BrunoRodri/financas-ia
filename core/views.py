@@ -1,4 +1,5 @@
 import json
+import datetime
 from decimal import Decimal
 
 from django.db.models import Q
@@ -81,24 +82,25 @@ import calendar
 
 def get_bill_period(card, year, month):
     """
-    Retorna o período de compras (start_date, end_date) de uma fatura de cartão de crédito.
-    A fatura do mês M/Y fecha no dia `card.closing_day` de M/Y.
-    O período de compras vai do dia do fechamento anterior até um dia antes do fechamento atual.
+    Retorna o período de compras (start_date, end_date) iniciado no mês de referência (M/Y).
+    O período inicia no dia do fechamento do mês de referência (M/Y) e vai até o dia
+    anterior ao fechamento do mês seguinte (M+1).
+    Isso alinha as compras feitas a partir do dia de fechamento com o mês selecionado.
     """
     closing_day = card.closing_day
     
-    # Fechamento atual (M/Y)
+    # Data de início: fechamento no mês selecionado (M/Y)
     _, last_day_current = calendar.monthrange(year, month)
     actual_closing_day_current = min(closing_day, last_day_current)
-    closing_date_current = datetime.date(year, month, actual_closing_day_current)
-    end_date = closing_date_current - datetime.timedelta(days=1)
+    start_date = datetime.date(year, month, actual_closing_day_current)
     
-    # Fechamento anterior (M-1/Y)
-    prev_month = month - 1 if month > 1 else 12
-    prev_year = year if month > 1 else year - 1
-    _, last_day_prev = calendar.monthrange(prev_year, prev_month)
-    actual_closing_day_prev = min(closing_day, last_day_prev)
-    start_date = datetime.date(prev_year, prev_month, actual_closing_day_prev)
+    # Data de término: um dia antes do fechamento do mês seguinte (M+1)
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+    _, last_day_next = calendar.monthrange(next_year, next_month)
+    actual_closing_day_next = min(closing_day, last_day_next)
+    closing_date_next = datetime.date(next_year, next_month, actual_closing_day_next)
+    end_date = closing_date_next - datetime.timedelta(days=1)
     
     return start_date, end_date
 
