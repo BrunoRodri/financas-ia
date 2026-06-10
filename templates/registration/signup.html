@@ -1,0 +1,40 @@
+{% extends 'base_auth.html' %}
+{% block title %}Criar conta{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-white mb-1">Criar conta</h1>
+<p class="text-sm text-gray-400 mb-6">Preencha os dados para começar</p>
+
+<form method="post" class="space-y-4">
+    {% csrf_token %}
+
+    {% for field in form %}
+    <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5" for="{{ field.id_for_label }}">
+            {{ field.label }}
+        </label>
+        <input type="{{ field.field.widget.input_type }}"
+               name="{{ field.html_name }}"
+               id="{{ field.id_for_label }}"
+               {% if field.value %}value="{{ field.value }}"{% endif %}
+               class="w-full px-4 py-2.5 rounded-xl bg-dark-900/60 border {% if field.errors %}border-red-500/50{% else %}border-white/10{% endif %} text-white placeholder-gray-600 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition text-sm">
+        {% if field.errors %}
+        <p class="text-xs text-red-400 mt-1">{{ field.errors|join:", " }}</p>
+        {% endif %}
+        {% if field.help_text %}
+        <p class="text-xs text-gray-600 mt-1">{{ field.help_text }}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <button type="submit"
+            class="w-full py-2.5 rounded-xl text-sm font-semibold bg-accent hover:bg-accent-light text-white transition-all shadow-md shadow-accent/20 active:scale-[0.98]">
+        Criar conta
+    </button>
+</form>
+
+<p class="text-center text-sm text-gray-500 mt-6">
+    Já tem conta?
+    <a href="{% url 'login' %}" class="text-accent-light hover:text-white transition-colors font-medium">Entrar</a>
+</p>
+{% endblock %}

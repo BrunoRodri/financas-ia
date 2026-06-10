@@ -47,10 +47,10 @@ class VirtualInitialBalance:
 def dashboard(request):
     """Página principal com projeção de saldo e lançamento rápido."""
     RecurringRule.auto_archive_expired_rules()
-    projection = project_cash_flow(months_ahead=6)
-    upcoming = get_upcoming_transactions(days=30)
-    goals = Goal.objects.filter(is_archived=False)
-    settings = UserSettings.load()
+    projection = project_cash_flow(request.user, months_ahead=6)
+    upcoming = get_upcoming_transactions(request.user, days=30)
+    goals = Goal.objects.filter(user=request.user, is_archived=False)
+    settings = UserSettings.load(request.user)
 
     # Dados para o gráfico (Chart.js)
     chart_labels = [m['month_label'] for m in projection['monthly_summary']]
@@ -88,12 +88,12 @@ def get_bill_period(card, year, month):
     Isso alinha as compras feitas a partir do dia de fechamento com o mês selecionado.
     """
     closing_day = card.closing_day
-    
+
     # Data de início: fechamento no mês selecionado (M/Y)
     _, last_day_current = calendar.monthrange(year, month)
     actual_closing_day_current = min(closing_day, last_day_current)
     start_date = datetime.date(year, month, actual_closing_day_current)
-    
+
     # Data de término: um dia antes do fechamento do mês seguinte (M+1)
     next_month = month + 1 if month < 12 else 1
     next_year = year if month < 12 else year + 1
@@ -101,16 +101,17 @@ def get_bill_period(card, year, month):
     actual_closing_day_next = min(closing_day, last_day_next)
     closing_date_next = datetime.date(next_year, next_month, actual_closing_day_next)
     end_date = closing_date_next - datetime.timedelta(days=1)
-    
+
     return start_date, end_date
 
 def transaction_list(request):
     """Lista completa de transações com filtros."""
-    # Materializa recorrências mensais pendentes antes de listar para garantir dados atualizados
     from core.services.cash_flow import materialize_recurring_transactions
-    materialize_recurring_transactions(months_ahead=6)
+    materialize_recurring_transactions(request.user, months_ahead=6)
 
-    transactions = Transaction.objects.select_related(
+    transactions = Transaction.objects.filter(
+        user=request.user,
+    ).select_related(
         'recurring_rule', 'credit_card'
     ).prefetch_related('tags').order_by('due_date')
 
@@ -138,12 +139,11 @@ def transaction_list(request):
         transactions = transactions.filter(type=txn_type)
     if tag:
         transactions = transactions.filter(tags__id=tag)
-        
+
     applied_bill_filter = False
     if view_by_bill and card_id:
         try:
-            from core.models import CreditCard
-            card = CreditCard.objects.get(id=card_id)
+            card = CreditCard.objects.get(id=card_id, user=request.user)
             target_year = int(year_filter) if year_filter else timezone.localdate().year
             target_month = int(month_filter) if month_filter else timezone.localdate().month
             start_date, end_date = get_bill_period(card, target_year, target_month)
@@ -171,8 +171,7 @@ def transaction_list(request):
     if card_id:
         transactions = transactions.filter(credit_card_id=card_id)
 
-    # Carregar saldo inicial das configurações
-    user_settings = UserSettings.load()
+    user_settings = UserSettings.load(request.user)
 
     # Calcular somatórios pós-saldo (apenas transações com due_date >= balance_date e não financiadas por meta)
     total_income = sum(t.amount for t in transactions if t.is_income and t.due_date >= user_settings.balance_date and not t.funded_by_goal)
@@ -214,9 +213,7 @@ def transaction_list(request):
         # Ordenação estável: no mesmo dia, o saldo inicial aparece primeiro
         transactions_list.sort(key=lambda t: (t.due_date, 0 if getattr(t, 'is_initial_balance', False) else 1))
 
-    # Opções para popular os dropdowns de filtro na página inteira e HTMX partial
-    from core.models import CreditCard, Tag
-    cards = CreditCard.objects.all()
+    cards = CreditCard.objects.filter(user=request.user)
 
     # Todos os 12 meses em ordem cronológica
     months_available = [
@@ -236,7 +233,7 @@ def transaction_list(request):
 
     # Mapear os anos existentes nas transações
     from django.db.models.functions import ExtractYear
-    years_query = Transaction.objects.annotate(
+    years_query = Transaction.objects.filter(user=request.user).annotate(
         year=ExtractYear('due_date')
     ).values_list('year', flat=True).distinct().order_by('-year')
 
@@ -244,7 +241,7 @@ def transaction_list(request):
     years_available = list(years_query)
     if current_year not in years_available:
         years_available.append(current_year)
-    
+
     # Remover valores nulos e ordenar decrescente
     years_available = sorted([y for y in years_available if y is not None], reverse=True)
 
@@ -252,7 +249,7 @@ def transaction_list(request):
 
     context = {
         'transactions': transactions_list,
-        'tags': Tag.objects.all(),
+        'tags': Tag.objects.filter(user=request.user),
         'cards': cards,
         'months_available': months_available,
         'years_available': years_available,
@@ -283,8 +280,11 @@ def transaction_create(request):
     """Lançamento rápido via HTMX — retorna o partial da nova transação."""
     form = TransactionForm(request.POST)
     if form.is_valid():
-        transaction = form.save()
-        user_settings = UserSettings.load()
+        transaction = form.save(commit=False)
+        transaction.user = request.user
+        transaction.save()
+        form.save_m2m()
+        user_settings = UserSettings.load(request.user)
         transaction.is_before_initial_balance = transaction.due_date < user_settings.balance_date
         # Retorna o partial para HTMX inserir na lista
         response = render(request, 'partials/transaction_row.html', {
@@ -303,13 +303,13 @@ def transaction_create(request):
 @require_POST
 def transaction_toggle(request, pk):
     """Alterna status pago/pendente via HTMX."""
-    txn = get_object_or_404(Transaction, pk=pk)
+    txn = get_object_or_404(Transaction, pk=pk, user=request.user)
     if txn.status == Transaction.Status.PENDING:
         txn.status = Transaction.Status.PAID
     else:
         txn.status = Transaction.Status.PENDING
     txn.save()
-    user_settings = UserSettings.load()
+    user_settings = UserSettings.load(request.user)
     txn.is_before_initial_balance = txn.due_date < user_settings.balance_date
     response = render(request, 'partials/transaction_row.html', {
         'txn': txn,
@@ -322,7 +322,7 @@ def transaction_toggle(request, pk):
 @require_POST
 def transaction_delete(request, pk):
     """Remove transação via HTMX."""
-    txn = get_object_or_404(Transaction, pk=pk)
+    txn = get_object_or_404(Transaction, pk=pk, user=request.user)
     txn.delete()
     response = HttpResponse('')
     response['HX-Trigger'] = 'transactionUpdated'
@@ -331,20 +331,20 @@ def transaction_delete(request, pk):
 
 def transaction_delete_confirm(request, pk):
     """Renderiza o modal de confirmação de exclusão para uma transação."""
-    txn = get_object_or_404(Transaction, pk=pk)
+    txn = get_object_or_404(Transaction, pk=pk, user=request.user)
     return render(request, 'partials/transaction_delete_modal.html', {'txn': txn})
 
 
 def transaction_edit(request, pk):
     """Edita uma transação via HTMX inline."""
-    txn = get_object_or_404(Transaction, pk=pk)
-    goals = Goal.objects.filter(Q(is_archived=False) | Q(pk=txn.goal_id))
+    txn = get_object_or_404(Transaction, pk=pk, user=request.user)
+    goals = Goal.objects.filter(user=request.user).filter(Q(is_archived=False) | Q(pk=txn.goal_id))
 
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=txn)
         if form.is_valid():
             txn = form.save()
-            user_settings = UserSettings.load()
+            user_settings = UserSettings.load(request.user)
             txn.is_before_initial_balance = txn.due_date < user_settings.balance_date
             response = render(request, 'partials/transaction_row.html', {
                 'txn': txn,
@@ -377,7 +377,7 @@ def transaction_edit(request, pk):
 def recurring_list(request):
     """Lista de regras recorrentes."""
     RecurringRule.auto_archive_expired_rules()
-    rules = RecurringRule.objects.select_related('credit_card').prefetch_related('tags').all()
+    rules = RecurringRule.objects.filter(user=request.user).select_related('credit_card').prefetch_related('tags')
     form = RecurringRuleForm()
     context = {
         'rules': rules,
@@ -394,6 +394,7 @@ def recurring_create(request):
     form = RecurringRuleForm(request.POST)
     if form.is_valid():
         rule = form.save(commit=False)
+        rule.user = request.user
         # Se for parcelado, divide o valor total pelo número de parcelas
         if (rule.recurrence_type == RecurringRule.RecurrenceType.INSTALLMENT
                 and rule.total_installments and rule.total_installments > 0):
@@ -431,7 +432,7 @@ def recurring_create(request):
 @require_POST
 def recurring_toggle(request, pk):
     """Ativa/desativa regra recorrente."""
-    rule = get_object_or_404(RecurringRule, pk=pk)
+    rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
     rule.is_active = not rule.is_active
     rule.save()
     return render(request, 'partials/recurring_row.html', {'rule': rule})
@@ -440,7 +441,7 @@ def recurring_toggle(request, pk):
 @require_POST
 def recurring_delete(request, pk):
     """Remove regra recorrente baseando-se nas preferências do usuário."""
-    rule = get_object_or_404(RecurringRule, pk=pk)
+    rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
     delete_all = request.GET.get('delete_all') == 'true'
 
     if delete_all:
@@ -460,7 +461,7 @@ def recurring_delete(request, pk):
 
 def recurring_delete_confirm(request, pk):
     """Renderiza o modal de confirmação de exclusão para a regra recorrente."""
-    rule = get_object_or_404(RecurringRule, pk=pk)
+    rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
     paid_count = rule.transactions.filter(status=Transaction.Status.PAID).count()
     total_count = rule.transactions.count()
 
@@ -476,7 +477,7 @@ def recurring_delete_confirm(request, pk):
 
 def goal_list(request):
     """Lista de metas financeiras."""
-    goals = Goal.objects.all()
+    goals = Goal.objects.filter(user=request.user)
     form = GoalForm()
     context = {
         'goals': goals,
@@ -492,7 +493,10 @@ def goal_create(request):
     """Cria meta via HTMX."""
     form = GoalForm(request.POST)
     if form.is_valid():
-        goal = form.save()
+        goal = form.save(commit=False)
+        goal.user = request.user
+        goal.save()
+        form.save_m2m()
         if request.headers.get('HX-Request'):
             return render(request, 'partials/goal_card.html', {
                 'goal': goal, 'is_new': True,
@@ -506,25 +510,26 @@ def goal_create(request):
 @require_POST
 def goal_update(request, pk):
     """Atualiza meta (valor acumulado)."""
-    goal = get_object_or_404(Goal, pk=pk)
-    
+    goal = get_object_or_404(Goal, pk=pk, user=request.user)
+
     # Suporte a ajuste rápido inline (aporte/resgate/utilizar)
     action_type = request.POST.get('action_type')
     adjust_amount = request.POST.get('adjust_amount')
     create_transaction = request.POST.get('create_transaction') == 'true'
     description = request.POST.get('description', '').strip()
-    
+
     if action_type and adjust_amount:
         try:
             amount = Decimal(adjust_amount)
             if action_type == 'add':
                 if create_transaction:
-                    # Garantir que a tag "Metas" exista
                     tag, _ = Tag.objects.get_or_create(
                         name="Metas",
+                        user=request.user,
                         defaults={"color": "#8b5cf6"}
                     )
                     txn = Transaction.objects.create(
+                        user=request.user,
                         description=f"Aporte: {goal.name}",
                         amount=amount,
                         due_date=timezone.localdate(),
@@ -544,9 +549,11 @@ def goal_update(request, pk):
                     if actual_subtracted > 0:
                         tag, _ = Tag.objects.get_or_create(
                             name="Metas",
+                            user=request.user,
                             defaults={"color": "#8b5cf6"}
                         )
                         txn = Transaction.objects.create(
+                            user=request.user,
                             description=f"Resgate: {goal.name}",
                             amount=actual_subtracted,
                             due_date=timezone.localdate(),
@@ -566,10 +573,12 @@ def goal_update(request, pk):
                 if actual_used > 0:
                     tag, _ = Tag.objects.get_or_create(
                         name="Metas",
+                        user=request.user,
                         defaults={"color": "#8b5cf6"}
                     )
                     txn_desc = description or f"Gasto: {goal.name}"
                     txn = Transaction.objects.create(
+                        user=request.user,
                         description=txn_desc,
                         amount=actual_used,
                         due_date=timezone.localdate(),
@@ -580,7 +589,7 @@ def goal_update(request, pk):
                     )
                     txn.tags.add(tag)
                     goal.refresh_from_db()
-            
+
             if request.headers.get('HX-Request'):
                 response = render(request, 'partials/goal_card.html', {'goal': goal})
                 response['HX-Trigger'] = 'transactionUpdated'
@@ -603,7 +612,7 @@ def goal_update(request, pk):
 
 def goal_edit(request, pk):
     """Renderiza o formulário inline de aporte/resgate de uma meta via HTMX."""
-    goal = get_object_or_404(Goal, pk=pk)
+    goal = get_object_or_404(Goal, pk=pk, user=request.user)
     action_type = request.GET.get('type', 'add')
     context = {
         'goal': goal,
@@ -614,20 +623,20 @@ def goal_edit(request, pk):
 
 def goal_detail(request, pk):
     """Renderiza o card de meta em estado normal via HTMX (cancelamento/fallback)."""
-    goal = get_object_or_404(Goal, pk=pk)
+    goal = get_object_or_404(Goal, pk=pk, user=request.user)
     return render(request, 'partials/goal_card.html', {'goal': goal})
 
 
 def goal_delete_confirm(request, pk):
     """Renderiza o modal de confirmação para exclusão de metas."""
-    goal = get_object_or_404(Goal, pk=pk)
+    goal = get_object_or_404(Goal, pk=pk, user=request.user)
     return render(request, 'partials/goal_delete_modal.html', {'goal': goal})
 
 
 @require_POST
 def goal_delete(request, pk):
     """Remove meta."""
-    goal = get_object_or_404(Goal, pk=pk)
+    goal = get_object_or_404(Goal, pk=pk, user=request.user)
     goal.delete()
     return HttpResponse('')
 
@@ -636,7 +645,7 @@ def goal_delete(request, pk):
 
 def card_list(request):
     """Lista de cartões cadastrados."""
-    cards = CreditCard.objects.all()
+    cards = CreditCard.objects.filter(user=request.user)
     form = CreditCardForm()
     context = {
         'cards': cards,
@@ -650,7 +659,9 @@ def card_create(request):
     """Cadastra cartão via HTMX."""
     form = CreditCardForm(request.POST)
     if form.is_valid():
-        card = form.save()
+        card = form.save(commit=False)
+        card.user = request.user
+        card.save()
         if request.headers.get('HX-Request'):
             return render(request, 'partials/card_row.html', {
                 'card': card, 'is_new': True,
@@ -662,14 +673,14 @@ def card_create(request):
 @require_POST
 def card_delete(request, pk):
     """Remove cartão."""
-    card = get_object_or_404(CreditCard, pk=pk)
+    card = get_object_or_404(CreditCard, pk=pk, user=request.user)
     card.delete()
     return HttpResponse('')
 
 
 def card_edit(request, pk):
     """Edita um cartão de crédito via HTMX inline."""
-    card = get_object_or_404(CreditCard, pk=pk)
+    card = get_object_or_404(CreditCard, pk=pk, user=request.user)
 
     if request.method == 'POST':
         form = CreditCardForm(request.POST, instance=card)
@@ -699,7 +710,7 @@ def card_edit(request, pk):
 
 def settings_view(request):
     """Atualiza saldo atual, data de referência e exibe painel de tags."""
-    settings = UserSettings.load()
+    settings = UserSettings.load(request.user)
     if request.method == 'POST':
         form = UserSettingsForm(request.POST, instance=settings)
         if form.is_valid():
@@ -715,7 +726,7 @@ def settings_view(request):
     context = {
         'form': form,
         'settings': settings,
-        'tags': Tag.objects.all(),
+        'tags': Tag.objects.filter(user=request.user),
     }
     return render(request, 'settings/edit.html', context)
 
@@ -725,18 +736,18 @@ def tag_create(request):
     """Cria uma nova tag via HTMX e retorna a listagem atualizada."""
     name = request.POST.get('name', '').strip()
     color = request.POST.get('color', '#6366f1').strip()
-    
+
     if name:
-        Tag.objects.get_or_create(name=name, defaults={'color': color})
-        
-    tags = Tag.objects.all()
+        Tag.objects.get_or_create(name=name, user=request.user, defaults={'color': color})
+
+    tags = Tag.objects.filter(user=request.user)
     return render(request, 'partials/tag_list.html', {'tags': tags})
 
 
 @require_POST
 def tag_delete(request, pk):
     """Exclui uma tag via HTMX."""
-    tag = get_object_or_404(Tag, pk=pk)
+    tag = get_object_or_404(Tag, pk=pk, user=request.user)
     tag.delete()
     return HttpResponse('')
 
@@ -744,12 +755,10 @@ def tag_delete(request, pk):
 @require_POST
 def goal_toggle_archive(request, pk):
     """Alterna o status arquivado de uma meta."""
-    goal = get_object_or_404(Goal, pk=pk)
+    goal = get_object_or_404(Goal, pk=pk, user=request.user)
     goal.is_archived = not goal.is_archived
     goal.save()
-    
-    # Se a requisição vier com HX-Request, retornamos o card atualizado.
-    # Caso contrário, redirecionamos para a lista.
+
     if request.headers.get('HX-Request'):
         return render(request, 'partials/goal_card.html', {'goal': goal})
     return redirect('goal_list')
@@ -758,10 +767,10 @@ def goal_toggle_archive(request, pk):
 @require_POST
 def recurring_toggle_archive(request, pk):
     """Alterna o status arquivado de uma regra recorrente."""
-    rule = get_object_or_404(RecurringRule, pk=pk)
+    rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
     rule.is_archived = not rule.is_archived
     rule.save()
-    
+
     if request.headers.get('HX-Request'):
         return render(request, 'partials/recurring_row.html', {'rule': rule})
     return redirect('recurring_list')

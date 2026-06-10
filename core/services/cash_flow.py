@@ -15,12 +15,13 @@ from django.utils import timezone
 from core.models import RecurringRule, Transaction, UserSettings
 
 
-def materialize_recurring_transactions(months_ahead=6):
+def materialize_recurring_transactions(user, months_ahead=6):
     """
     Materializa transações mensais recorrentes para os próximos N meses.
     Chamado ao acessar o dashboard.
     """
     rules = RecurringRule.objects.filter(
+        user=user,
         is_active=True,
         recurrence_type=RecurringRule.RecurrenceType.MONTHLY,
     )
@@ -28,7 +29,7 @@ def materialize_recurring_transactions(months_ahead=6):
         rule.materialize_monthly_transactions(months_ahead=months_ahead)
 
 
-def project_cash_flow(months_ahead=6):
+def project_cash_flow(user, months_ahead=6):
     """
     Calcula a projeção de saldo para os próximos N meses.
 
@@ -55,9 +56,9 @@ def project_cash_flow(months_ahead=6):
             'total_expense': Decimal,
         }
     """
-    materialize_recurring_transactions(months_ahead)
+    materialize_recurring_transactions(user, months_ahead)
 
-    settings = UserSettings.load()
+    settings = UserSettings.load(user)
     start_balance = settings.current_balance
     balance_date = settings.balance_date
 
@@ -71,6 +72,7 @@ def project_cash_flow(months_ahead=6):
     query_start_date = start_display_month
 
     transactions_in_horizon = Transaction.objects.filter(
+        user=user,
         due_date__gte=query_start_date,
         due_date__lte=end_date,
     ).exclude(
@@ -88,16 +90,19 @@ def project_cash_flow(months_ahead=6):
     current_date = today
     current_balance = start_balance
 
-    # Se o usuário ainda não configurou saldo inicial (0 em hoje), considera todo o histórico.
+    # Apenas transações PAGAS entram no saldo atual e na base da projeção.
     if start_balance == Decimal('0') and balance_date == today:
         past_transactions = Transaction.objects.filter(
+            user=user,
             due_date__lt=today,
+            status='PAID',
         ).exclude(funded_by_goal=True)
     else:
-        # Caso contrário, respeita a data de referência definida nas configurações.
         past_transactions = Transaction.objects.filter(
+            user=user,
             due_date__gt=balance_date,
             due_date__lt=today,
+            status='PAID',
         ).exclude(funded_by_goal=True)
 
     for txn in past_transactions:
@@ -109,8 +114,10 @@ def project_cash_flow(months_ahead=6):
         running_balance += day_net
 
         if current_date == today:
-            # Saldo atual do card: saldo de referência + movimentos após a referência até hoje.
-            current_balance = running_balance
+            # Saldo atual do card: apenas transações PAGAS até hoje (inclusive).
+            # Transações PENDING de hoje ficam na projeção mas não no saldo atual.
+            today_paid_net = sum(t.signed_amount for t in day_txns if t.status == 'PAID')
+            current_balance = running_balance - day_net + today_paid_net
 
         if day_txns or current_date == today:
             daily.append({
@@ -148,6 +155,7 @@ def project_cash_flow(months_ahead=6):
         # Se a data de referência é anterior à janela de exibição, retroagimos o saldo inicial até o começo da janela
         month_balance = start_balance
         forward_txns = Transaction.objects.filter(
+            user=user,
             due_date__gt=balance_date,
             due_date__lt=query_start_date,
         ).exclude(funded_by_goal=True)
@@ -167,6 +175,7 @@ def project_cash_flow(months_ahead=6):
             if current_month.year == balance_date.year and current_month.month == balance_date.month:
                 ref_first_day = balance_date.replace(day=1)
                 ref_rollback_txns = Transaction.objects.filter(
+                    user=user,
                     due_date__gte=ref_first_day,
                     due_date__lte=balance_date,
                 )
@@ -217,11 +226,12 @@ def project_cash_flow(months_ahead=6):
     }
 
 
-def get_upcoming_transactions(days=30):
+def get_upcoming_transactions(user, days=30):
     """Retorna as próximas transações dos próximos N dias."""
     today = timezone.localdate()
     end = today + timedelta(days=days)
     return Transaction.objects.filter(
+        user=user,
         due_date__gte=today,
         due_date__lte=end,
     ).select_related('recurring_rule', 'credit_card').prefetch_related('tags').order_by('due_date')

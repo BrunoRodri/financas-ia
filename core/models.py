@@ -1,5 +1,6 @@
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -7,7 +8,9 @@ from django.utils import timezone
 
 class Tag(models.Model):
     """Classificação flexível para transações (ex: Alimentação, Lazer)."""
-    name = models.CharField('Nome', max_length=50, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             verbose_name='Usuário', related_name='tags')
+    name = models.CharField('Nome', max_length=50)
     color = models.CharField('Cor', max_length=7, default='#6366f1',
                              help_text='Cor hexadecimal (ex: #6366f1)')
 
@@ -15,6 +18,7 @@ class Tag(models.Model):
         ordering = ['name']
         verbose_name = 'Tag'
         verbose_name_plural = 'Tags'
+        unique_together = ('user', 'name')
 
     def __str__(self):
         return self.name
@@ -31,6 +35,8 @@ class CreditCard(models.Model):
         HIPERCARD = 'HIPERCARD', 'Hipercard'
         OTHER = 'OTHER', 'Outra'
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             verbose_name='Usuário', related_name='credit_cards')
     name = models.CharField('Nome do cartão', max_length=100,
                             help_text='Ex: Nubank, MercadoPago, Inter')
     last_digits = models.CharField('Últimos 4 dígitos', max_length=4, blank=True, default='')
@@ -77,6 +83,8 @@ class RecurringRule(models.Model):
         INCOME = 'INCOME', 'Entrada'
         EXPENSE = 'EXPENSE', 'Saída'
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             verbose_name='Usuário', related_name='recurring_rules')
     description = models.CharField('Descrição', max_length=200)
     amount = models.DecimalField('Valor', max_digits=12, decimal_places=2)
     type = models.CharField('Tipo', max_length=10, choices=TransactionType.choices,
@@ -141,6 +149,7 @@ class RecurringRule(models.Model):
                 continue
             due_date = self.start_date + relativedelta(months=i - 1)
             txn = Transaction(
+                user=self.user,
                 description=f'{self.description} ({i}/{self.total_installments})',
                 amount=self.amount,
                 type=self.type,
@@ -182,6 +191,7 @@ class RecurringRule(models.Model):
         while current <= end_horizon:
             if current >= start_materialize and current not in existing_dates:
                 txn = Transaction(
+                    user=self.user,
                     description=self.description,
                     amount=self.amount,
                     type=self.type,
@@ -235,6 +245,8 @@ class Transaction(models.Model):
         PENDING = 'PENDING', 'Pendente'
         PAID = 'PAID', 'Pago'
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             verbose_name='Usuário', related_name='transactions')
     description = models.CharField('Descrição', max_length=200)
     amount = models.DecimalField('Valor', max_digits=12, decimal_places=2)
     due_date = models.DateField('Data de vencimento')
@@ -403,6 +415,8 @@ class Transaction(models.Model):
 
 class Goal(models.Model):
     """Meta financeira (ex: Viagem pro Rio, Reserva de emergência)."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                             verbose_name='Usuário', related_name='goals')
     name = models.CharField('Nome', max_length=100)
     target_amount = models.DecimalField('Valor alvo', max_digits=12, decimal_places=2)
     current_amount = models.DecimalField('Valor acumulado', max_digits=12, decimal_places=2,
@@ -440,7 +454,9 @@ class Goal(models.Model):
 
 
 class UserSettings(models.Model):
-    """Configurações do usuário (singleton). Armazena o saldo atual de referência."""
+    """Configurações por usuário. Armazena o saldo atual de referência."""
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+                                verbose_name='Usuário', related_name='settings')
     current_balance = models.DecimalField('Saldo atual', max_digits=12, decimal_places=2,
                                           default=0)
     balance_date = models.DateField('Data de referência', default=timezone.localdate)
@@ -452,13 +468,11 @@ class UserSettings(models.Model):
     def __str__(self):
         return f'Saldo: R${self.current_balance} em {self.balance_date}'
 
-    def save(self, *args, **kwargs):
-        # Singleton pattern: force pk=1
-        self.pk = 1
-        super().save(*args, **kwargs)
-
     @classmethod
-    def load(cls):
-        """Retorna a instância singleton, criando se não existir."""
-        obj, _ = cls.objects.get_or_create(pk=1)
+    def load(cls, user):
+        """Retorna as configurações do usuário, criando se não existirem."""
+        obj, _ = cls.objects.get_or_create(
+            user=user,
+            defaults={'current_balance': Decimal('0'), 'balance_date': timezone.localdate()},
+        )
         return obj
