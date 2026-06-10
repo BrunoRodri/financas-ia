@@ -1,0 +1,33 @@
+services:
+  financas-web:
+    build: .
+    container_name: financas-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-financas}:${POSTGRES_PASSWORD:-financas}@financas-db:5432/${POSTGRES_DB:-financas}
+    depends_on:
+      financas-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8001:8000"
+
+  financas-db:
+    image: postgres:16-alpine
+    container_name: financas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-financas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-financas}
+      POSTGRES_DB: ${POSTGRES_DB:-financas}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-financas} -d ${POSTGRES_DB:-financas}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
