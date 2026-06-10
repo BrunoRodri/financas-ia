@@ -76,6 +76,85 @@
             </select>
         </div>
 
+        <!-- Tipo de Pagamento (Dinheiro/Pix vs. Cartão) -->
+        <div id="edit-payment-type-container-{{ txn.id }}" class="hidden">
+            <label class="form-label text-xs" for="edit_payment_type_{{ txn.id }}">Tipo de Pagamento</label>
+            <select name="payment_type" id="edit_payment_type_{{ txn.id }}" class="form-select w-full">
+                <option value="other" {% if form.payment_type.value == 'other' or not txn.credit_card %}selected{% endif %}>Dinheiro / Pix / Débito</option>
+                <option value="card" {% if form.payment_type.value == 'card' or txn.credit_card %}selected{% endif %}>Cartão de Crédito</option>
+            </select>
+        </div>
+
+        <!-- Cartão -->
+        <div id="edit-credit-card-container-{{ txn.id }}" class="hidden">
+            <label class="form-label text-xs" for="edit_credit_card_{{ txn.id }}">Cartão</label>
+            <select name="credit_card" id="edit_credit_card_{{ txn.id }}" class="form-select w-full">
+                <option value="">Sem cartão</option>
+                {% for c in form.fields.credit_card.queryset %}
+                    <option value="{{ c.id }}" {% if txn.credit_card_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Tags -->
+        {% if form.fields.tags.queryset.exists %}
+        <div>
+            <label class="form-label text-xs">Tags</label>
+            <div class="flex flex-wrap gap-2">
+                {% for tag in form.fields.tags.queryset %}
+                    <div class="tag-checkbox">
+                        <input type="checkbox" name="tags" id="edit_tag_{{ tag.id }}_{{ txn.id }}" value="{{ tag.id }}"
+                               {% if tag in txn.tags.all %}checked{% endif %}>
+                        <label for="edit_tag_{{ tag.id }}_{{ txn.id }}">{{ tag.name }}</label>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <script>
+            (function() {
+                const txnId = "{{ txn.id }}";
+                const typeField = document.getElementById(`edit_type_${txnId}`);
+                const paymentTypeField = document.getElementById(`edit_payment_type_${txnId}`);
+                const creditCardField = document.getElementById(`edit_credit_card_${txnId}`);
+                const paymentTypeContainer = document.getElementById(`edit-payment-type-container-${txnId}`);
+                const creditCardContainer = document.getElementById(`edit-credit-card-container-${txnId}`);
+                
+                function updateEditFields() {
+                    if (!typeField || !paymentTypeField || !creditCardField || !paymentTypeContainer || !creditCardContainer) return;
+                    
+                    const isExpense = typeField.value === 'EXPENSE';
+                    const isCard = paymentTypeField.value === 'card';
+                    
+                    if (isExpense) {
+                        paymentTypeContainer.classList.remove('hidden');
+                        paymentTypeField.disabled = false;
+                        if (isCard) {
+                            creditCardContainer.classList.remove('hidden');
+                            creditCardField.disabled = false;
+                        } else {
+                            creditCardContainer.classList.add('hidden');
+                            creditCardField.value = '';
+                            creditCardField.disabled = true;
+                        }
+                    } else {
+                        paymentTypeContainer.classList.add('hidden');
+                        creditCardContainer.classList.add('hidden');
+                        paymentTypeField.value = 'other';
+                        paymentTypeField.disabled = true;
+                        creditCardField.value = '';
+                        creditCardField.disabled = true;
+                    }
+                }
+                
+                if (typeField) typeField.addEventListener('change', updateEditFields);
+                if (paymentTypeField) paymentTypeField.addEventListener('change', updateEditFields);
+                
+                updateEditFields();
+            })();
+        </script>
+
 
 
         <!-- Botões -->

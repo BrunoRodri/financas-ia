@@ -9,7 +9,7 @@
     <form hx-post="{% url 'tag_create' %}"
           hx-target="#tag-list-container"
           hx-swap="innerHTML"
-          hx-on::after-request="if(event.detail.successful) this.reset()"
+          hx-on:htmx:after-request="if(event.detail.successful) this.reset()"
           class="space-y-3 mb-4">
         {% csrf_token %}
         <div class="grid grid-cols-3 gap-2">

@@ -194,6 +194,7 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 ### 2. Filtros Avançados Inteligentes na Listagem de Transações
 * **Toggle Dinâmico:** Os filtros avançados (busca, tipo, status, cartão, tags e intervalo de datas) começam ocultados por padrão. Um botão dinâmico interativo permite alternar a visibilidade de forma fluida.
 * **Agrupamento Cronológico:** A lista de transações agrupa os lançamentos visualmente por meses cronológicos (ex: "DEZEMBRO 2025") utilizando a tag `ifchanged` do Django Template.
+* **Filtro de Ciclo de Fatura:** Implementada a opção de visualizar transações baseadas no ciclo de fechamento real do cartão de crédito (calculado pela função utilitária `get_bill_period`). Ao ativar o filtro "Ver Fatura", as transações do mês selecionado são filtradas com base no período que se inicia no dia de fechamento do cartão do respectivo mês até o dia anterior ao fechamento do mês subsequente (ex: de 14/06 a 13/07 para fechamento no dia 14), eliminando a confusão de visualização entre o mês de compra e o mês de pagamento da fatura.
 
 ### 3. Datepicker Premium Unificado e Desabilitação Condicional de Parcelas
 * **Datepicker Global Unificado:** A lógica do calendário customizado foi generalizada e centralizada em uma única função JavaScript global `setupDatePickers()` no template base `base.html`.
@@ -205,6 +206,7 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
 * **HTMX Dynamic Popups:** Ao clicar no botão de remoção de uma Regra Recorrente ou de uma Transação avulsa, o sistema consulta via HTMX a rota de confirmação correspondente e exibe um modal glassmorphic (`backdrop-blur-sm` e sombreamentos premium) injetado dinamicamente em `#global-modal`.
 * **Exclusão de Regras (Preservação de Histórico):** Se houver transações já pagas pertencentes à regra, o modal oferece as opções de **"Excluir apenas as NÃO PAGAS"** (preservando o histórico e desvinculando os lançamentos quitados) ou **"Excluir TUDO"**.
 * **Exclusão de Transações (Alerta Inteligente de Metas):** Se a transação estiver vinculada a uma meta financeira, o modal informa dinamicamente o usuário de que a exclusão daquela transação reverterá automaticamente o valor correspondente do progresso acumulado da meta associada.
+* **Resiliência, Foco e Fechamento Autocontido via Reset de Placeholder:** O container global de modais (`#global-modal`) é um placeholder `div` simples sem estilos na raiz do documento, garantindo que não interfira no fluxo ou nos cliques da página quando vazio. Quando um modal é carregado, o overlay interno é posicionado com `fixed inset-0 z-[105]` para capturar eventos e escurecer a tela. O fechamento é feito diretamente pelo modal no DOM removendo a div de overlay (`.remove()`), permitindo aberturas e fechamentos ilimitados e independentes.
 
 ### 5. Ocultação Dinâmica de Empty States (CSS :has)
 * **CSS Declarativo Moderno:** Para evitar que mensagens como "Nenhuma meta criada" continuem visíveis ao criar elementos via HTMX (ou reapareçam incorretamente ao deletar), foi implementada uma regra CSS declarativa usando o seletor moderno `:has()`.
@@ -245,3 +247,7 @@ Abaixo estão detalhados os recursos especiais de usabilidade, regras de fluxo e
   - Um overlay de fundo escurecido e desfocado (`#sidebar-overlay` com `.bg-black/60` e `.backdrop-blur-sm`) cobre o resto da tela. Clicar no overlay ou no botão fechar (X) desliza a Sidebar de volta para fora da tela.
   - O script em `base.html` escuta o evento `htmx:afterSwap` para fechar automaticamente a Sidebar no mobile quando um link é clicado e a requisição HTMX é concluída.
 * **Estilização Premium:** Os links utilizam a classe `.sidebar-link` com efeito hover translúcido suave, e o link correspondente à página ativa recebe `.sidebar-link-active` que destaca o item com cor roxo/indigo e uma borda vertical esquerda distintiva de 3px (`border-left`).
+
+### 10. Edição Inline Avançada de Transações
+* **Gerenciamento de Cartões e Tags na Alteração:** Ao clicar para editar uma transação, o formulário inline exibe opções completas de edição para Tipo de Pagamento (Dinheiro/Pix/Débito vs. Cartão de Crédito), seleção do Cartão de Crédito correspondente e checkboxes com preenchimento reativo para todas as Tags cadastradas no sistema.
+* **Isolamento de Scripts de Comportamento:** Para viabilizar que múltiplos formulários de alteração inline de transações estejam abertos simultaneamente sem conflito no DOM, a lógica JavaScript dinâmica de ocultação de campos de cartão/pagamento é encapsulada para cada transação individual utilizando o ID de banco (`{{ txn.id }}`) nos seletores HTML.

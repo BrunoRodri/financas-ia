@@ -154,7 +154,7 @@
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
 
     <!-- Container Global para Modais -->
-    <div id="global-modal" class="relative z-50"></div>
+    <div id="global-modal"></div>
 
     <script>
         (function() {
@@ -182,6 +182,13 @@
                 showToast(detail.message, detail.level);
             });
         })();
+
+        window.closeGlobalModal = function() {
+            const modal = document.getElementById('global-modal');
+            if (modal) {
+                modal.innerHTML = '';
+            }
+        };
 
         function setupDatePickers() {
             document.querySelectorAll('.date-picker-wrap').forEach(wrap => {
@@ -486,6 +493,22 @@
                 if (window.innerWidth < 768) {
                     closeMobile();
                 }
+            });
+
+            // Fechar modal global ao deletar com sucesso
+            document.body.addEventListener('htmx:afterRequest', function(evt) {
+                const xhr = evt.detail.xhr;
+                const config = evt.detail.requestConfig;
+                if (xhr && xhr.status === 200 && config && config.path) {
+                    if (config.path.includes('/delete/')) {
+                        closeGlobalModal();
+                    }
+                }
+            });
+
+            // Fechar modal global ao disparar atualização
+            document.body.addEventListener('transactionUpdated', function() {
+                closeGlobalModal();
             });
 
             initSidebar();

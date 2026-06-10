@@ -36,7 +36,7 @@
             <form hx-post="{% url 'card_create' %}"
                   hx-target="#cards-list"
                   hx-swap="afterbegin"
-                  hx-on::after-request="if(event.detail.successful) this.reset()"
+                  hx-on:htmx:after-request="if(event.detail.successful) this.reset()"
                   class="space-y-3">
                 {% csrf_token %}
 

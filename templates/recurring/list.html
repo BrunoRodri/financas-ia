@@ -61,7 +61,7 @@
             <form hx-post="{% url 'recurring_create' %}"
                   hx-target="#recurring-list"
                   hx-swap="afterbegin"
-                  hx-on::after-request="if(event.detail.successful && !event.detail.xhr.getResponseHeader('HX-Trigger')) { this.reset(); document.getElementById('installment-preview').style.display='none'; }"
+                  hx-on:htmx:after-request="if(event.detail.successful && !event.detail.xhr.getResponseHeader('HX-Trigger')) { this.reset(); document.getElementById('installment-preview').style.display='none'; }"
                   class="space-y-3">
                 {% csrf_token %}
 
