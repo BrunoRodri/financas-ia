@@ -52,6 +52,7 @@ class TransactionForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['due_date'].initial = timezone.localdate()
         self.fields['credit_card'].required = False
@@ -60,13 +61,15 @@ class TransactionForm(forms.ModelForm):
         self.fields['goal'].required = False
         self.fields['goal'].empty_label = 'Sem meta'
 
-        # Filter active goals, but preserve current goal if editing
-        goals_qs = Goal.objects.filter(is_archived=False)
-        if self.instance and self.instance.pk and self.instance.goal_id:
-            goals_qs = Goal.objects.filter(
-                Q(is_archived=False) | Q(pk=self.instance.goal_id)
-            )
-        self.fields['goal'].queryset = goals_qs
+        if user:
+            self.fields['credit_card'].queryset = CreditCard.objects.filter(user=user)
+            self.fields['tags'].queryset = Tag.objects.filter(user=user)
+            goals_qs = Goal.objects.filter(user=user, is_archived=False)
+            if self.instance and self.instance.pk and self.instance.goal_id:
+                goals_qs = Goal.objects.filter(user=user).filter(
+                    Q(is_archived=False) | Q(pk=self.instance.goal_id)
+                )
+            self.fields['goal'].queryset = goals_qs
 
         if self.instance and self.instance.pk:
             if self.instance.credit_card:
@@ -135,6 +138,7 @@ class RecurringRuleForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['start_date'].initial = timezone.localdate()
         self.fields['credit_card'].required = False
@@ -144,13 +148,15 @@ class RecurringRuleForm(forms.ModelForm):
         self.fields['total_installments'].required = False
         self.fields['tags'].required = False
 
-        # Filter active goals, but preserve current goal if editing
-        goals_qs = Goal.objects.filter(is_archived=False)
-        if self.instance and self.instance.pk and self.instance.goal_id:
-            goals_qs = Goal.objects.filter(
-                Q(is_archived=False) | Q(pk=self.instance.goal_id)
-            )
-        self.fields['goal'].queryset = goals_qs
+        if user:
+            self.fields['credit_card'].queryset = CreditCard.objects.filter(user=user)
+            self.fields['tags'].queryset = Tag.objects.filter(user=user)
+            goals_qs = Goal.objects.filter(user=user, is_archived=False)
+            if self.instance and self.instance.pk and self.instance.goal_id:
+                goals_qs = Goal.objects.filter(user=user).filter(
+                    Q(is_archived=False) | Q(pk=self.instance.goal_id)
+                )
+            self.fields['goal'].queryset = goals_qs
 
     def clean(self):
         cleaned_data = super().clean()
@@ -214,6 +220,7 @@ class RecurringRuleEditForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['credit_card'].required = False
         self.fields['credit_card'].empty_label = 'Sem cartão'
@@ -222,12 +229,15 @@ class RecurringRuleEditForm(forms.ModelForm):
         self.fields['total_installments'].required = False
         self.fields['tags'].required = False
 
-        goals_qs = Goal.objects.filter(is_archived=False)
-        if self.instance and self.instance.pk and self.instance.goal_id:
-            goals_qs = Goal.objects.filter(
-                Q(is_archived=False) | Q(pk=self.instance.goal_id)
-            )
-        self.fields['goal'].queryset = goals_qs
+        if user:
+            self.fields['credit_card'].queryset = CreditCard.objects.filter(user=user)
+            self.fields['tags'].queryset = Tag.objects.filter(user=user)
+            goals_qs = Goal.objects.filter(user=user, is_archived=False)
+            if self.instance and self.instance.pk and self.instance.goal_id:
+                goals_qs = Goal.objects.filter(user=user).filter(
+                    Q(is_archived=False) | Q(pk=self.instance.goal_id)
+                )
+            self.fields['goal'].queryset = goals_qs
 
         if self.instance and self.instance.recurrence_type != RecurringRule.RecurrenceType.INSTALLMENT:
             self.fields['total_installments'].widget.attrs['disabled'] = True

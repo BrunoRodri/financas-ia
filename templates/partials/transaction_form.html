@@ -6,6 +6,21 @@
       class="space-y-3">
     {% csrf_token %}
 
+    <!-- Tipo (primeiro campo) -->
+    <input type="hidden" name="type" id="id_type" value="EXPENSE">
+    <div class="grid grid-cols-2 gap-2">
+        <button type="button" id="type-btn-expense"
+                onclick="setTransactionType('EXPENSE')"
+                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-red-500/20 text-red-400 ring-1 ring-red-500/40">
+            ↓ Saída
+        </button>
+        <button type="button" id="type-btn-income"
+                onclick="setTransactionType('INCOME')"
+                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10">
+            ↑ Entrada
+        </button>
+    </div>
+
     <!-- Descrição -->
     <div>
         <label class="form-label" for="id_description">Descrição</label>
@@ -15,19 +30,13 @@
         {% endif %}
     </div>
 
-    <!-- Valor + Tipo -->
-    <div class="grid grid-cols-2 gap-3">
-        <div>
-            <label class="form-label" for="id_amount">Valor (R$)</label>
-            {{ form.amount }}
-            {% if form.amount.errors %}
-                <p class="form-error">{{ form.amount.errors.0 }}</p>
-            {% endif %}
-        </div>
-        <div>
-            <label class="form-label" for="id_type">Tipo</label>
-            {{ form.type }}
-        </div>
+    <!-- Valor -->
+    <div>
+        <label class="form-label" for="id_amount">Valor (R$)</label>
+        {{ form.amount }}
+        {% if form.amount.errors %}
+            <p class="form-error">{{ form.amount.errors.0 }}</p>
+        {% endif %}
     </div>
 
     <!-- Data + Status -->
@@ -82,7 +91,6 @@
         {% endif %}
     </div>
 
-
     <!-- Tags -->
     {% if form.tags.field.queryset.exists %}
     <div>
@@ -106,6 +114,36 @@
 </form>
 
 <script>
+    const TYPE_BTN_CLASSES = {
+        expense: {
+            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-red-500/20 text-red-400 ring-1 ring-red-500/40',
+            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10',
+        },
+        income: {
+            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-green-500/20 text-green-400 ring-1 ring-green-500/40',
+            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10',
+        },
+    };
+
+    function setTransactionType(value) {
+        const hiddenInput = document.getElementById('id_type');
+        const expBtn = document.getElementById('type-btn-expense');
+        const incBtn = document.getElementById('type-btn-income');
+        if (!hiddenInput || !expBtn || !incBtn) return;
+
+        hiddenInput.value = value;
+
+        if (value === 'EXPENSE') {
+            expBtn.className = TYPE_BTN_CLASSES.expense.active;
+            incBtn.className = TYPE_BTN_CLASSES.income.inactive;
+        } else {
+            expBtn.className = TYPE_BTN_CLASSES.expense.inactive;
+            incBtn.className = TYPE_BTN_CLASSES.income.active;
+        }
+
+        updateTransactionFormFields();
+    }
+
     (function() {
         function updateTransactionFormFields() {
             const typeField = document.getElementById('id_type');
@@ -113,7 +151,7 @@
             const creditCardField = document.getElementById('id_credit_card');
             const paymentTypeContainer = document.getElementById('payment-type-container');
             const creditCardContainer = document.getElementById('credit-card-container');
-            
+
             if (!typeField || !paymentTypeField || !creditCardField || !paymentTypeContainer || !creditCardContainer) {
                 return;
             }
@@ -140,14 +178,16 @@
                 creditCardField.value = '';
                 creditCardField.disabled = true;
             }
-
         }
+
+        // Expõe para setTransactionType (definido no escopo externo)
+        window.updateTransactionFormFields = updateTransactionFormFields;
 
         if (!window.hasTransactionFormListeners) {
             window.hasTransactionFormListeners = true;
 
             document.addEventListener('change', (event) => {
-                if (event.target && (event.target.id === 'id_type' || event.target.id === 'id_payment_type' || event.target.id === 'id_goal')) {
+                if (event.target && (event.target.id === 'id_payment_type' || event.target.id === 'id_goal')) {
                     updateTransactionFormFields();
                 }
             });
@@ -155,7 +195,7 @@
             document.addEventListener('reset', (event) => {
                 if (event.target && event.target.tagName === 'FORM') {
                     setTimeout(function() {
-                        updateTransactionFormFields();
+                        setTransactionType('EXPENSE');
                     }, 0);
                 }
             });

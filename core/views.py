@@ -87,7 +87,7 @@ def dashboard(request):
     chart_expense = [float(m['expense']) for m in projection['monthly_summary']]
 
     # Form de lançamento rápido
-    form = TransactionForm()
+    form = TransactionForm(user=request.user)
 
     context = {
         'projection': projection,
@@ -307,7 +307,7 @@ def transaction_list(request):
 @require_POST
 def transaction_create(request):
     """Lançamento rápido via HTMX — retorna o partial da nova transação."""
-    form = TransactionForm(request.POST)
+    form = TransactionForm(request.POST, user=request.user)
     if form.is_valid():
         transaction = form.save(commit=False)
         transaction.user = request.user
@@ -370,7 +370,7 @@ def transaction_edit(request, pk):
     goals = Goal.objects.filter(user=request.user).filter(Q(is_archived=False) | Q(pk=txn.goal_id))
 
     if request.method == 'POST':
-        form = TransactionForm(request.POST, instance=txn)
+        form = TransactionForm(request.POST, instance=txn, user=request.user)
         if form.is_valid():
             txn = form.save()
             user_settings = UserSettings.load(request.user)
@@ -393,11 +393,11 @@ def transaction_edit(request, pk):
     # GET sem cancel → retorna o form inline de edição
     if request.headers.get('HX-Request'):
         return render(request, 'partials/transaction_edit_form.html', {
-            'form': TransactionForm(instance=txn), 'txn': txn, 'goals': goals,
+            'form': TransactionForm(instance=txn, user=request.user), 'txn': txn, 'goals': goals,
         })
 
     # Fallback página completa (não HTMX)
-    form = TransactionForm(instance=txn)
+    form = TransactionForm(instance=txn, user=request.user)
     return render(request, 'transactions/edit.html', {'form': form, 'txn': txn, 'goals': goals})
 
 
@@ -407,7 +407,7 @@ def recurring_list(request):
     """Lista de regras recorrentes."""
     RecurringRule.auto_archive_expired_rules()
     rules = RecurringRule.objects.filter(user=request.user).select_related('credit_card').prefetch_related('tags')
-    form = RecurringRuleForm()
+    form = RecurringRuleForm(user=request.user)
     context = {
         'rules': rules,
         'active_rules_count': rules.filter(is_archived=False).count(),
@@ -420,7 +420,7 @@ def recurring_list(request):
 @require_POST
 def recurring_create(request):
     """Cria nova regra recorrente via HTMX."""
-    form = RecurringRuleForm(request.POST)
+    form = RecurringRuleForm(request.POST, user=request.user)
     if form.is_valid():
         rule = form.save(commit=False)
         rule.user = request.user
@@ -519,11 +519,11 @@ def recurring_edit(request, pk):
     rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
 
     if request.method == 'GET':
-        form = RecurringRuleEditForm(instance=rule)
+        form = RecurringRuleEditForm(instance=rule, user=request.user)
         return render(request, 'partials/recurring_edit_modal.html', {'form': form, 'rule': rule})
 
     scope = request.POST.get('scope')
-    form = RecurringRuleEditForm(request.POST, instance=rule)
+    form = RecurringRuleEditForm(request.POST, instance=rule, user=request.user)
 
     if not form.is_valid():
         return render(request, 'partials/recurring_edit_modal.html',
