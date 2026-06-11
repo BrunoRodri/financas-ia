@@ -25,6 +25,7 @@ CSRF_TRUSTED_ORIGINS = config(
     default='http://localhost:8000',
     cast=Csv(),
 )
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # --- Application definition ---
