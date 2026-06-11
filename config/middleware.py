@@ -1,6 +1,6 @@
 from django.shortcuts import redirect
 
-EXEMPT_PREFIXES = ('/login/', '/logout/', '/signup/', '/admin/')
+EXEMPT_PREFIXES = ('/login/', '/logout/', '/signup/', '/admin/', '/accounts/')
 
 
 class LoginRequiredMiddleware:
