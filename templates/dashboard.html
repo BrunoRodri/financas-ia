@@ -89,6 +89,44 @@
         </div>
     </div>
 
+    <!-- Faturas dos Cartões -->
+    {% if cards_with_bills %}
+    <div class="card">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                Faturas do Mês
+            </h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for item in cards_with_bills %}
+            <a href="{% url 'card_bill_list' item.card.id %}"
+               class="flex items-center gap-3 p-3 rounded-xl border border-white/5 hover:border-white/15 transition-all group"
+               style="background: linear-gradient(135deg, {{ item.card.color }}10, transparent);">
+                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                     style="background: {{ item.card.color }}20;">
+                    <svg class="w-4 h-4" style="color: {{ item.card.color }};" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">{{ item.card.name }}</p>
+                    <p class="text-xs text-gray-500">Vence {{ item.due_date|date:"d/m" }}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="text-sm font-bold text-expense">{{ item.total|brl }}</p>
+                    <p class="text-xs text-gray-600 group-hover:text-accent-light transition-colors">Ver →</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Chart + Quick Entry Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Cash Flow Chart -->

@@ -51,6 +51,21 @@ def dashboard(request):
     upcoming = get_upcoming_transactions(request.user, days=30)
     goals = Goal.objects.filter(user=request.user, is_archived=False)
     settings = UserSettings.load(request.user)
+    today = timezone.localdate()
+
+    # Widget de faturas dos cartões
+    cards_with_bills = []
+    for c in CreditCard.objects.filter(user=request.user):
+        start, end = get_bill_period(c, today.year, today.month)
+        txns = Transaction.objects.filter(
+            user=request.user, credit_card=c,
+            due_date__range=(start, end),
+        ).exclude(funded_by_goal=True)
+        bill_total = sum(t.amount for t in txns if t.is_expense) - sum(t.amount for t in txns if t.is_income)
+        due_month = today.month + 1 if today.month < 12 else 1
+        due_year = today.year if today.month < 12 else today.year + 1
+        due_date = datetime.date(due_year, due_month, min(c.due_day, calendar.monthrange(due_year, due_month)[1]))
+        cards_with_bills.append({'card': c, 'total': bill_total, 'due_date': due_date})
 
     # Dados para o gráfico (Chart.js)
     chart_labels = [m['month_label'] for m in projection['monthly_summary']]
@@ -71,7 +86,8 @@ def dashboard(request):
         'chart_balances': chart_balances,
         'chart_income': chart_income,
         'chart_expense': chart_expense,
-        'today': timezone.localdate(),
+        'today': today,
+        'cards_with_bills': cards_with_bills,
     }
     return render(request, 'dashboard.html', context)
 
@@ -716,6 +732,47 @@ def card_edit(request, pk):
 
     # Redirecionamento fallback caso acessado diretamente via URL convencional
     return redirect('card_list')
+
+
+def card_bill_list(request, pk):
+    """Visão geral das faturas de um cartão (mês anterior + atual + 4 futuros)."""
+    card = get_object_or_404(CreditCard, pk=pk, user=request.user)
+    today = timezone.localdate()
+    MONTH_NAMES = {
+        1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
+        7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez',
+    }
+    bills = []
+    for delta in range(-1, 5):
+        ref = today.month + delta
+        ref_year = today.year + (ref - 1) // 12
+        ref_month = ((ref - 1) % 12) + 1
+        start, end = get_bill_period(card, ref_year, ref_month)
+        txns = list(
+            Transaction.objects.filter(
+                user=request.user, credit_card=card,
+                due_date__range=(start, end),
+            ).exclude(funded_by_goal=True).order_by('due_date')
+        )
+        bill_total = sum(t.amount for t in txns if t.is_expense) - sum(t.amount for t in txns if t.is_income)
+        due_month = ref_month + 1 if ref_month < 12 else 1
+        due_year = ref_year if ref_month < 12 else ref_year + 1
+        due_date = datetime.date(due_year, due_month,
+                                 min(card.due_day, calendar.monthrange(due_year, due_month)[1]))
+        bills.append({
+            'month_label': f"{MONTH_NAMES[ref_month]}/{ref_year}",
+            'ref_month': ref_month,
+            'ref_year': ref_year,
+            'start_date': start,
+            'end_date': end,
+            'due_date': due_date,
+            'transactions': txns,
+            'total': bill_total,
+            'is_current': start <= today <= end,
+            'is_past': end < today,
+        })
+    all_cards = CreditCard.objects.filter(user=request.user)
+    return render(request, 'cards/bills.html', {'card': card, 'bills': bills, 'all_cards': all_cards})
 
 
 # ─── Settings ────────────────────────────────────────────────────────────────
