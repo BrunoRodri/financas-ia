@@ -435,6 +435,18 @@ def recurring_toggle(request, pk):
     rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
     rule.is_active = not rule.is_active
     rule.save()
+
+    if rule.recurrence_type == RecurringRule.RecurrenceType.MONTHLY:
+        today = timezone.localdate()
+        if not rule.is_active:
+            for txn in list(rule.transactions.filter(
+                status=Transaction.Status.PENDING,
+                due_date__gte=today,
+            )):
+                txn.delete()
+        else:
+            rule.materialize_monthly_transactions(months_ahead=6)
+
     return render(request, 'partials/recurring_row.html', {'rule': rule})
 
 
