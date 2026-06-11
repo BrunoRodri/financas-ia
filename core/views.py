@@ -781,7 +781,17 @@ def recurring_toggle_archive(request, pk):
     """Alterna o status arquivado de uma regra recorrente."""
     rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
     rule.is_archived = not rule.is_archived
+    if rule.is_archived:
+        rule.is_active = False
     rule.save()
+
+    if rule.is_archived and rule.recurrence_type == RecurringRule.RecurrenceType.MONTHLY:
+        today = timezone.localdate()
+        for txn in list(rule.transactions.filter(
+            status=Transaction.Status.PENDING,
+            due_date__gte=today,
+        )):
+            txn.delete()
 
     if request.headers.get('HX-Request'):
         return render(request, 'partials/recurring_row.html', {'rule': rule})
