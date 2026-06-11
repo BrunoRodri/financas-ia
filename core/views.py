@@ -51,16 +51,6 @@ def dashboard(request):
     upcoming = get_upcoming_transactions(request.user, days=30)
     goals = Goal.objects.filter(user=request.user, is_archived=False)
     settings = UserSettings.load(request.user)
-    today = timezone.localdate()
-
-    overdue_qs = Transaction.objects.filter(
-        user=request.user,
-        status=Transaction.Status.PENDING,
-        due_date__lte=today,
-    ).exclude(funded_by_goal=True).select_related('credit_card').order_by('due_date')
-    overdue = overdue_qs.filter(due_date__lt=today)
-    due_today = overdue_qs.filter(due_date=today)
-    overdue_count = overdue_qs.count()
 
     # Dados para o gráfico (Chart.js)
     chart_labels = [m['month_label'] for m in projection['monthly_summary']]
@@ -81,10 +71,7 @@ def dashboard(request):
         'chart_balances': chart_balances,
         'chart_income': chart_income,
         'chart_expense': chart_expense,
-        'today': today,
-        'overdue': overdue,
-        'due_today': due_today,
-        'overdue_count': overdue_count,
+        'today': timezone.localdate(),
     }
     return render(request, 'dashboard.html', context)
 

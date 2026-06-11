@@ -89,60 +89,6 @@
         </div>
     </div>
 
-    <!-- Contas a Pagar (atrasadas + hoje) -->
-    {% if overdue_count %}
-    <div class="card border border-red-500/30 bg-red-950/10">
-        <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
-                <svg class="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <h2 class="text-lg font-semibold text-white">Contas a Pagar</h2>
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400">{{ overdue_count }}</span>
-            </div>
-            <a href="{% url 'transaction_list' %}?status=PENDING"
-               class="text-xs text-red-400 hover:text-red-300 transition-colors font-medium flex-shrink-0">
-                Ver tudo ({{ overdue_count }}) →
-            </a>
-        </div>
-
-        <div class="space-y-1">
-            {% if overdue %}
-            <p class="text-xs font-semibold uppercase tracking-wider text-red-400/70 px-1 pb-1">Atrasadas</p>
-            {% for txn in overdue %}
-            <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 hover:bg-white/8 transition-colors">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-2 h-2 rounded-full bg-red-500 flex-shrink-0"></div>
-                    <div class="min-w-0">
-                        <p class="text-sm text-white truncate">{{ txn.description }}</p>
-                        <p class="text-xs text-red-400">{{ txn.due_date|date:"d/m/Y" }}</p>
-                    </div>
-                </div>
-                <span class="text-sm font-semibold text-expense ml-3 flex-shrink-0">{{ txn.amount|brl }}</span>
-            </div>
-            {% endfor %}
-            {% endif %}
-
-            {% if due_today %}
-            <p class="text-xs font-semibold uppercase tracking-wider text-yellow-400/70 px-1 pb-1 {% if overdue %}pt-3{% endif %}">Vence Hoje</p>
-            {% for txn in due_today %}
-            <div class="flex items-center justify-between py-2 px-3 rounded-lg bg-white/5 hover:bg-white/8 transition-colors">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0"></div>
-                    <div class="min-w-0">
-                        <p class="text-sm text-white truncate">{{ txn.description }}</p>
-                        <p class="text-xs text-yellow-400">Hoje, {{ txn.due_date|date:"d/m/Y" }}</p>
-                    </div>
-                </div>
-                <span class="text-sm font-semibold text-expense ml-3 flex-shrink-0">{{ txn.amount|brl }}</span>
-            </div>
-            {% endfor %}
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
     <!-- Chart + Quick Entry Row -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Cash Flow Chart -->
