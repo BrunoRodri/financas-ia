@@ -783,15 +783,20 @@ def recurring_toggle_archive(request, pk):
     rule.is_archived = not rule.is_archived
     if rule.is_archived:
         rule.is_active = False
+    else:
+        rule.is_active = True
     rule.save()
 
-    if rule.is_archived and rule.recurrence_type == RecurringRule.RecurrenceType.MONTHLY:
+    if rule.recurrence_type == RecurringRule.RecurrenceType.MONTHLY:
         today = timezone.localdate()
-        for txn in list(rule.transactions.filter(
-            status=Transaction.Status.PENDING,
-            due_date__gte=today,
-        )):
-            txn.delete()
+        if rule.is_archived:
+            for txn in list(rule.transactions.filter(
+                status=Transaction.Status.PENDING,
+                due_date__gte=today,
+            )):
+                txn.delete()
+        else:
+            rule.materialize_monthly_transactions(months_ahead=6)
 
     if request.headers.get('HX-Request'):
         return render(request, 'partials/recurring_row.html', {'rule': rule})
