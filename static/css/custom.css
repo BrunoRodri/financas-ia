@@ -565,6 +565,20 @@
     overflow: visible;
 }
 
+/* Mobile transaction card: expandable action row */
+@media (max-width: 639px) {
+    .txn-card .txn-actions {
+        display: none;
+    }
+    .txn-card.mobile-expanded .txn-actions {
+        display: flex;
+    }
+    .txn-card.mobile-expanded {
+        background: rgba(255, 255, 255, 0.025);
+        border-radius: 0.75rem;
+    }
+}
+
 /* Dynamic display of empty states when container has items */
 #cards-list:has(> :not(.empty-state)) > .empty-state {
     display: none !important;

@@ -1,79 +1,119 @@
 {% load currency_filters %}
-<div id="txn-{{ txn.id }}" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors group {% if is_new %}new-row{% endif %} {% if txn.is_before_initial_balance %}opacity-45 hover:opacity-100 transition-opacity{% endif %}">
-    <!-- Status Toggle -->
-    <button hx-post="{% url 'transaction_toggle' txn.id %}"
-            hx-target="#txn-{{ txn.id }}"
-            hx-swap="outerHTML"
-            class="flex-shrink-0 w-5 h-5 rounded-full border-2 transition-all cursor-pointer hover:scale-110
-                   {% if txn.status == 'PAID' %}bg-green-500/20 border-green-500{% else %}border-gray-600 hover:border-yellow-500{% endif %}"
-            title="{% if txn.status == 'PAID' %}Marcar como pendente{% else %}Marcar como pago{% endif %}">
-        {% if txn.status == 'PAID' %}
-        <svg class="w-full h-full text-green-400 p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-        {% endif %}
-    </button>
+<div id="txn-{{ txn.id }}" class="txn-card rounded-xl hover:bg-white/[0.02] transition-colors group {% if is_new %}new-row{% endif %} {% if txn.is_before_initial_balance %}opacity-45 hover:opacity-100 transition-opacity{% endif %}">
+    <div class="flex items-start sm:items-center gap-3 p-3">
+        <!-- Status Toggle -->
+        <button hx-post="{% url 'transaction_toggle' txn.id %}"
+                hx-target="#txn-{{ txn.id }}"
+                hx-swap="outerHTML"
+                class="flex-shrink-0 mt-0.5 sm:mt-0 w-5 h-5 rounded-full border-2 transition-all cursor-pointer hover:scale-110
+                       {% if txn.status == 'PAID' %}bg-green-500/20 border-green-500{% else %}border-gray-600 hover:border-yellow-500{% endif %}"
+                title="{% if txn.status == 'PAID' %}Marcar como pendente{% else %}Marcar como pago{% endif %}">
+            {% if txn.status == 'PAID' %}
+            <svg class="w-full h-full text-green-400 p-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            {% endif %}
+        </button>
 
-    <!-- Info -->
-    <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-white truncate {% if txn.status == 'PAID' %}line-through opacity-50{% endif %}">
-                {{ txn.description }}
-            </span>
-            {% if txn.credit_card %}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 flex-shrink-0">
-                {{ txn.credit_card.name }}
-            </span>
-            {% endif %}
-            {% if txn.goal and txn.funded_by_goal %}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0 font-medium"
-                  title="Financiado pelo dinheiro guardado na meta — não afeta o fluxo de caixa">
-                💰 {{ txn.goal.name }}
-            </span>
-            {% elif txn.goal %}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex-shrink-0 font-medium">
-                🎯 {{ txn.goal.name }}
-            </span>
-            {% endif %}
+        <!-- Tap area: info + amount (toggle mobile actions on tap) -->
+        <div class="flex-1 flex items-start gap-2 sm:gap-3 min-w-0 cursor-pointer sm:cursor-default"
+             onclick="this.closest('.txn-card').classList.toggle('mobile-expanded')">
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium text-white sm:truncate {% if txn.status == 'PAID' %}line-through opacity-50{% endif %}">
+                        {{ txn.description }}
+                    </span>
+                    {% if txn.credit_card %}
+                    <span class="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 flex-shrink-0">
+                        {{ txn.credit_card.name }}
+                    </span>
+                    {% endif %}
+                    {% if txn.goal and txn.funded_by_goal %}
+                    <span class="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 flex-shrink-0 font-medium"
+                          title="Financiado pelo dinheiro guardado na meta — não afeta o fluxo de caixa">
+                        💰 {{ txn.goal.name }}
+                    </span>
+                    {% elif txn.goal %}
+                    <span class="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex-shrink-0 font-medium">
+                        🎯 {{ txn.goal.name }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span class="text-xs text-gray-500">{{ txn.due_date|date:"d/m/Y" }}</span>
+                    {% if txn.installment_number and txn.recurring_rule %}
+                    <span class="text-[10px] text-gray-600">{{ txn.installment_number }}/{{ txn.recurring_rule.total_installments }}</span>
+                    {% endif %}
+                    {% if txn.credit_card %}
+                    <span class="sm:hidden text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400">
+                        {{ txn.credit_card.name }}
+                    </span>
+                    {% endif %}
+                    {% if txn.goal and txn.funded_by_goal %}
+                    <span class="sm:hidden text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                        💰 {{ txn.goal.name }}
+                    </span>
+                    {% elif txn.goal %}
+                    <span class="sm:hidden text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+                        🎯 {{ txn.goal.name }}
+                    </span>
+                    {% endif %}
+                    {% for tag in txn.tags.all %}
+                    <span class="tag-pill" style="--color: {{ tag.color }}; background: color-mix(in srgb, var(--color) 20%, transparent); color: var(--color);">{{ tag.name }}</span>
+                    {% endfor %}
+                    {% if txn.is_before_initial_balance %}
+                    <span class="inline-flex items-center gap-1 text-[10px] text-amber-500/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20"
+                          title="Esta transação ocorreu antes do saldo de partida ({{ user_settings.balance_date|date:'d/m/Y' }}) e não é computada nos somatórios.">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        Não computada
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Amount -->
+            <div class="flex-shrink-0 text-right">
+                <span class="text-sm font-semibold {% if txn.is_income %}text-income{% else %}text-expense{% endif %}">
+                    {% if txn.is_income %}+{% else %}-{% endif %}{{ txn.amount|brl }}
+                </span>
+            </div>
         </div>
-        <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-xs text-gray-500">{{ txn.due_date|date:"d/m/Y" }}</span>
-            {% if txn.installment_number and txn.recurring_rule %}
-            <span class="text-[10px] text-gray-600">{{ txn.installment_number }}/{{ txn.recurring_rule.total_installments }}</span>
-            {% endif %}
-            {% for tag in txn.tags.all %}
-            <span class="tag-pill" style="--color: {{ tag.color }}; background: color-mix(in srgb, var(--color) 20%, transparent); color: var(--color);">{{ tag.name }}</span>
-            {% endfor %}
-            {% if txn.is_before_initial_balance %}
-            <span class="inline-flex items-center gap-1 text-[10px] text-amber-500/80 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20" 
-                  title="Esta transação ocorreu antes do saldo de partida ({{ user_settings.balance_date|date:'d/m/Y' }}) e não é computada nos somatórios.">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                Não computada
-            </span>
-            {% endif %}
-        </div>
+
+        <!-- Edit (desktop only) -->
+        <button hx-get="{% url 'transaction_edit' txn.id %}"
+                hx-target="#txn-{{ txn.id }}"
+                hx-swap="outerHTML"
+                class="hidden sm:flex flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-accent/10 text-gray-600 hover:text-accent-light"
+                title="Editar transação">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </button>
+
+        <!-- Delete (desktop only) -->
+        <button hx-get="{% url 'transaction_delete_confirm' txn.id %}"
+                hx-target="#global-modal"
+                hx-swap="innerHTML"
+                class="hidden sm:flex flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400 cursor-pointer"
+                title="Excluir transação">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
     </div>
 
-    <!-- Amount -->
-    <div class="flex-shrink-0 text-right">
-        <span class="text-sm font-semibold {% if txn.is_income %}text-income{% else %}text-expense{% endif %}">
-            {% if txn.is_income %}+{% else %}-{% endif %}{{ txn.amount|brl }}
-        </span>
+    <!-- Mobile action row (shown when card is tapped/expanded) -->
+    <div class="txn-actions sm:hidden flex items-center gap-2 px-3 pb-3 border-t border-white/5">
+        <button hx-get="{% url 'transaction_edit' txn.id %}"
+                hx-target="#txn-{{ txn.id }}"
+                hx-swap="outerHTML"
+                class="flex-1 py-2 text-sm text-gray-400 rounded-lg hover:bg-accent/10 hover:text-accent-light active:bg-accent/20 flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            Editar
+        </button>
+        <div class="w-px h-5 bg-white/10 flex-shrink-0"></div>
+        <button hx-get="{% url 'transaction_delete_confirm' txn.id %}"
+                hx-target="#global-modal"
+                hx-swap="innerHTML"
+                class="flex-1 py-2 text-sm text-gray-400 rounded-lg hover:bg-red-500/10 hover:text-red-400 active:bg-red-500/20 cursor-pointer flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            Excluir
+        </button>
     </div>
-
-    <!-- Edit -->
-    <button hx-get="{% url 'transaction_edit' txn.id %}"
-            hx-target="#txn-{{ txn.id }}"
-            hx-swap="outerHTML"
-            class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-accent/10 text-gray-600 hover:text-accent-light"
-            title="Editar transação">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-    </button>
-
-    <!-- Delete -->
-    <button hx-get="{% url 'transaction_delete_confirm' txn.id %}"
-            hx-target="#global-modal"
-            hx-swap="innerHTML"
-            class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400 cursor-pointer"
-            title="Excluir transação">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-    </button>
 </div>
