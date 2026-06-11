@@ -293,6 +293,17 @@ class GoalForm(forms.ModelForm):
 class CreditCardForm(forms.ModelForm):
     """Form para cadastrar cartões de crédito."""
 
+    closing_day = forms.IntegerField(
+        min_value=1, max_value=31,
+        label='Fechamento (dia)',
+        widget=forms.NumberInput(attrs={'class': 'form-input', 'min': '1', 'max': '31'}),
+    )
+    due_day = forms.IntegerField(
+        min_value=1, max_value=31,
+        label='Vencimento (dia)',
+        widget=forms.NumberInput(attrs={'class': 'form-input', 'min': '1', 'max': '31'}),
+    )
+
     class Meta:
         model = CreditCard
         fields = ['name', 'last_digits', 'brand', 'color', 'due_day', 'closing_day']
@@ -305,23 +316,21 @@ class CreditCardForm(forms.ModelForm):
                 'placeholder': '1234',
                 'class': 'form-input',
                 'maxlength': '4',
+                'inputmode': 'numeric',
+                'pattern': '[0-9]*',
             }),
             'brand': forms.Select(attrs={'class': 'form-select'}),
             'color': forms.TextInput(attrs={
                 'type': 'color',
                 'class': 'form-input-color',
             }),
-            'due_day': forms.NumberInput(attrs={
-                'class': 'form-input',
-                'min': '1',
-                'max': '31',
-            }),
-            'closing_day': forms.NumberInput(attrs={
-                'class': 'form-input',
-                'min': '1',
-                'max': '31',
-            }),
         }
+
+    def clean_last_digits(self):
+        value = self.cleaned_data.get('last_digits', '').strip()
+        if value and not value.isdigit():
+            raise forms.ValidationError('Informe apenas dígitos numéricos.')
+        return value
 
 
 class UserSettingsForm(forms.ModelForm):
