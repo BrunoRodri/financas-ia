@@ -56,14 +56,26 @@ def dashboard(request):
     # Widget de faturas dos cartões
     cards_with_bills = []
     for c in CreditCard.objects.filter(user=request.user):
-        start, end = get_bill_period(c, today.year, today.month)
+        # A fatura em aberto "agora" é a que contém a data de hoje. Se ainda não
+        # chegou no dia de fechamento deste mês, o período em aberto começou no
+        # mês anterior.
+        actual_closing_day = min(c.closing_day, calendar.monthrange(today.year, today.month)[1])
+        if today.day >= actual_closing_day:
+            ref_month, ref_year = today.month, today.year
+        else:
+            ref_month = today.month - 1 if today.month > 1 else 12
+            ref_year = today.year if today.month > 1 else today.year - 1
+        start, end = get_bill_period(c, ref_year, ref_month)
         txns = Transaction.objects.filter(
             user=request.user, credit_card=c,
             due_date__range=(start, end),
         ).exclude(funded_by_goal=True)
         bill_total = sum(t.amount for t in txns if t.is_expense) - sum(t.amount for t in txns if t.is_income)
-        due_month = today.month + 1 if today.month < 12 else 1
-        due_year = today.year if today.month < 12 else today.year + 1
+        if c.due_day < c.closing_day:
+            due_month = end.month + 1 if end.month < 12 else 1
+            due_year = end.year if end.month < 12 else end.year + 1
+        else:
+            due_month, due_year = end.month, end.year
         due_date = datetime.date(due_year, due_month, min(c.due_day, calendar.monthrange(due_year, due_month)[1]))
         cards_with_bills.append({'card': c, 'total': bill_total, 'due_date': due_date})
 
