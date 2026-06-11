@@ -755,12 +755,18 @@ def card_bill_list(request, pk):
             ).exclude(funded_by_goal=True).order_by('due_date')
         )
         bill_total = sum(t.amount for t in txns if t.is_expense) - sum(t.amount for t in txns if t.is_income)
-        due_month = ref_month + 1 if ref_month < 12 else 1
-        due_year = ref_year if ref_month < 12 else ref_year + 1
+        # A fatura fecha no mês seguinte ao início do período (end.month). O vencimento
+        # cai no mês seguinte ao fechamento se due_day < closing_day (ex: fecha dia 26,
+        # vence dia 3), ou no próprio mês de fechamento caso contrário.
+        if card.due_day < card.closing_day:
+            due_month = end.month + 1 if end.month < 12 else 1
+            due_year = end.year if end.month < 12 else end.year + 1
+        else:
+            due_month, due_year = end.month, end.year
         due_date = datetime.date(due_year, due_month,
                                  min(card.due_day, calendar.monthrange(due_year, due_month)[1]))
         bills.append({
-            'month_label': f"{MONTH_NAMES[ref_month]}/{ref_year}",
+            'month_label': f"{MONTH_NAMES[due_month]}/{due_year}",
             'ref_month': ref_month,
             'ref_year': ref_year,
             'start_date': start,
