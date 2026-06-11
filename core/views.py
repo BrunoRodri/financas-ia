@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 from core.forms import (
     CreditCardForm,
     GoalForm,
+    RecurringRuleEditForm,
     RecurringRuleForm,
     TransactionForm,
     UserSettingsForm,
@@ -499,6 +500,60 @@ def recurring_delete_confirm(request, pk):
         'total_count': total_count,
     }
     return render(request, 'partials/recurring_delete_modal.html', context)
+
+
+def recurring_edit(request, pk):
+    """Edita campos de uma regra recorrente e propaga alterações para as transações."""
+    rule = get_object_or_404(RecurringRule, pk=pk, user=request.user)
+
+    if request.method == 'GET':
+        form = RecurringRuleEditForm(instance=rule)
+        return render(request, 'partials/recurring_edit_modal.html', {'form': form, 'rule': rule})
+
+    scope = request.POST.get('scope')
+    form = RecurringRuleEditForm(request.POST, instance=rule)
+
+    if not form.is_valid():
+        return render(request, 'partials/recurring_edit_modal.html',
+                      {'form': form, 'rule': rule}, status=422)
+
+    paid_count = rule.transactions.filter(status=Transaction.Status.PAID).count()
+
+    if paid_count > 0 and not scope:
+        form_pairs = [(k, v) for k in request.POST for v in request.POST.getlist(k)]
+        return render(request, 'partials/recurring_edit_confirm_modal.html', {
+            'rule': rule,
+            'paid_count': paid_count,
+            'form_pairs': form_pairs,
+        })
+
+    form.save()
+
+    transactions_qs = (
+        rule.transactions.all() if scope == 'all'
+        else rule.transactions.filter(status=Transaction.Status.PENDING)
+    )
+    _apply_recurring_rule_changes(rule, transactions_qs)
+
+    response = render(request, 'partials/recurring_row.html', {'rule': rule})
+    response['HX-Retarget'] = f'#rule-{rule.pk}'
+    response['HX-Reswap'] = 'outerHTML'
+    return response
+
+
+def _apply_recurring_rule_changes(rule, transactions_qs):
+    per_amount = (
+        rule.amount if rule.recurrence_type == RecurringRule.RecurrenceType.MONTHLY
+        else rule.amount / Decimal(rule.total_installments)
+    )
+    for tx in transactions_qs:
+        tx.description = rule.description
+        tx.amount = per_amount
+        tx.type = rule.type
+        tx.credit_card = rule.credit_card
+        tx.goal = rule.goal
+        tx.save()
+        tx.tags.set(rule.tags.all())
 
 
 # ─── Goals ───────────────────────────────────────────────────────────────────

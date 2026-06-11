@@ -1,0 +1,143 @@
+{% load currency_filters %}
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[105] flex items-center justify-center animate-fade-in pointer-events-auto"
+     id="edit-modal-overlay"
+     onclick="if(event.target === this) this.remove()">
+    <div class="bg-dark-800 border border-white/10 rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl space-y-5 animate-scale-up max-h-[90vh] overflow-y-auto">
+
+        <!-- Header -->
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Editar Regra Recorrente</h3>
+                    <p class="text-xs text-gray-500 mt-0.5">
+                        {% if rule.recurrence_type == 'MONTHLY' %}Mensal{% else %}{{ rule.total_installments }}x{% endif %}
+                        · {{ rule.get_type_display }}
+                    </p>
+                </div>
+            </div>
+            <button type="button" onclick="document.getElementById('edit-modal-overlay').remove()"
+                    class="p-1 rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form -->
+        <form hx-post="{% url 'recurring_edit' rule.pk %}"
+              hx-target="#global-modal"
+              hx-swap="innerHTML"
+              hx-on::after-request="if(event.detail.successful && event.detail.xhr.getResponseHeader('HX-Retarget')) { const overlay = document.getElementById('edit-modal-overlay'); if(overlay) overlay.remove(); }"
+              class="space-y-4">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <!-- Descrição -->
+            <div>
+                <label class="form-label" for="{{ form.description.id_for_label }}">Descrição</label>
+                {{ form.description }}
+                {% if form.description.errors %}<p class="text-xs text-red-400 mt-1">{{ form.description.errors|join:", " }}</p>{% endif %}
+            </div>
+
+            <!-- Valor + Tipo -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="form-label" for="{{ form.amount.id_for_label }}">
+                        Valor{% if rule.recurrence_type == 'INSTALLMENT' %} total (R$){% endif %}
+                    </label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}<p class="text-xs text-red-400 mt-1">{{ form.amount.errors|join:", " }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="form-label" for="{{ form.type.id_for_label }}">Tipo</label>
+                    {{ form.type }}
+                </div>
+            </div>
+
+            <!-- Data início + Parcelas (apenas para INSTALLMENT) -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="form-label" for="{{ form.start_date.id_for_label }}">Data início</label>
+                    <div class="date-picker-wrap">
+                        {{ form.start_date }}
+                        <button type="button" class="date-picker-toggle" aria-label="Abrir calendário" data-date-toggle>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </button>
+                        <div class="date-picker-panel hidden" data-date-panel>
+                            <div class="date-picker-header">
+                                <button type="button" data-date-prev aria-label="Mês anterior">‹</button>
+                                <span data-date-title></span>
+                                <button type="button" data-date-next aria-label="Próximo mês">›</button>
+                            </div>
+                            <div class="date-picker-weekdays">
+                                <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                            </div>
+                            <div class="date-picker-grid" data-date-grid></div>
+                        </div>
+                    </div>
+                    {% if form.start_date.errors %}<p class="text-xs text-red-400 mt-1">{{ form.start_date.errors|join:", " }}</p>{% endif %}
+                </div>
+                {% if rule.recurrence_type == 'INSTALLMENT' %}
+                <div>
+                    <label class="form-label" for="{{ form.total_installments.id_for_label }}">Parcelas</label>
+                    {{ form.total_installments }}
+                    {% if form.total_installments.errors %}<p class="text-xs text-red-400 mt-1">{{ form.total_installments.errors|join:", " }}</p>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Cartão -->
+            <div>
+                <label class="form-label" for="{{ form.credit_card.id_for_label }}">Cartão de Crédito</label>
+                {{ form.credit_card }}
+            </div>
+
+            <!-- Meta -->
+            <div>
+                <label class="form-label" for="{{ form.goal.id_for_label }}">Meta Vinculada</label>
+                {{ form.goal }}
+            </div>
+
+            <!-- Tags -->
+            {% if form.tags.field.queryset.exists %}
+            <div>
+                <label class="form-label">Tags</label>
+                <div class="flex flex-wrap gap-2">
+                    {% for checkbox in form.tags %}
+                    <div class="tag-checkbox">
+                        {{ checkbox.tag }}
+                        <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Ações -->
+            <div class="flex gap-2 pt-2">
+                <button type="button"
+                        onclick="document.getElementById('edit-modal-overlay').remove()"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-white/5 hover:bg-white/10 text-gray-300 transition-colors">
+                    Cancelar
+                </button>
+                <button type="submit"
+                        class="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-accent hover:bg-accent-light text-white transition-all shadow-md shadow-accent/20 active:scale-[0.98]">
+                    Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    if (typeof setupDatePickers === 'function') setupDatePickers();
+</script>

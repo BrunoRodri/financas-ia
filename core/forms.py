@@ -171,6 +171,86 @@ class RecurringRuleForm(forms.ModelForm):
         return cleaned_data
 
 
+class RecurringRuleEditForm(forms.ModelForm):
+    """Form para editar regras recorrentes existentes (não altera recurrence_type)."""
+
+    start_date = forms.DateField(
+        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'dd/mm/aaaa',
+            'autocomplete': 'off',
+            'inputmode': 'numeric',
+        }),
+        label='Data início'
+    )
+
+    class Meta:
+        model = RecurringRule
+        fields = [
+            'description', 'amount', 'type', 'start_date',
+            'total_installments', 'credit_card', 'goal', 'tags',
+        ]
+        widgets = {
+            'description': forms.TextInput(attrs={
+                'placeholder': 'Ex: Netflix, Celular 12x...',
+                'class': 'form-input',
+            }),
+            'amount': forms.NumberInput(attrs={
+                'placeholder': '0,00',
+                'class': 'form-input',
+                'step': '0.01',
+                'min': '0.01',
+            }),
+            'type': forms.Select(attrs={'class': 'form-select'}),
+            'total_installments': forms.NumberInput(attrs={
+                'placeholder': 'Ex: 12',
+                'class': 'form-input',
+                'min': '2',
+            }),
+            'credit_card': forms.Select(attrs={'class': 'form-select'}),
+            'goal': forms.Select(attrs={'class': 'form-select'}),
+            'tags': forms.CheckboxSelectMultiple(),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['credit_card'].required = False
+        self.fields['credit_card'].empty_label = 'Sem cartão'
+        self.fields['goal'].required = False
+        self.fields['goal'].empty_label = 'Sem meta'
+        self.fields['total_installments'].required = False
+        self.fields['tags'].required = False
+
+        goals_qs = Goal.objects.filter(is_archived=False)
+        if self.instance and self.instance.pk and self.instance.goal_id:
+            goals_qs = Goal.objects.filter(
+                Q(is_archived=False) | Q(pk=self.instance.goal_id)
+            )
+        self.fields['goal'].queryset = goals_qs
+
+        if self.instance and self.instance.recurrence_type != RecurringRule.RecurrenceType.INSTALLMENT:
+            self.fields['total_installments'].widget.attrs['disabled'] = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        txn_type = cleaned_data.get('type')
+        credit_card = cleaned_data.get('credit_card')
+
+        if txn_type == RecurringRule.TransactionType.INCOME and credit_card:
+            cleaned_data['credit_card'] = None
+
+        if (self.instance and
+                self.instance.recurrence_type == RecurringRule.RecurrenceType.INSTALLMENT):
+            total_installments = cleaned_data.get('total_installments')
+            if not total_installments or total_installments < 2:
+                self.add_error(
+                    'total_installments',
+                    'Para parcelado, informe o número de parcelas (mínimo 2).'
+                )
+        return cleaned_data
+
+
 class GoalForm(forms.ModelForm):
     """Form para criar/editar metas financeiras."""
 
