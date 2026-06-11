@@ -19,6 +19,7 @@ urlpatterns = [
     path('recurring/create/', views.recurring_create, name='recurring_create'),
     path('recurring/<int:pk>/toggle/', views.recurring_toggle, name='recurring_toggle'),
     path('recurring/<int:pk>/toggle-archive/', views.recurring_toggle_archive, name='recurring_toggle_archive'),
+    path('recurring/<int:pk>/edit/', views.recurring_edit, name='recurring_edit'),
     path('recurring/<int:pk>/delete/', views.recurring_delete, name='recurring_delete'),
     path('recurring/<int:pk>/delete/confirm/', views.recurring_delete_confirm, name='recurring_delete_confirm'),
 
