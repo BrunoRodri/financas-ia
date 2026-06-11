@@ -287,17 +287,31 @@ class GoalForm(forms.ModelForm):
                 'placeholder': '0,00',
                 'class': 'form-input',
                 'step': '0.01',
+                'min': '0.01',
             }),
             'current_amount': forms.NumberInput(attrs={
                 'placeholder': '0,00',
                 'class': 'form-input',
                 'step': '0.01',
+                'min': '0',
             }),
             'color': forms.TextInput(attrs={
                 'type': 'color',
                 'class': 'form-input-color',
             }),
         }
+
+    def clean_target_amount(self):
+        value = self.cleaned_data.get('target_amount')
+        if value is not None and value <= 0:
+            raise forms.ValidationError('O valor alvo deve ser maior que zero.')
+        return value
+
+    def clean_current_amount(self):
+        value = self.cleaned_data.get('current_amount')
+        if value is not None and value < 0:
+            raise forms.ValidationError('O valor acumulado não pode ser negativo.')
+        return value
 
 
 class CreditCardForm(forms.ModelForm):

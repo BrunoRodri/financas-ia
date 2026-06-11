@@ -1,273 +1,111 @@
 {% extends 'base.html' %}
 {% load currency_filters %}
 
-{% block title %}Recorrentes{% endblock %}
+{% block title %}Lançamentos{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
+
     <div>
-        <h1 class="text-2xl font-bold text-white">Regras Recorrentes</h1>
-        <p class="text-sm text-gray-400 mt-1">Assinaturas mensais e compras parceladas</p>
+        <h1 class="text-2xl font-bold text-white">Lançamentos</h1>
+        <p class="text-sm text-gray-400 mt-1">Registre transações simples, mensais recorrentes ou compras parceladas</p>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- List -->
-        <div class="lg:col-span-2 card space-y-4">
-            <h2 class="text-lg font-semibold text-white">Suas Regras</h2>
-            
-            <!-- Tabs de Regras Recorrentes -->
-            <div class="flex gap-2 border-b border-white/5 pb-px">
-                <button type="button" 
-                        id="btn-active-rules" 
-                        class="px-4 py-2 text-sm font-semibold border-b-2 border-accent text-white transition-all cursor-pointer"
-                        onclick="switchTab('recurring-list', 'active', 'btn-active-rules', 'btn-archived-rules')">
-                    Ativas ({{ active_rules_count }})
-                </button>
-                <button type="button" 
-                        id="btn-archived-rules" 
-                        class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition-all cursor-pointer"
-                        onclick="switchTab('recurring-list', 'archived', 'btn-active-rules', 'btn-archived-rules')">
-                    Arquivadas ({{ archived_rules_count }})
-                </button>
-            </div>
-
-            <div class="space-y-1 tab-active-selected" id="recurring-list">
-                {% for rule in rules %}
-                    {% include 'partials/recurring_row.html' %}
-                {% endfor %}
-
-                <!-- Empty State Ativo -->
-                <div class="empty-state empty-state-active is-active-rule">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    <p class="text-sm">Nenhuma regra recorrente ativa cadastrada</p>
-                    <p class="text-xs mt-1">Adicione assinaturas e compras parceladas</p>
-                </div>
-
-                <!-- Empty State Arquivado -->
-                <div class="empty-state empty-state-archived is-archived-rule">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-                    <p class="text-sm">Nenhuma regra recorrente arquivada</p>
-                    <p class="text-xs mt-1">As regras que você finalizar serão exibidas aqui</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Create Form -->
-        <div class="card card-glow quick-entry-card">
-            <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                Nova Regra
-            </h2>
-            <form hx-post="{% url 'recurring_create' %}"
-                  hx-target="#recurring-list"
-                  hx-swap="afterbegin"
-                  hx-on:htmx:after-request="if(event.detail.successful && !event.detail.xhr.getResponseHeader('HX-Trigger')) { this.reset(); document.getElementById('installment-preview').style.display='none'; }"
-                  class="space-y-3">
-                {% csrf_token %}
-
-                <div>
-                    <label class="form-label" for="id_description">Descrição</label>
-                    {{ form.description }}
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="form-label" for="id_amount">Valor total (R$)</label>
-                        {{ form.amount }}
-                    </div>
-                    <div>
-                        <label class="form-label" for="id_type">Tipo</label>
-                        {{ form.type }}
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="form-label" for="id_recurrence_type">Recorrência</label>
-                        {{ form.recurrence_type }}
-                    </div>
-                    <div>
-                        <label class="form-label" for="id_total_installments">Parcelas</label>
-                        {{ form.total_installments }}
-                    </div>
-                </div>
-
-                <!-- Preview do valor por parcela -->
-                <div id="installment-preview" style="display:none"
-                     class="rounded-lg bg-accent/10 border border-accent/20 px-3 py-2 text-sm text-center">
-                    <span class="text-gray-400">Valor por parcela: </span>
-                    <span id="installment-value" class="font-bold text-accent-light"></span>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="form-label" for="id_start_date">Data início</label>
-                        <div class="date-picker-wrap" id="quick-date-picker">
-                            {{ form.start_date }}
-                            <button type="button" class="date-picker-toggle" aria-label="Abrir calendário" data-date-toggle>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            </button>
-                            <div class="date-picker-panel hidden" data-date-panel>
-                                <div class="date-picker-header">
-                                    <button type="button" data-date-prev aria-label="Mês anterior">‹</button>
-                                    <span data-date-title></span>
-                                    <button type="button" data-date-next aria-label="Próximo mês">›</button>
-                                </div>
-                                <div class="date-picker-weekdays">
-                                    <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
-                                </div>
-                                <div class="date-picker-grid" data-date-grid></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="form-label" for="id_credit_card">Cartão</label>
-                        {{ form.credit_card }}
-                    </div>
-                </div>
-
-                <!-- Meta Vinculada -->
-                <div>
-                    <label class="form-label" for="id_goal">Meta Vinculada</label>
-                    {{ form.goal }}
-                </div>
-
-                {% if form.tags.field.queryset.exists %}
-                <div>
-                    <label class="form-label">Tags</label>
-                    <div class="flex flex-wrap gap-2">
-                        {% for checkbox in form.tags %}
-                            <div class="tag-checkbox">
-                                {{ checkbox.tag }}
-                                <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-
-                <button type="submit" class="btn btn-primary w-full">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                    Criar Regra
-                </button>
-            </form>
+    <!-- Formulário unificado -->
+    <div class="card card-glow quick-entry-card">
+        <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Novo Lançamento
+        </h2>
+        <div id="unified-launch-form-content">
+            {% include 'partials/unified_launch_form.html' %}
         </div>
     </div>
+
+    <!-- Lista de recorrentes mensais -->
+    <div class="card space-y-4">
+        <h2 class="text-lg font-semibold text-white">Recorrentes Mensais</h2>
+
+        <div class="flex gap-2 border-b border-white/5 pb-px">
+            <button type="button" id="btn-active-rules"
+                    class="px-4 py-2 text-sm font-semibold border-b-2 border-accent text-white transition-all cursor-pointer"
+                    onclick="switchTab('recurring-list', 'active', 'btn-active-rules', 'btn-archived-rules')">
+                Ativas ({{ active_rules_count }})
+            </button>
+            <button type="button" id="btn-archived-rules"
+                    class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-gray-200 transition-all cursor-pointer"
+                    onclick="switchTab('recurring-list', 'archived', 'btn-active-rules', 'btn-archived-rules')">
+                Arquivadas ({{ archived_rules_count }})
+            </button>
+        </div>
+
+        <div class="space-y-1 tab-active-selected" id="recurring-list">
+            {% for rule in rules %}
+                {% include 'partials/recurring_row.html' %}
+            {% endfor %}
+
+            <div class="empty-state empty-state-active is-active-rule">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <p class="text-sm">Nenhuma recorrência mensal ativa</p>
+                <p class="text-xs mt-1">Adicione assinaturas e pagamentos mensais acima</p>
+            </div>
+
+            <div class="empty-state empty-state-archived is-archived-rule">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                </svg>
+                <p class="text-sm">Nenhuma recorrência mensal arquivada</p>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
 (function() {
-    const amountInput = document.getElementById('id_amount');
-    const installmentsInput = document.getElementById('id_total_installments');
-    const recurrenceSelect = document.getElementById('id_recurrence_type');
-    const typeSelect = document.getElementById('id_type');
-    const cardSelect = document.getElementById('id_credit_card');
-    const preview = document.getElementById('installment-preview');
-    const valueSpan = document.getElementById('installment-value');
-
-    function updatePreview() {
-        const isInstallment = recurrenceSelect && recurrenceSelect.value === 'INSTALLMENT';
-        const total = parseFloat(amountInput.value.replace(',', '.')) || 0;
-        const parcelas = parseInt(installmentsInput.value) || 0;
-
-        if (isInstallment && total > 0 && parcelas > 1) {
-            const perParcela = total / parcelas;
-            valueSpan.textContent = 'R$ ' + perParcela.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            }) + ' × ' + parcelas + 'x';
-            preview.style.display = 'block';
-        } else {
-            preview.style.display = 'none';
-        }
-    }
-
-    function updateInstallmentsAvailability() {
-        if (!recurrenceSelect || !installmentsInput) return;
-        const isInstallment = recurrenceSelect.value === 'INSTALLMENT';
-        if (!isInstallment) {
-            installmentsInput.value = '';
-            installmentsInput.disabled = true;
-        } else {
-            installmentsInput.disabled = false;
-        }
-        updatePreview();
-    }
-
-    function updateCardAvailability() {
-        if (!typeSelect || !cardSelect) return;
-        const isIncome = typeSelect.value === 'INCOME';
-        if (isIncome) {
-            cardSelect.value = '';
-            cardSelect.disabled = true;
-        } else {
-            cardSelect.disabled = false;
-        }
-    }
-
-    if (amountInput) amountInput.addEventListener('input', updatePreview);
-    if (installmentsInput) installmentsInput.addEventListener('input', updatePreview);
-    if (recurrenceSelect) recurrenceSelect.addEventListener('change', updateInstallmentsAvailability);
-    if (typeSelect) typeSelect.addEventListener('change', updateCardAvailability);
-
     window.switchTab = function(containerId, tabType, activeBtnId, archivedBtnId) {
-        const container = document.getElementById(containerId);
-        const activeBtn = document.getElementById(activeBtnId);
-        const archivedBtn = document.getElementById(archivedBtnId);
-        
+        var container   = document.getElementById(containerId);
+        var activeBtn   = document.getElementById(activeBtnId);
+        var archivedBtn = document.getElementById(archivedBtnId);
+        if (!container || !activeBtn || !archivedBtn) return;
+
         if (tabType === 'active') {
             container.classList.remove('tab-archived-selected');
             container.classList.add('tab-active-selected');
-            
-            activeBtn.classList.remove('border-transparent', 'text-gray-400');
-            activeBtn.classList.add('border-accent', 'text-white');
-            
-            archivedBtn.classList.remove('border-accent', 'text-white');
-            archivedBtn.classList.add('border-transparent', 'text-gray-400');
+            activeBtn.classList.replace('border-transparent', 'border-accent');
+            activeBtn.classList.replace('text-gray-400', 'text-white');
+            archivedBtn.classList.replace('border-accent', 'border-transparent');
+            archivedBtn.classList.replace('text-white', 'text-gray-400');
         } else {
             container.classList.remove('tab-active-selected');
             container.classList.add('tab-archived-selected');
-            
-            archivedBtn.classList.remove('border-transparent', 'text-gray-400');
-            archivedBtn.classList.add('border-accent', 'text-white');
-            
-            activeBtn.classList.remove('border-accent', 'text-white');
-            activeBtn.classList.add('border-transparent', 'text-gray-400');
+            archivedBtn.classList.replace('border-transparent', 'border-accent');
+            archivedBtn.classList.replace('text-gray-400', 'text-white');
+            activeBtn.classList.replace('border-accent', 'border-transparent');
+            activeBtn.classList.replace('text-white', 'text-gray-400');
         }
     };
 
     function updateRecurringCounters() {
-        const activeCount = document.querySelectorAll('#recurring-list .recurring-row.is-active-rule').length;
-        const archivedCount = document.querySelectorAll('#recurring-list .recurring-row.is-archived-rule').length;
-        
-        const activeBtn = document.getElementById('btn-active-rules');
-        const archivedBtn = document.getElementById('btn-archived-rules');
-        
-        if (activeBtn) activeBtn.textContent = `Ativas (${activeCount})`;
-        if (archivedBtn) archivedBtn.textContent = `Arquivadas (${archivedCount})`;
+        var activeCount   = document.querySelectorAll('#recurring-list .recurring-row.is-active-rule').length;
+        var archivedCount = document.querySelectorAll('#recurring-list .recurring-row.is-archived-rule').length;
+        var aBtn = document.getElementById('btn-active-rules');
+        var rBtn = document.getElementById('btn-archived-rules');
+        if (aBtn) aBtn.textContent = 'Ativas (' + activeCount + ')';
+        if (rBtn) rBtn.textContent = 'Arquivadas (' + archivedCount + ')';
     }
 
     document.addEventListener('htmx:afterSettle', function() {
-        updateInstallmentsAvailability();
-        updateCardAvailability();
         updateRecurringCounters();
     });
-
-    // Reset listener to correctly reset dynamic field states
-    document.addEventListener('reset', (event) => {
-        if (event.target && event.target.tagName === 'FORM') {
-            setTimeout(function() {
-                updateInstallmentsAvailability();
-                updateCardAvailability();
-                updateRecurringCounters();
-            }, 0);
-        }
-    });
-
-    updateInstallmentsAvailability();
-    updateCardAvailability();
 })();
 </script>
 {% endblock %}

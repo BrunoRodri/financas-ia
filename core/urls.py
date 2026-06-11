@@ -17,14 +17,14 @@ urlpatterns = [
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
     path('transactions/<int:pk>/delete/confirm/', views.transaction_delete_confirm, name='transaction_delete_confirm'),
 
-    # Recurring Rules
-    path('recurring/', views.recurring_list, name='recurring_list'),
-    path('recurring/create/', views.recurring_create, name='recurring_create'),
-    path('recurring/<int:pk>/toggle/', views.recurring_toggle, name='recurring_toggle'),
-    path('recurring/<int:pk>/toggle-archive/', views.recurring_toggle_archive, name='recurring_toggle_archive'),
-    path('recurring/<int:pk>/edit/', views.recurring_edit, name='recurring_edit'),
-    path('recurring/<int:pk>/delete/', views.recurring_delete, name='recurring_delete'),
-    path('recurring/<int:pk>/delete/confirm/', views.recurring_delete_confirm, name='recurring_delete_confirm'),
+    # Lançamentos (inclui regras recorrentes mensais)
+    path('lancamentos/', views.recurring_list, name='recurring_list'),
+    path('lancamentos/criar/', views.unified_launch_create, name='unified_launch_create'),
+    path('lancamentos/<int:pk>/toggle/', views.recurring_toggle, name='recurring_toggle'),
+    path('lancamentos/<int:pk>/toggle-archive/', views.recurring_toggle_archive, name='recurring_toggle_archive'),
+    path('lancamentos/<int:pk>/edit/', views.recurring_edit, name='recurring_edit'),
+    path('lancamentos/<int:pk>/delete/', views.recurring_delete, name='recurring_delete'),
+    path('lancamentos/<int:pk>/delete/confirm/', views.recurring_delete_confirm, name='recurring_delete_confirm'),
 
     # Goals
     path('goals/', views.goal_list, name='goal_list'),

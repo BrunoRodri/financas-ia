@@ -404,17 +404,101 @@ def transaction_edit(request, pk):
 # ─── Recurring Rules ────────────────────────────────────────────────────────
 
 def recurring_list(request):
-    """Lista de regras recorrentes."""
+    """Página de lançamentos: form unificado + lista de regras mensais."""
     RecurringRule.auto_archive_expired_rules()
-    rules = RecurringRule.objects.filter(user=request.user).select_related('credit_card').prefetch_related('tags')
-    form = RecurringRuleForm(user=request.user)
+    rules = (
+        RecurringRule.objects
+        .filter(user=request.user, recurrence_type=RecurringRule.RecurrenceType.MONTHLY)
+        .select_related('credit_card')
+        .prefetch_related('tags')
+    )
     context = {
+        'form': TransactionForm(user=request.user),
+        'type_value': 'EXPENSE',
+        'launch_mode': 'simple',
+        'installments': 1,
+        'date_value': timezone.localdate().strftime('%d/%m/%Y'),
         'rules': rules,
         'active_rules_count': rules.filter(is_archived=False).count(),
         'archived_rules_count': rules.filter(is_archived=True).count(),
-        'form': form,
     }
     return render(request, 'recurring/list.html', context)
+
+
+@require_POST
+def unified_launch_create(request):
+    """Cria transação simples, regra mensal ou parcelamento via form unificado."""
+    launch_mode = request.POST.get('launch_mode', 'simple')
+    try:
+        installments = max(1, int(request.POST.get('installments') or '1'))
+    except (ValueError, TypeError):
+        installments = 1
+
+    post_data = request.POST.copy()
+
+    def _fresh_ctx(new_monthly_rule=None):
+        return {
+            'form': TransactionForm(user=request.user),
+            'type_value': 'EXPENSE',
+            'launch_mode': 'simple',
+            'installments': 1,
+            'date_value': timezone.localdate().strftime('%d/%m/%Y'),
+            'new_monthly_rule': new_monthly_rule,
+        }
+
+    def _error_ctx(form):
+        return {
+            'form': form,
+            'type_value': post_data.get('type', 'EXPENSE'),
+            'launch_mode': launch_mode,
+            'installments': installments,
+            'date_value': post_data.get('date', ''),
+        }
+
+    if launch_mode == 'monthly':
+        post_data['start_date'] = post_data.get('date', '')
+        post_data['recurrence_type'] = 'MONTHLY'
+        form = RecurringRuleForm(post_data, user=request.user)
+        if form.is_valid():
+            rule = form.save(commit=False)
+            rule.user = request.user
+            rule.save()
+            form.save_m2m()
+            rule.materialize_monthly_transactions(months_ahead=6)
+            response = render(request, 'partials/unified_launch_form.html', _fresh_ctx(new_monthly_rule=rule))
+            response['HX-Trigger'] = 'transactionUpdated'
+            return response
+        return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
+
+    elif installments > 1:
+        post_data['start_date'] = post_data.get('date', '')
+        post_data['recurrence_type'] = 'INSTALLMENT'
+        post_data['total_installments'] = str(installments)
+        form = RecurringRuleForm(post_data, user=request.user)
+        if form.is_valid():
+            rule = form.save(commit=False)
+            rule.user = request.user
+            rule.amount = (rule.amount / Decimal(rule.total_installments)).quantize(Decimal('0.01'))
+            rule.save()
+            form.save_m2m()
+            rule.generate_installment_transactions()
+            response = render(request, 'partials/unified_launch_form.html', _fresh_ctx())
+            response['HX-Trigger'] = 'transactionUpdated'
+            return response
+        return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
+
+    else:
+        post_data['due_date'] = post_data.get('date', '')
+        form = TransactionForm(post_data, user=request.user)
+        if form.is_valid():
+            txn = form.save(commit=False)
+            txn.user = request.user
+            txn.save()
+            form.save_m2m()
+            response = render(request, 'partials/unified_launch_form.html', _fresh_ctx())
+            response['HX-Trigger'] = 'transactionUpdated'
+            return response
+        return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
 
 
 @require_POST

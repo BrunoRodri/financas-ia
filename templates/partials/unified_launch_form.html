@@ -1,0 +1,294 @@
+{% load currency_filters %}
+<form hx-post="{% url 'unified_launch_create' %}"
+      hx-target="#unified-launch-form-content"
+      hx-swap="innerHTML"
+      class="space-y-4">
+    {% csrf_token %}
+
+    <input type="hidden" name="launch_mode" id="id_launch_mode" value="{{ launch_mode|default:'simple' }}">
+    <input type="hidden" name="type" id="id_type" value="{{ type_value|default:'EXPENSE' }}">
+
+    <!-- Tipo: Saída / Entrada -->
+    <div class="grid grid-cols-2 gap-2">
+        <button type="button" id="unified-type-btn-expense" onclick="setUnifiedType('EXPENSE')"
+                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10">
+            ↓ Saída
+        </button>
+        <button type="button" id="unified-type-btn-income" onclick="setUnifiedType('INCOME')"
+                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10">
+            ↑ Entrada
+        </button>
+    </div>
+
+    <!-- Frequência: Simples / Mensal -->
+    <div class="grid grid-cols-2 gap-2">
+        <button type="button" id="unified-freq-btn-simple" onclick="setLaunchFrequency('simple')"
+                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10">
+            Simples
+        </button>
+        <button type="button" id="unified-freq-btn-monthly" onclick="setLaunchFrequency('monthly')"
+                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10">
+            Mensal
+        </button>
+    </div>
+
+    <!-- Descrição -->
+    <div>
+        <label class="form-label" for="id_description">Descrição</label>
+        {{ form.description }}
+        {% if form.description.errors %}<p class="form-error">{{ form.description.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- Valor -->
+    <div>
+        <label class="form-label" for="id_amount">Valor (R$)</label>
+        {{ form.amount }}
+        {% if form.amount.errors %}<p class="form-error">{{ form.amount.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- Data + Status -->
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="form-label" id="date-label">Data</label>
+            <div class="date-picker-wrap" id="unified-date-picker">
+                <input type="text" name="date" id="id_date" class="form-input"
+                       placeholder="dd/mm/aaaa" autocomplete="off" inputmode="numeric"
+                       value="{{ date_value|default:'' }}">
+                <button type="button" class="date-picker-toggle" aria-label="Abrir calendário" data-date-toggle>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </button>
+                <div class="date-picker-panel hidden" data-date-panel>
+                    <div class="date-picker-header">
+                        <button type="button" data-date-prev aria-label="Mês anterior">‹</button>
+                        <span data-date-title></span>
+                        <button type="button" data-date-next aria-label="Próximo mês">›</button>
+                    </div>
+                    <div class="date-picker-weekdays">
+                        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+                    </div>
+                    <div class="date-picker-grid" data-date-grid></div>
+                </div>
+            </div>
+            {% if form.due_date.errors or form.start_date.errors %}
+                <p class="form-error">{{ form.due_date.errors.0|default:form.start_date.errors.0 }}</p>
+            {% endif %}
+        </div>
+        <div id="status-container">
+            <label class="form-label" for="id_status">Status</label>
+            {% if 'status' in form.fields %}
+                {{ form.status }}
+            {% else %}
+                <select name="status" id="id_status" class="form-select">
+                    <option value="PENDING" selected>Pendente</option>
+                    <option value="PAID">Pago</option>
+                </select>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tipo de Pagamento (saída + simples) -->
+    <div id="payment-type-container" class="hidden">
+        <label class="form-label" for="id_payment_type">Tipo de Pagamento</label>
+        {% if 'payment_type' in form.fields %}
+            {{ form.payment_type }}
+        {% else %}
+            <select name="payment_type" id="id_payment_type" class="form-select">
+                <option value="other">Dinheiro / Pix / Débito</option>
+                <option value="card">Cartão de Crédito</option>
+            </select>
+        {% endif %}
+    </div>
+
+    <!-- Cartão (saída + mensal, ou saída + simples + cartão) -->
+    <div id="credit-card-container" class="hidden">
+        <label class="form-label" for="id_credit_card">Cartão</label>
+        {{ form.credit_card }}
+        {% if form.credit_card.errors %}<p class="form-error">{{ form.credit_card.errors.0 }}</p>{% endif %}
+    </div>
+
+    <!-- Parcelas (saída + simples + cartão) -->
+    <div id="installments-container" class="hidden">
+        <label class="form-label" for="id_installments">Parcelas</label>
+        <input type="number" name="installments" id="id_installments" class="form-input"
+               min="1" max="72" placeholder="1" value="{{ installments|default:1 }}">
+        <div id="installment-preview" class="hidden mt-2 rounded-lg bg-accent/10 border border-accent/20 px-3 py-2 text-sm text-center">
+            <span class="text-gray-400">Valor por parcela: </span>
+            <span id="installment-value" class="font-bold text-accent-light"></span>
+        </div>
+    </div>
+
+    <!-- Meta -->
+    <div>
+        <label class="form-label" for="id_goal">Meta Vinculada (Opcional)</label>
+        {{ form.goal }}
+    </div>
+
+    <!-- Tags -->
+    {% if form.tags.field.queryset.exists %}
+    <div>
+        <label class="form-label">Tags</label>
+        <div class="flex flex-wrap gap-2">
+            {% for checkbox in form.tags %}
+            <div class="tag-checkbox">
+                {{ checkbox.tag }}
+                <label for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Erros gerais -->
+    {% if form.non_field_errors %}
+    <div class="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2">
+        {% for error in form.non_field_errors %}
+        <p class="text-sm text-red-400">{{ error }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <button type="submit" class="btn btn-primary w-full">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Lançar
+    </button>
+</form>
+
+{% if new_monthly_rule %}
+<div id="recurring-list" hx-swap-oob="afterbegin">
+    {% include 'partials/recurring_row.html' with rule=new_monthly_rule is_new=True %}
+</div>
+{% endif %}
+
+<script>
+(function() {
+    var TYPE_CLASSES = {
+        expense: {
+            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-red-500/20 text-red-400 ring-1 ring-red-500/40',
+            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10'
+        },
+        income: {
+            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-green-500/20 text-green-400 ring-1 ring-green-500/40',
+            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10'
+        }
+    };
+    var FREQ_CLASSES = {
+        simple: {
+            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-500/40',
+            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10'
+        },
+        monthly: {
+            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/40',
+            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10'
+        }
+    };
+
+    function applyTypeBtns(value) {
+        var eBtn = document.getElementById('unified-type-btn-expense');
+        var iBtn = document.getElementById('unified-type-btn-income');
+        if (!eBtn || !iBtn) return;
+        if (value === 'EXPENSE') {
+            eBtn.className = TYPE_CLASSES.expense.active;
+            iBtn.className = TYPE_CLASSES.income.inactive;
+        } else {
+            eBtn.className = TYPE_CLASSES.expense.inactive;
+            iBtn.className = TYPE_CLASSES.income.active;
+        }
+    }
+
+    function applyFreqBtns(value) {
+        var sBtn = document.getElementById('unified-freq-btn-simple');
+        var mBtn = document.getElementById('unified-freq-btn-monthly');
+        if (!sBtn || !mBtn) return;
+        if (value === 'simple') {
+            sBtn.className = FREQ_CLASSES.simple.active;
+            mBtn.className = FREQ_CLASSES.monthly.inactive;
+        } else {
+            sBtn.className = FREQ_CLASSES.simple.inactive;
+            mBtn.className = FREQ_CLASSES.monthly.active;
+        }
+    }
+
+    function showHide(id, show) {
+        var el = document.getElementById(id);
+        if (el) el.classList.toggle('hidden', !show);
+    }
+
+    function updateFields() {
+        var typeEl = document.getElementById('id_type');
+        var modeEl = document.getElementById('id_launch_mode');
+        var ptEl   = document.getElementById('id_payment_type');
+        var type        = typeEl  ? typeEl.value  : 'EXPENSE';
+        var launchMode  = modeEl  ? modeEl.value  : 'simple';
+        var paymentType = ptEl    ? ptEl.value     : 'other';
+
+        var isExpense = type === 'EXPENSE';
+        var isSimple  = launchMode === 'simple';
+        var isMonthly = launchMode === 'monthly';
+        var isCard    = paymentType === 'card';
+
+        showHide('payment-type-container', isExpense && isSimple);
+        showHide('credit-card-container',  isExpense && (isMonthly || (isSimple && isCard)));
+        showHide('installments-container', isExpense && isSimple && isCard);
+        showHide('status-container',       isSimple);
+
+        var lbl = document.getElementById('date-label');
+        if (lbl) lbl.textContent = isMonthly ? 'Data de início' : 'Data';
+
+        updatePreview();
+    }
+
+    function updatePreview() {
+        var amtEl  = document.getElementById('id_amount');
+        var instEl = document.getElementById('id_installments');
+        var amount = amtEl  ? (parseFloat(amtEl.value.replace(',', '.'))  || 0) : 0;
+        var inst   = instEl ? (parseInt(instEl.value) || 0) : 0;
+        var show   = inst > 1 && amount > 0;
+        showHide('installment-preview', show);
+        if (show) {
+            var valEl = document.getElementById('installment-value');
+            if (valEl) valEl.textContent = 'R$ ' +
+                (amount / inst).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) +
+                ' × ' + inst + 'x';
+        }
+    }
+
+    window.setUnifiedType = function(value) {
+        var el = document.getElementById('id_type');
+        if (el) el.value = value;
+        applyTypeBtns(value);
+        updateFields();
+    };
+
+    window.setLaunchFrequency = function(value) {
+        var el = document.getElementById('id_launch_mode');
+        if (el) el.value = value;
+        applyFreqBtns(value);
+        updateFields();
+    };
+
+    if (!window.hasUnifiedFormListeners) {
+        window.hasUnifiedFormListeners = true;
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'id_payment_type') updateFields();
+        });
+        document.addEventListener('input', function(e) {
+            if (e.target && (e.target.id === 'id_installments' || e.target.id === 'id_amount')) {
+                updatePreview();
+            }
+        });
+    }
+
+    var typeVal = (document.getElementById('id_type') || {}).value || 'EXPENSE';
+    var modeVal = (document.getElementById('id_launch_mode') || {}).value || 'simple';
+    applyTypeBtns(typeVal);
+    applyFreqBtns(modeVal);
+    updateFields();
+
+    if (typeof setupDatePickers === 'function') setupDatePickers();
+})();
+</script>
