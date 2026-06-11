@@ -854,6 +854,59 @@ def card_bill_list(request, pk):
     return render(request, 'cards/bills.html', {'card': card, 'bills': bills, 'all_cards': all_cards})
 
 
+def analytics_view(request):
+    """Análise de despesas agrupadas por tag para o mês selecionado."""
+    today = timezone.localdate()
+    month = int(request.GET.get('month', today.month))
+    year = int(request.GET.get('year', today.year))
+
+    transactions = list(
+        Transaction.objects.filter(
+            user=request.user, type='EXPENSE',
+            due_date__month=month, due_date__year=year,
+            funded_by_goal=False,
+        ).prefetch_related('tags')
+    )
+
+    tag_map = {}
+    untagged = Decimal('0')
+    for txn in transactions:
+        txn_tags = list(txn.tags.all())
+        if txn_tags:
+            for tag in txn_tags:
+                if tag.id not in tag_map:
+                    tag_map[tag.id] = {'name': tag.name, 'color': tag.color, 'total': Decimal('0')}
+                tag_map[tag.id]['total'] += txn.amount
+        else:
+            untagged += txn.amount
+
+    tag_items = sorted(tag_map.values(), key=lambda x: x['total'], reverse=True)
+    if untagged > 0:
+        tag_items.append({'name': 'Sem categoria', 'color': '#6b7280', 'total': untagged})
+
+    grand_total = sum(i['total'] for i in tag_items)
+    for item in tag_items:
+        item['pct'] = round(float(item['total'] / grand_total * 100), 1) if grand_total else 0
+
+    years_available = sorted(
+        {d.year for d in Transaction.objects.filter(user=request.user).dates('due_date', 'year')} | {today.year},
+        reverse=True,
+    )
+    months_available = [{'value': i, 'label': _MONTH_NAMES[i]} for i in range(1, 13)]
+
+    return render(request, 'analytics/by_tag.html', {
+        'tag_items': tag_items,
+        'grand_total': grand_total,
+        'chart_labels': [i['name'] for i in tag_items],
+        'chart_values': [float(i['total']) for i in tag_items],
+        'chart_colors': [i['color'] for i in tag_items],
+        'current_month': month,
+        'current_year': year,
+        'months_available': months_available,
+        'years_available': years_available,
+    })
+
+
 @require_POST
 def card_bill_pay(request, pk, year, month):
     """Marca todas as transações pendentes da fatura como pagas."""

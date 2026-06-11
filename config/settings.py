@@ -130,7 +130,7 @@ STORAGES = {
 
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'accounts.backends.EmailOrUsernameBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
