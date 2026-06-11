@@ -39,6 +39,8 @@ urlpatterns = [
     path('cards/<int:pk>/delete/', views.card_delete, name='card_delete'),
     path('cards/<int:pk>/edit/', views.card_edit, name='card_edit'),
     path('cards/<int:pk>/faturas/', views.card_bill_list, name='card_bill_list'),
+    path('cards/<int:pk>/faturas/<int:year>/<int:month>/pagar/', views.card_bill_pay, name='card_bill_pay'),
+    path('cards/<int:pk>/faturas/<int:year>/<int:month>/desfazer/', views.card_bill_unpay, name='card_bill_unpay'),
 
     # Settings
     path('settings/', views.settings_view, name='settings'),

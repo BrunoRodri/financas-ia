@@ -1,61 +1,92 @@
 {% load currency_filters %}
-<div id="card-{{ card.id }}" class="flex items-center gap-4 p-4 rounded-xl border border-white/5 hover:border-white/10 transition-all group {% if is_new %}new-row{% endif %}"
+<div id="card-{{ card.id }}" class="cc-card rounded-xl border border-white/5 hover:border-white/10 transition-all group {% if is_new %}new-row{% endif %}"
      style="background: linear-gradient(135deg, {{ card.color }}10, transparent);">
-    <!-- Card Icon -->
-    <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-         style="background: {{ card.color }}20;">
-        <svg class="w-5 h-5" style="color: {{ card.color }};" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-        </svg>
+    <div class="flex items-center gap-4 p-4">
+        <!-- Card Icon -->
+        <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+             style="background: {{ card.color }}20;">
+            <svg class="w-5 h-5" style="color: {{ card.color }};" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+        </div>
+
+        <!-- Tap area: info (toggle mobile actions on tap) -->
+        <div class="flex-1 min-w-0 cursor-pointer sm:cursor-default"
+             onclick="this.closest('.cc-card').classList.toggle('mobile-expanded')">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-semibold text-white">{{ card.name }}</span>
+                {% if card.last_digits %}
+                <span class="text-xs text-gray-500">•••• {{ card.last_digits }}</span>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span class="text-xs text-gray-500">{{ card.get_brand_display }}</span>
+                <span class="text-xs text-gray-600">Fecha dia {{ card.closing_day }} · Vence dia {{ card.due_day }}</span>
+            </div>
+        </div>
+
+        <!-- Actions (desktop only) -->
+        <div class="hidden sm:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            <a href="{% url 'card_bill_list' card.id %}"
+               class="p-1 rounded-lg hover:bg-white/5 text-gray-400 hover:text-accent-light"
+               title="Ver faturas">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+            </a>
+            <button hx-get="{% url 'card_edit' card.id %}"
+                    hx-target="#card-{{ card.id }}"
+                    hx-swap="outerHTML"
+                    class="p-1 rounded-lg hover:bg-white/5 text-gray-400 hover:text-accent-light"
+                    title="Editar cartão">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+            </button>
+            <button hx-post="{% url 'card_delete' card.id %}"
+                    hx-target="#card-{{ card.id }}"
+                    hx-swap="outerHTML"
+                    hx-confirm="Excluir este cartão?"
+                    class="p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400"
+                    title="Excluir cartão">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
     </div>
 
-    <!-- Info -->
-    <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
-            <span class="text-sm font-semibold text-white">{{ card.name }}</span>
-            {% if card.last_digits %}
-            <span class="text-xs text-gray-500">•••• {{ card.last_digits }}</span>
-            {% endif %}
-        </div>
-        <div class="flex items-center gap-3 mt-0.5">
-            <span class="text-xs text-gray-500">{{ card.get_brand_display }}</span>
-            <span class="text-xs text-gray-600">Fecha dia {{ card.closing_day }} · Vence dia {{ card.due_day }}</span>
-        </div>
-    </div>
-
-    <!-- Actions -->
-    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <!-- Ver faturas -->
+    <!-- Mobile action row (shown when card is tapped/expanded) -->
+    <div class="cc-actions sm:hidden flex items-center gap-2 px-4 pb-3 border-t border-white/5">
         <a href="{% url 'card_bill_list' card.id %}"
-           class="p-1 rounded-lg hover:bg-white/5 text-gray-400 hover:text-accent-light"
-           title="Ver faturas">
+           class="flex-1 py-2 text-sm text-gray-400 rounded-lg hover:bg-white/5 hover:text-accent-light active:bg-white/10 flex items-center justify-center gap-1.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
             </svg>
+            Faturas
         </a>
-
-        <!-- Editar -->
+        <div class="w-px h-5 bg-white/10 flex-shrink-0"></div>
         <button hx-get="{% url 'card_edit' card.id %}"
                 hx-target="#card-{{ card.id }}"
                 hx-swap="outerHTML"
-                class="p-1 rounded-lg hover:bg-white/5 text-gray-400 hover:text-accent-light"
-                title="Editar cartão">
+                class="flex-1 py-2 text-sm text-gray-400 rounded-lg hover:bg-accent/10 hover:text-accent-light active:bg-accent/20 flex items-center justify-center gap-1.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
             </svg>
+            Editar
         </button>
-
-        <!-- Excluir -->
+        <div class="w-px h-5 bg-white/10 flex-shrink-0"></div>
         <button hx-post="{% url 'card_delete' card.id %}"
                 hx-target="#card-{{ card.id }}"
                 hx-swap="outerHTML"
                 hx-confirm="Excluir este cartão?"
-                class="p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400"
-                title="Excluir cartão">
+                class="flex-1 py-2 text-sm text-gray-400 rounded-lg hover:bg-red-500/10 hover:text-red-400 active:bg-red-500/20 flex items-center justify-center gap-1.5">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
             </svg>
+            Excluir
         </button>
     </div>
 </div>

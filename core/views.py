@@ -801,51 +801,83 @@ def card_edit(request, pk):
     return redirect('card_list')
 
 
+_MONTH_NAMES = {
+    1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
+    7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez',
+}
+
+
+def _build_bill(user, card, year, month):
+    """Computa um único dict de fatura para o mês/ano de referência."""
+    today = timezone.localdate()
+    start, end = get_bill_period(card, year, month)
+    txns = list(
+        Transaction.objects.filter(
+            user=user, credit_card=card,
+            due_date__range=(start, end),
+        ).exclude(funded_by_goal=True).order_by('due_date')
+    )
+    bill_total = sum(t.amount for t in txns if t.is_expense) - sum(t.amount for t in txns if t.is_income)
+    if card.due_day < card.closing_day:
+        due_month = end.month + 1 if end.month < 12 else 1
+        due_year = end.year if end.month < 12 else end.year + 1
+    else:
+        due_month, due_year = end.month, end.year
+    due_date = datetime.date(due_year, due_month,
+                             min(card.due_day, calendar.monthrange(due_year, due_month)[1]))
+    return {
+        'month_label': f"{_MONTH_NAMES[due_month]}/{due_year}",
+        'ref_month': month,
+        'ref_year': year,
+        'start_date': start,
+        'end_date': end,
+        'due_date': due_date,
+        'transactions': txns,
+        'total': bill_total,
+        'is_current': start <= today <= end,
+        'is_past': end < today,
+        'all_paid': all(t.status == 'PAID' for t in txns) if txns else False,
+    }
+
+
 def card_bill_list(request, pk):
     """Visão geral das faturas de um cartão (mês anterior + atual + 4 futuros)."""
     card = get_object_or_404(CreditCard, pk=pk, user=request.user)
     today = timezone.localdate()
-    MONTH_NAMES = {
-        1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
-        7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez',
-    }
     bills = []
     for delta in range(-1, 5):
         ref = today.month + delta
         ref_year = today.year + (ref - 1) // 12
         ref_month = ((ref - 1) % 12) + 1
-        start, end = get_bill_period(card, ref_year, ref_month)
-        txns = list(
-            Transaction.objects.filter(
-                user=request.user, credit_card=card,
-                due_date__range=(start, end),
-            ).exclude(funded_by_goal=True).order_by('due_date')
-        )
-        bill_total = sum(t.amount for t in txns if t.is_expense) - sum(t.amount for t in txns if t.is_income)
-        # A fatura fecha no mês seguinte ao início do período (end.month). O vencimento
-        # cai no mês seguinte ao fechamento se due_day < closing_day (ex: fecha dia 26,
-        # vence dia 3), ou no próprio mês de fechamento caso contrário.
-        if card.due_day < card.closing_day:
-            due_month = end.month + 1 if end.month < 12 else 1
-            due_year = end.year if end.month < 12 else end.year + 1
-        else:
-            due_month, due_year = end.month, end.year
-        due_date = datetime.date(due_year, due_month,
-                                 min(card.due_day, calendar.monthrange(due_year, due_month)[1]))
-        bills.append({
-            'month_label': f"{MONTH_NAMES[due_month]}/{due_year}",
-            'ref_month': ref_month,
-            'ref_year': ref_year,
-            'start_date': start,
-            'end_date': end,
-            'due_date': due_date,
-            'transactions': txns,
-            'total': bill_total,
-            'is_current': start <= today <= end,
-            'is_past': end < today,
-        })
+        bills.append(_build_bill(request.user, card, ref_year, ref_month))
     all_cards = CreditCard.objects.filter(user=request.user)
     return render(request, 'cards/bills.html', {'card': card, 'bills': bills, 'all_cards': all_cards})
+
+
+@require_POST
+def card_bill_pay(request, pk, year, month):
+    """Marca todas as transações pendentes da fatura como pagas."""
+    card = get_object_or_404(CreditCard, pk=pk, user=request.user)
+    start, end = get_bill_period(card, year, month)
+    Transaction.objects.filter(
+        user=request.user, credit_card=card,
+        due_date__range=(start, end), status='PENDING',
+    ).exclude(funded_by_goal=True).update(status='PAID')
+    bill = _build_bill(request.user, card, year, month)
+    return render(request, 'partials/bill_card.html', {'card': card, 'bill': bill})
+
+
+@require_POST
+def card_bill_unpay(request, pk, year, month):
+    """Desfaz o pagamento da fatura, revertendo transações para pendente."""
+    card = get_object_or_404(CreditCard, pk=pk, user=request.user)
+    start, end = get_bill_period(card, year, month)
+    Transaction.objects.filter(
+        user=request.user, credit_card=card,
+        due_date__range=(start, end), status='PAID',
+    ).exclude(funded_by_goal=True).update(status='PENDING')
+    bill = _build_bill(request.user, card, year, month)
+    return render(request, 'partials/bill_card.html', {'card': card, 'bill': bill})
 
 
 # ─── Settings ────────────────────────────────────────────────────────────────

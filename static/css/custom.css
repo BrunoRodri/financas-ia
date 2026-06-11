@@ -565,17 +565,22 @@
     overflow: visible;
 }
 
-/* Mobile transaction card: expandable action row */
+/* Mobile transaction/card expandable action rows */
 @media (max-width: 639px) {
-    .txn-card .txn-actions {
+    .txn-card .txn-actions,
+    .cc-card .cc-actions {
         display: none;
     }
-    .txn-card.mobile-expanded .txn-actions {
+    .txn-card.mobile-expanded .txn-actions,
+    .cc-card.mobile-expanded .cc-actions {
         display: flex;
     }
     .txn-card.mobile-expanded {
         background: rgba(255, 255, 255, 0.025);
         border-radius: 0.75rem;
+    }
+    .cc-card.mobile-expanded {
+        border-color: rgba(255, 255, 255, 0.1);
     }
 }
 
