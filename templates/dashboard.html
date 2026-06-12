@@ -217,6 +217,78 @@
         </div>
     </div>
 
+    <!-- Gastos por Tag -->
+    <div class="card" id="tag-chart-section">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+                </svg>
+                Gastos por Tag
+            </h2>
+            <form method="get" class="flex items-center gap-2">
+                <select name="tag_month" onchange="this.form.submit()"
+                        class="bg-white/5 border border-white/10 text-sm text-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
+                    {% for m in months_available %}
+                    <option value="{{ m.value }}" {% if m.value == tag_month %}selected{% endif %}>{{ m.label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="tag_year" onchange="this.form.submit()"
+                        class="bg-white/5 border border-white/10 text-sm text-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
+                    {% for y in years_available %}
+                    <option value="{{ y }}" {% if y == tag_year %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+
+        {% if tag_items %}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Rosca -->
+            <div class="flex flex-col items-center justify-center">
+                <div class="relative w-full max-w-xs mx-auto" style="height: 240px;">
+                    <canvas id="tagChart"></canvas>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span class="text-xs text-gray-500">Total</span>
+                        <span class="text-lg font-bold text-white">{{ tag_grand_total|brl }}</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Ranking -->
+            <div class="space-y-3 self-center">
+                {% for item in tag_items %}
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background: {{ item.color }};"></div>
+                            <span class="text-sm text-gray-300 truncate">{{ item.name }}</span>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0 ml-2">
+                            <span class="text-sm font-semibold text-white">{{ item.total|brl }}</span>
+                            <span class="text-xs text-gray-500 w-10 text-right">{{ item.pct }}%</span>
+                        </div>
+                    </div>
+                    <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all duration-500"
+                             style="width: {{ item.pct }}%; background: {{ item.color }};"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center py-10 text-center">
+            <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                </svg>
+            </div>
+            <p class="text-sm text-gray-500">Nenhuma despesa com tags neste mês.</p>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Goals -->
     {% if goals %}
     <div class="card">
@@ -238,6 +310,11 @@
     {{ chart_balances|json_script:"chart-balances-data" }}
     {{ chart_income|json_script:"chart-income-data" }}
     {{ chart_expense|json_script:"chart-expense-data" }}
+    {% if tag_items %}
+    {{ tag_chart_labels|json_script:"tag-chart-labels" }}
+    {{ tag_chart_values|json_script:"tag-chart-values" }}
+    {{ tag_chart_colors|json_script:"tag-chart-colors" }}
+    {% endif %}
 
     <script>
         (function() {
@@ -358,5 +435,66 @@
             });
         })();
     </script>
+
+    {% if tag_items %}
+    <script>
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        if (params.has('tag_month') || params.has('tag_year')) {
+            var el = document.getElementById('tag-chart-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        if (window.tagChartInstance) {
+            window.tagChartInstance.destroy();
+        }
+        var labels = JSON.parse(document.getElementById('tag-chart-labels').textContent);
+        var values = JSON.parse(document.getElementById('tag-chart-values').textContent);
+        var colors = JSON.parse(document.getElementById('tag-chart-colors').textContent);
+        var ctx = document.getElementById('tagChart').getContext('2d');
+        window.tagChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors.map(function(c) { return c + 'bb'; }),
+                    borderColor: colors,
+                    borderWidth: 2,
+                    hoverOffset: 6,
+                    hoverBorderWidth: 3,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 22, 41, 0.95)',
+                        titleColor: '#fff',
+                        bodyColor: '#d1d5db',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
+                        padding: 12,
+                        titleFont: { family: 'Inter', weight: '600' },
+                        bodyFont: { family: 'Inter' },
+                        callbacks: {
+                            label: function(context) {
+                                var val = context.parsed;
+                                var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                var pct = ((val / total) * 100).toFixed(1);
+                                return ' R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' · ' + pct + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    })();
+    </script>
+    {% endif %}
 </div>
 {% endblock %}

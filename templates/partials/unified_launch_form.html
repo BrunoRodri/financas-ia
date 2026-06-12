@@ -20,16 +20,14 @@
         </button>
     </div>
 
-    <!-- Frequência: Simples / Mensal -->
-    <div class="grid grid-cols-2 gap-2">
-        <button type="button" id="unified-freq-btn-simple" onclick="setLaunchFrequency('simple')"
-                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10">
-            Simples
+    <!-- Frequência: toggle mensal -->
+    <div class="flex items-center gap-2.5">
+        <button type="button" id="monthly-toggle" onclick="toggleMonthly()"
+                class="relative w-9 h-5 rounded-full transition-colors duration-200 bg-white/10 flex-shrink-0 focus:outline-none">
+            <span id="monthly-thumb"
+                  class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white/50 transition-transform duration-200 pointer-events-none"></span>
         </button>
-        <button type="button" id="unified-freq-btn-monthly" onclick="setLaunchFrequency('monthly')"
-                class="py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10">
-            Mensal
-        </button>
+        <span class="text-sm text-gray-400 cursor-pointer select-none" onclick="toggleMonthly()">Recorrência mensal</span>
     </div>
 
     <!-- Descrição -->
@@ -176,16 +174,6 @@
             inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10'
         }
     };
-    var FREQ_CLASSES = {
-        simple: {
-            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-indigo-500/20 text-indigo-400 ring-1 ring-indigo-500/40',
-            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10'
-        },
-        monthly: {
-            active:   'py-2.5 rounded-xl text-sm font-semibold transition-all bg-violet-500/20 text-violet-400 ring-1 ring-violet-500/40',
-            inactive: 'py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/5 text-gray-500 ring-1 ring-white/10'
-        }
-    };
 
     function applyTypeBtns(value) {
         var eBtn = document.getElementById('unified-type-btn-expense');
@@ -201,15 +189,17 @@
     }
 
     function applyFreqBtns(value) {
-        var sBtn = document.getElementById('unified-freq-btn-simple');
-        var mBtn = document.getElementById('unified-freq-btn-monthly');
-        if (!sBtn || !mBtn) return;
-        if (value === 'simple') {
-            sBtn.className = FREQ_CLASSES.simple.active;
-            mBtn.className = FREQ_CLASSES.monthly.inactive;
+        var toggle = document.getElementById('monthly-toggle');
+        var thumb  = document.getElementById('monthly-thumb');
+        if (!toggle) return;
+        if (value === 'monthly') {
+            toggle.classList.remove('bg-white/10');
+            toggle.classList.add('bg-indigo-500/60');
+            if (thumb) thumb.style.transform = 'translateX(1rem)';
         } else {
-            sBtn.className = FREQ_CLASSES.simple.inactive;
-            mBtn.className = FREQ_CLASSES.monthly.active;
+            toggle.classList.remove('bg-indigo-500/60');
+            toggle.classList.add('bg-white/10');
+            if (thumb) thumb.style.transform = '';
         }
     }
 
@@ -256,6 +246,12 @@
                 ' × ' + inst + 'x';
         }
     }
+
+    window.toggleMonthly = function() {
+        var el = document.getElementById('id_launch_mode');
+        var current = el ? el.value : 'simple';
+        setLaunchFrequency(current === 'monthly' ? 'simple' : 'monthly');
+    };
 
     window.setUnifiedType = function(value) {
         var el = document.getElementById('id_type');

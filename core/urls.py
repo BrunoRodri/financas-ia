@@ -6,9 +6,6 @@ urlpatterns = [
     # Dashboard
     path('', views.dashboard, name='dashboard'),
 
-    # Analytics
-    path('analytics/', views.analytics_view, name='analytics'),
-
     # Transactions
     path('transactions/', views.transaction_list, name='transaction_list'),
     path('transactions/create/', views.transaction_create, name='transaction_create'),
