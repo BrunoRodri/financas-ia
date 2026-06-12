@@ -1,80 +1,107 @@
 {% load currency_filters %}
-<div id="rule-{{ rule.id }}" class="recurring-row flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.02] transition-colors group {% if rule.is_archived %}is-archived-rule{% else %}is-active-rule{% endif %} {% if is_new %}new-row{% endif %}">
-    <!-- Active Toggle -->
-    <button hx-post="{% url 'recurring_toggle' rule.id %}"
-            hx-target="#rule-{{ rule.id }}"
-            hx-swap="outerHTML"
-            class="flex-shrink-0 w-3 h-3 rounded-full transition-all cursor-pointer
-                   {% if rule.is_active %}bg-green-400 animate-pulse-glow{% else %}bg-gray-600{% endif %}"
-            title="{% if rule.is_active %}Desativar{% else %}Ativar{% endif %}">
-    </button>
+<div id="rule-{{ rule.id }}" class="rec-card recurring-row rounded-xl transition-colors {% if rule.is_archived %}is-archived-rule{% else %}is-active-rule{% endif %} {% if is_new %}new-row{% endif %}">
 
-    <!-- Info -->
-    <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-white truncate {% if not rule.is_active %}opacity-50{% endif %}">
-                {{ rule.description }}
-            </span>
-            <span class="badge {% if rule.recurrence_type == 'MONTHLY' %}badge-income{% else %}badge-expense{% endif %}">
-                {% if rule.recurrence_type == 'MONTHLY' %}Mensal{% else %}{{ rule.total_installments }}x{% endif %}
-            </span>
-            {% if rule.goal %}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex-shrink-0 font-medium">
-                🎯 {{ rule.goal.name }}
-            </span>
-            {% endif %}
+    <!-- Main row (clicável no mobile para expandir ações) -->
+    <div class="flex items-start gap-3 p-3 group hover:bg-white/[0.02] rounded-xl cursor-pointer sm:cursor-default"
+         onclick="this.closest('.rec-card').classList.toggle('mobile-expanded')">
+
+        <!-- Active Toggle -->
+        <button hx-post="{% url 'recurring_toggle' rule.id %}"
+                hx-target="#rule-{{ rule.id }}"
+                hx-swap="outerHTML"
+                onclick="event.stopPropagation()"
+                class="flex-shrink-0 mt-1 w-3 h-3 rounded-full transition-all cursor-pointer
+                       {% if rule.is_active %}bg-green-400 animate-pulse-glow{% else %}bg-gray-600{% endif %}"
+                title="{% if rule.is_active %}Desativar{% else %}Ativar{% endif %}">
+        </button>
+
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+            <!-- Linha 1: descrição + badge mensal/parcelas -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-sm font-medium text-white {% if not rule.is_active %}opacity-50{% endif %}">
+                    {{ rule.description }}
+                </span>
+                <span class="badge {% if rule.recurrence_type == 'MONTHLY' %}badge-income{% else %}badge-expense{% endif %} flex-shrink-0">
+                    {% if rule.recurrence_type == 'MONTHLY' %}Mensal{% else %}{{ rule.total_installments }}x{% endif %}
+                </span>
+                {% if rule.goal %}
+                <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex-shrink-0 font-medium">
+                    🎯 {{ rule.goal.name }}
+                </span>
+                {% endif %}
+            </div>
+            <!-- Linha 2: data + cartão + tags -->
+            <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+                <span class="text-xs text-gray-500 flex-shrink-0">Início: {{ rule.start_date|date:"d/m/Y" }}</span>
+                {% if rule.credit_card %}
+                <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 flex-shrink-0">{{ rule.credit_card.name }}</span>
+                {% endif %}
+                {% for tag in rule.tags.all %}
+                <span class="tag-pill flex-shrink-0" style="--color: {{ tag.color }}; background: color-mix(in srgb, var(--color) 20%, transparent); color: var(--color);">{{ tag.name }}</span>
+                {% endfor %}
+            </div>
         </div>
-        <div class="flex items-center gap-2 mt-0.5">
-            <span class="text-xs text-gray-500">Início: {{ rule.start_date|date:"d/m/Y" }}</span>
-            {% if rule.credit_card %}
-            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400">{{ rule.credit_card.name }}</span>
-            {% endif %}
-            {% for tag in rule.tags.all %}
-            <span class="tag-pill" style="--color: {{ tag.color }}; background: color-mix(in srgb, var(--color) 20%, transparent); color: var(--color);">{{ tag.name }}</span>
-            {% endfor %}
+
+        <!-- Amount -->
+        <div class="flex-shrink-0 text-right">
+            <span class="text-sm font-semibold {% if rule.type == 'INCOME' %}text-income{% else %}text-expense{% endif %}">
+                {{ rule.amount|brl }}
+            </span>
+            <p class="text-[10px] text-gray-600">
+                {% if rule.type == 'INCOME' %}entrada{% else %}saída{% endif %}/mês
+            </p>
+        </div>
+
+        <!-- Ações desktop (hover) -->
+        <div class="hidden sm:flex gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            <button hx-get="{% url 'recurring_edit' rule.id %}"
+                    hx-target="#global-modal"
+                    hx-swap="innerHTML"
+                    class="p-1 rounded-lg hover:bg-white/5 text-gray-500 hover:text-accent-light transition-colors cursor-pointer"
+                    title="Editar regra">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <button hx-post="{% url 'recurring_toggle_archive' rule.id %}"
+                    hx-target="#rule-{{ rule.id }}"
+                    hx-swap="outerHTML"
+                    class="p-1 rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors cursor-pointer"
+                    title="{% if rule.is_archived %}Restaurar regra{% else %}Arquivar regra{% endif %}">
+                {% if rule.is_archived %}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                {% else %}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8"/></svg>
+                {% endif %}
+            </button>
+            <button hx-get="{% url 'recurring_delete_confirm' rule.id %}"
+                    hx-target="#global-modal"
+                    hx-swap="innerHTML"
+                    class="p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400 cursor-pointer"
+                    title="Excluir regra recorrente">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
         </div>
     </div>
 
-    <!-- Amount -->
-    <div class="flex-shrink-0 text-right">
-        <span class="text-sm font-semibold {% if rule.type == 'INCOME' %}text-income{% else %}text-expense{% endif %}">
-            {{ rule.amount|brl }}
-        </span>
-        <p class="text-[10px] text-gray-600">
-            {% if rule.type == 'INCOME' %}entrada{% else %}saída{% endif %}/mês
-        </p>
-    </div>
-    <!-- Actions (Edit, Archive & Delete) -->
-    <div class="flex gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <!-- Edit Button -->
+    <!-- Ações mobile (expandíveis ao tocar) -->
+    <div class="rec-actions sm:hidden flex gap-2 px-3 pb-3">
         <button hx-get="{% url 'recurring_edit' rule.id %}"
                 hx-target="#global-modal"
                 hx-swap="innerHTML"
-                class="p-1 rounded-lg hover:bg-white/5 text-gray-500 hover:text-accent-light transition-colors cursor-pointer"
-                title="Editar regra">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                class="flex-1 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:bg-white/10 transition-colors text-center">
+            Editar
         </button>
-        <!-- Archive / Restore Toggle -->
         <button hx-post="{% url 'recurring_toggle_archive' rule.id %}"
                 hx-target="#rule-{{ rule.id }}"
                 hx-swap="outerHTML"
-                class="p-1 rounded-lg hover:bg-white/5 text-gray-500 hover:text-white transition-colors cursor-pointer"
-                title="{% if rule.is_archived %}Restaurar regra{% else %}Arquivar regra{% endif %}">
-            {% if rule.is_archived %}
-                <!-- Restore Icon -->
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            {% else %}
-                <!-- Archive Icon -->
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8"/></svg>
-            {% endif %}
+                class="flex-1 py-1.5 rounded-lg bg-white/5 text-xs text-gray-300 hover:bg-white/10 transition-colors text-center">
+            {% if rule.is_archived %}Restaurar{% else %}Arquivar{% endif %}
         </button>
-        <!-- Delete Button -->
         <button hx-get="{% url 'recurring_delete_confirm' rule.id %}"
                 hx-target="#global-modal"
                 hx-swap="innerHTML"
-                class="p-1 rounded-lg hover:bg-red-500/10 text-gray-600 hover:text-red-400 cursor-pointer"
-                title="Excluir regra recorrente">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                class="flex-1 py-1.5 rounded-lg bg-red-500/10 text-xs text-red-400 hover:bg-red-500/20 transition-colors text-center">
+            Excluir
         </button>
     </div>
 </div>

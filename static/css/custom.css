@@ -568,11 +568,13 @@
 /* Mobile transaction/card expandable action rows */
 @media (max-width: 639px) {
     .txn-card .txn-actions,
-    .cc-card .cc-actions {
+    .cc-card .cc-actions,
+    .rec-card .rec-actions {
         display: none;
     }
     .txn-card.mobile-expanded .txn-actions,
-    .cc-card.mobile-expanded .cc-actions {
+    .cc-card.mobile-expanded .cc-actions,
+    .rec-card.mobile-expanded .rec-actions {
         display: flex;
     }
     .txn-card.mobile-expanded {
@@ -581,6 +583,10 @@
     }
     .cc-card.mobile-expanded {
         border-color: rgba(255, 255, 255, 0.1);
+    }
+    .rec-card.mobile-expanded {
+        background: rgba(255, 255, 255, 0.025);
+        border-radius: 0.75rem;
     }
 }
 
