@@ -383,6 +383,26 @@ def transaction_delete_confirm(request, pk):
     return render(request, 'partials/transaction_delete_modal.html', {'txn': txn})
 
 
+def transaction_edit_scope(request, pk):
+    """Modal de escolha de escopo para edição de parcela (só esta ou todas)."""
+    txn = get_object_or_404(Transaction, pk=pk, user=request.user)
+    return render(request, 'partials/transaction_installment_scope_modal.html', {'txn': txn})
+
+
+@require_POST
+def transaction_delete_installments(request, pk):
+    """Exclui todas as parcelas de um parcelamento a partir de qualquer parcela."""
+    txn = get_object_or_404(Transaction, pk=pk, user=request.user)
+    rule = txn.recurring_rule
+    if rule:
+        for t in list(rule.transactions.all()):
+            t.delete()
+        rule.delete()
+    response = HttpResponse('', status=200)
+    response['HX-Redirect'] = request.META.get('HTTP_REFERER', '/')
+    return response
+
+
 def transaction_edit(request, pk):
     """Edita uma transação via HTMX inline."""
     txn = get_object_or_404(Transaction, pk=pk, user=request.user)

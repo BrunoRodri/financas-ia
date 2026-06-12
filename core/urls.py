@@ -13,6 +13,8 @@ urlpatterns = [
     path('transactions/<int:pk>/edit/', views.transaction_edit, name='transaction_edit'),
     path('transactions/<int:pk>/delete/', views.transaction_delete, name='transaction_delete'),
     path('transactions/<int:pk>/delete/confirm/', views.transaction_delete_confirm, name='transaction_delete_confirm'),
+    path('transactions/<int:pk>/edit-scope/', views.transaction_edit_scope, name='transaction_edit_scope'),
+    path('transactions/<int:pk>/delete-installments/', views.transaction_delete_installments, name='transaction_delete_installments'),
 
     # Lançamentos (inclui regras recorrentes mensais)
     path('lancamentos/', views.recurring_list, name='recurring_list'),
