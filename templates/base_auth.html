@@ -7,7 +7,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -26,24 +26,24 @@
     </script>
 
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/custom.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}?v=5">
 </head>
 <body class="bg-dark-900 text-gray-100 font-sans antialiased min-h-screen flex items-center justify-center">
     <div class="w-full max-w-md px-4">
         <!-- Logo -->
         <div class="flex justify-center mb-8">
             <a href="/" class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center shadow-lg shadow-accent/20">
-                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+                    <svg class="w-5 h-5 text-dark-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                     </svg>
                 </div>
-                <span class="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Finança</span>
+                <span class="text-xl font-bold text-white">Finança</span>
             </a>
         </div>
 
         <!-- Card -->
-        <div class="bg-dark-800/80 backdrop-blur-xl border border-white/5 rounded-2xl p-8 shadow-2xl">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl p-8 shadow-2xl">
             {% block content %}{% endblock %}
         </div>
     </div>

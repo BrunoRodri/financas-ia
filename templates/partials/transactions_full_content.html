@@ -14,7 +14,7 @@
     </div>
 
     <!-- Filters Panel -->
-    <div class="card bg-dark-800/20 backdrop-blur-xl border border-white/5 p-4 sm:p-5">
+    <div class="card p-4 sm:p-5">
         <form hx-get="{% url 'transaction_list' %}"
               hx-target="#transactions-page-container"
               hx-swap="outerHTML"
@@ -109,7 +109,7 @@
                     <div id="filter_card_bill_container" class="{% if current_payment_method != 'card' or not current_card %}hidden{% endif %} flex items-center">
                         <label class="relative flex items-center gap-2 cursor-pointer select-none" style="margin-top: 1.5rem;">
                             <input type="checkbox" name="view_by_bill" id="filter_view_by_bill" value="true" class="sr-only peer" {% if view_by_bill %}checked{% endif %}>
-                            <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                            <div class="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-yellow-400"></div>
                             <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Ver Fatura</span>
                         </label>
                     </div>
@@ -145,7 +145,7 @@
     <!-- Stat Cards Row -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <!-- Receitas -->
-        <div class="stat-card bg-dark-800/40 backdrop-blur-xl border border-white/5" style="--stat-color: linear-gradient(90deg, #22c55e, #16a34a);">
+        <div class="stat-card">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Receitas Filtradas</span>
                 <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
@@ -156,7 +156,7 @@
         </div>
 
         <!-- Despesas -->
-        <div class="stat-card bg-dark-800/40 backdrop-blur-xl border border-white/5" style="--stat-color: linear-gradient(90deg, #ef4444, #dc2626);">
+        <div class="stat-card">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Despesas Filtradas</span>
                 <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
@@ -167,11 +167,11 @@
         </div>
 
         <!-- Saldo Líquido -->
-        <div class="stat-card bg-dark-800/40 backdrop-blur-xl border border-white/5" style="--stat-color: linear-gradient(90deg, #a855f7, #6366f1);">
+        <div class="stat-card">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saldo Líquido</span>
-                <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                <div class="w-8 h-8 rounded-lg bg-yellow-400/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
                 </div>
             </div>
             <p class="text-2xl font-bold {% if net_balance >= 0 %}text-income{% else %}text-expense{% endif %}">

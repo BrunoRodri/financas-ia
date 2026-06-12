@@ -36,14 +36,14 @@
     </div>
 
     <div class="flex items-center justify-between mb-1">
-        <span class="text-xs text-gray-400">{{ goal.current_amount|brl }} de {{ goal.target_amount|brl }}</span>
-        <span class="text-xs font-semibold" style="--text-color: {{ goal.color }}; color: var(--text-color);">{{ goal.progress_percent|percentage }}</span>
+        <span class="num text-xs text-gray-400">{{ goal.current_amount|brl }} de {{ goal.target_amount|brl }}</span>
+        <span class="num text-xs font-semibold" style="--text-color: {{ goal.color }}; color: var(--text-color);">{{ goal.progress_percent|percentage }}</span>
     </div>
 
     {% if goal.spent_amount > 0 %}
     <div class="flex items-center justify-between mb-3">
-        <span class="text-[10px] text-gray-500">💰 Utilizado: {{ goal.spent_amount|brl }}</span>
-        <span class="text-[10px] text-gray-500">Disponível: {{ goal.available_amount|brl }}</span>
+        <span class="num text-[10px] text-gray-500">💰 Utilizado: {{ goal.spent_amount|brl }}</span>
+        <span class="num text-[10px] text-gray-500">Disponível: {{ goal.available_amount|brl }}</span>
     </div>
     {% else %}
     <div class="mb-3"></div>

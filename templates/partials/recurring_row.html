@@ -26,7 +26,7 @@
                     {% if rule.recurrence_type == 'MONTHLY' %}Mensal{% else %}{{ rule.total_installments }}x{% endif %}
                 </span>
                 {% if rule.goal %}
-                <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex-shrink-0 font-medium">
+                <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0 font-medium">
                     🎯 {{ rule.goal.name }}
                 </span>
                 {% endif %}

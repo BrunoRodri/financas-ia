@@ -29,7 +29,7 @@
     <!-- Stats Row -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Saldo Atual -->
-        <div class="stat-card" style="--stat-color: linear-gradient(90deg, #6366f1, #8b5cf6);">
+        <div class="stat-card" >
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saldo Atual</span>
                 <div class="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
@@ -39,11 +39,11 @@
                     </svg>
                 </div>
             </div>
-            <p class="text-2xl font-bold text-white" id="current-balance">{{ projection.current_balance|brl }}</p>
+            <p class="num text-2xl font-bold text-white" id="current-balance">{{ projection.current_balance|brl }}</p>
         </div>
 
         <!-- Receitas Projetadas -->
-        <div class="stat-card" style="--stat-color: linear-gradient(90deg, #22c55e, #16a34a);">
+        <div class="stat-card" >
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Receitas (6m)</span>
                 <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
@@ -57,7 +57,7 @@
         </div>
 
         <!-- Despesas Projetadas -->
-        <div class="stat-card" style="--stat-color: linear-gradient(90deg, #ef4444, #dc2626);">
+        <div class="stat-card" >
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Despesas (6m)</span>
                 <div class="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
@@ -71,11 +71,11 @@
         </div>
 
         <!-- Saldo Projetado Final -->
-        <div class="stat-card" style="--stat-color: linear-gradient(90deg, #a855f7, #6366f1);">
+        <div class="stat-card">
             <div class="flex items-center justify-between mb-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Saldo Final</span>
-                <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 rounded-lg bg-yellow-400/10 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                     </svg>
@@ -138,15 +138,15 @@
             <!-- Legenda HTML com círculos perfeitos -->
             <div class="flex items-center justify-center gap-5 mb-3">
                 <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:#818cf8;"></span>
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:#fcd535;"></span>
                     <span class="text-xs text-gray-400">Saldo do Mês</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:#4ade80;"></span>
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:#0ecb81;"></span>
                     <span class="text-xs text-gray-400">Receitas</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:#f87171;"></span>
+                    <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:#f6465d;"></span>
                     <span class="text-xs text-gray-400">Despesas</span>
                 </div>
             </div>
@@ -215,7 +215,7 @@
                 <a href="{% url 'transaction_list' %}"
                     class="text-xs text-accent-light hover:text-accent transition-colors">Ver tudo →</a>
             </div>
-            <div id="transaction-list" class="space-y-2 max-h-96 overflow-y-auto pr-1">
+            <div id="transaction-list" class="space-y-2">
                 {% for txn in upcoming %}
                 {% include 'partials/transaction_row.html' %}
                 {% empty %}
@@ -244,13 +244,13 @@
             </h2>
             <form method="get" class="flex items-center gap-2">
                 <select name="tag_month" onchange="this.form.submit()"
-                        class="bg-white/5 border border-white/10 text-sm text-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
+                        class="bg-white/5 border border-white/10 text-sm text-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-yellow-400/50 cursor-pointer">
                     {% for m in months_available %}
                     <option value="{{ m.value }}" {% if m.value == tag_month %}selected{% endif %}>{{ m.label }}</option>
                     {% endfor %}
                 </select>
                 <select name="tag_year" onchange="this.form.submit()"
-                        class="bg-white/5 border border-white/10 text-sm text-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500/50 cursor-pointer">
+                        class="bg-white/5 border border-white/10 text-sm text-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:border-yellow-400/50 cursor-pointer">
                     {% for y in years_available %}
                     <option value="{{ y }}" {% if y == tag_year %}selected{% endif %}>{{ y }}</option>
                     {% endfor %}
@@ -266,7 +266,7 @@
                     <canvas id="tagChart"></canvas>
                     <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                         <span class="text-xs text-gray-500">Total</span>
-                        <span class="text-lg font-bold text-white">{{ tag_grand_total|brl }}</span>
+                        <span class="num text-lg font-bold text-white">{{ tag_grand_total|brl }}</span>
                     </div>
                 </div>
             </div>
@@ -280,8 +280,8 @@
                             <span class="text-sm text-gray-300 truncate">{{ item.name }}</span>
                         </div>
                         <div class="flex items-center gap-3 flex-shrink-0 ml-2">
-                            <span class="text-sm font-semibold text-white">{{ item.total|brl }}</span>
-                            <span class="text-xs text-gray-500 w-10 text-right">{{ item.pct }}%</span>
+                            <span class="num text-sm font-semibold text-white">{{ item.total|brl }}</span>
+                            <span class="num text-xs text-gray-500 w-10 text-right">{{ item.pct }}%</span>
                         </div>
                     </div>
                     <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -354,40 +354,40 @@
                         {
                             label: 'Saldo do Mês',
                             data: balances,
-                            borderColor: '#818cf8',
-                            backgroundColor: 'rgba(129, 140, 248, 0.1)',
+                            borderColor: '#fcd535',
+                            backgroundColor: 'rgba(252, 213, 53, 0.08)',
                             fill: true,
                             tension: 0.4,
                             borderWidth: 2.5,
                             pointRadius: 4,
-                            pointBackgroundColor: '#818cf8',
-                            pointBorderColor: '#0f1629',
+                            pointBackgroundColor: '#fcd535',
+                            pointBorderColor: '#1e2329',
                             pointBorderWidth: 2,
                             pointHoverRadius: 6,
                         },
                         {
                             label: 'Receitas',
                             data: income,
-                            borderColor: '#4ade80',
-                            backgroundColor: 'rgba(74, 222, 128, 0.05)',
+                            borderColor: '#0ecb81',
+                            backgroundColor: 'rgba(14, 203, 129, 0.05)',
                             fill: false,
                             tension: 0.4,
                             borderWidth: 1.5,
                             borderDash: [4, 4],
                             pointRadius: 3,
-                            pointBackgroundColor: '#4ade80',
+                            pointBackgroundColor: '#0ecb81',
                         },
                         {
                             label: 'Despesas',
                             data: expense,
-                            borderColor: '#f87171',
-                            backgroundColor: 'rgba(248, 113, 113, 0.05)',
+                            borderColor: '#f6465d',
+                            backgroundColor: 'rgba(246, 70, 93, 0.05)',
                             fill: false,
                             tension: 0.4,
                             borderWidth: 1.5,
                             borderDash: [4, 4],
                             pointRadius: 3,
-                            pointBackgroundColor: '#f87171',
+                            pointBackgroundColor: '#f6465d',
                         }
                     ]
                 },
@@ -401,7 +401,7 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor: 'rgba(15, 22, 41, 0.95)',
+                            backgroundColor: 'rgba(30, 35, 41, 0.98)',
                             titleColor: '#fff',
                             bodyColor: '#d1d5db',
                             borderColor: 'rgba(255,255,255,0.1)',
@@ -420,14 +420,14 @@
                     },
                     scales: {
                         x: {
-                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            grid: { color: 'rgba(128,128,128,0.12)' },
                             ticks: {
                                 color: '#6b7280',
                                 font: { family: 'Inter', size: 11 },
                             }
                         },
                         y: {
-                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            grid: { color: 'rgba(128,128,128,0.12)' },
                             ticks: {
                                 color: '#6b7280',
                                 font: { family: 'Inter', size: 11 },
@@ -478,7 +478,7 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(15, 22, 41, 0.95)',
+                        backgroundColor: 'rgba(30, 35, 41, 0.98)',
                         titleColor: '#fff',
                         bodyColor: '#d1d5db',
                         borderColor: 'rgba(255,255,255,0.1)',
