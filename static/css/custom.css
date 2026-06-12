@@ -1,35 +1,79 @@
 /* ═══════════════════════════════════════════════════════════════
    Finança — Custom Styles
-   Design: Dark glassmorphism, premium gradients, micro-animations
+   Design: Binance-inspired flat surfaces, yellow accent, dual-theme
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Glass Effects ──────────────────────────────────────────── */
+/* ─── Theme Tokens ───────────────────────────────────────────── */
+:root,
+html.dark {
+    /* RGB triplets consumidos pelo Tailwind (dark-900..500) */
+    --c-dark-900: 11 14 17;
+    --c-dark-800: 30 35 41;
+    --c-dark-700: 43 49 57;
+    --c-dark-600: 43 49 57;
+    --c-dark-500: 58 58 58;
+    /* Tokens semânticos dos componentes */
+    --surface: #1e2329;
+    --surface-2: #0b0e11;
+    --surface-hover: #2b3139;
+    --border: #2b3139;
+    --border-hover: #3a3a3a;
+    --text: #ffffff;
+    --text-muted: rgba(156, 163, 175, 1);
+    --hover-overlay: rgba(255, 255, 255, 0.05);
+}
+
+html.light {
+    --c-dark-900: 245 246 248;
+    --c-dark-800: 255 255 255;
+    --c-dark-700: 234 236 239;
+    --c-dark-600: 234 236 239;
+    --c-dark-500: 205 209 214;
+    --surface: #ffffff;
+    --surface-2: #f5f5f5;
+    --surface-hover: #f0f1f3;
+    --border: #eaecef;
+    --border-hover: #cdd1d6;
+    --text: #181a20;
+    --text-muted: #707a8a;
+    --hover-overlay: rgba(0, 0, 0, 0.04);
+}
+
+/* ─── Tipografia de números (BinancePlex → IBM Plex Sans) ────── */
+/* Valores monetários, percentuais e estatísticas usam a fonte
+   tabular distinta do texto (Inter). As classes semânticas de
+   valor já cobrem a maioria dos números automaticamente. */
+.num,
+.text-income,
+.text-expense {
+    font-family: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'tnum' 1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ─── Glass Effects (now flat) ───────────────────────────────── */
 .glass-card {
-    background: rgba(15, 22, 41, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--surface);
+    border: 1px solid var(--border);
 }
 
 .glass-card-solid {
-    background: rgba(22, 29, 53, 0.9);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--surface);
+    border: 1px solid var(--border);
 }
 
 /* ─── Cards ──────────────────────────────────────────────────── */
 .card {
-    background: rgba(22, 29, 53, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
     padding: 1.5rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .card:hover {
-    border-color: rgba(99, 102, 241, 0.2);
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+    border-color: var(--border-hover);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     transform: translateY(-1px);
 }
 
@@ -37,39 +81,22 @@
     position: relative;
 }
 
-.card-glow::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.5), transparent);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.card-glow:hover::before {
-    opacity: 1;
-}
-
-
 /* ─── Form Elements ──────────────────────────────────────────── */
 .form-input {
     width: 100%;
     padding: 0.625rem 0.875rem;
-    background: rgba(10, 14, 26, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.625rem;
-    color: white;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text);
     font-size: 0.875rem;
     transition: all 0.2s ease;
     outline: none;
 }
 
 .form-input:focus {
-    border-color: rgba(99, 102, 241, 0.5);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: rgba(252, 213, 53, 0.5);
+    box-shadow: 0 0 0 3px rgba(252, 213, 53, 0.1);
 }
 
 .form-input::placeholder {
@@ -79,10 +106,10 @@
 .form-select {
     width: 100%;
     padding: 0.625rem 0.875rem;
-    background: rgba(10, 14, 26, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.625rem;
-    color: white;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text);
     font-size: 0.875rem;
     transition: all 0.2s ease;
     outline: none;
@@ -96,21 +123,21 @@
 }
 
 .form-select:focus {
-    border-color: rgba(99, 102, 241, 0.5);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    border-color: rgba(252, 213, 53, 0.5);
+    box-shadow: 0 0 0 3px rgba(252, 213, 53, 0.1);
 }
 
 .form-select option {
-    background: #161d35;
-    color: white;
+    background: var(--surface);
+    color: var(--text);
 }
 
 .form-input-color {
     width: 3rem;
     height: 2.5rem;
     padding: 0.25rem;
-    background: rgba(10, 14, 26, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     cursor: pointer;
 }
@@ -126,7 +153,7 @@
 }
 
 .form-error {
-    color: #ef4444;
+    color: #f6465d;
     font-size: 0.75rem;
     margin-top: 0.25rem;
 }
@@ -140,21 +167,22 @@
     padding: 0.625rem 1.25rem;
     font-size: 0.875rem;
     font-weight: 600;
-    border-radius: 0.625rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
     cursor: pointer;
     outline: none;
     border: none;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
-    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    background: #fcd535;
+    color: #181a20;
+    box-shadow: 0 4px 14px rgba(252, 213, 53, 0.25);
 }
 
 .btn-primary:hover {
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    background: #f0b90b;
+    box-shadow: 0 6px 20px rgba(252, 213, 53, 0.4);
     transform: translateY(-1px);
 }
 
@@ -163,37 +191,39 @@
 }
 
 .btn-success {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: white;
-    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+    background: #0ecb81;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(14, 203, 129, 0.25);
 }
 
 .btn-success:hover {
-    box-shadow: 0 6px 20px rgba(34, 197, 94, 0.5);
+    background: #0bb974;
+    box-shadow: 0 6px 20px rgba(14, 203, 129, 0.4);
     transform: translateY(-1px);
 }
 
 .btn-danger {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+    background: #f6465d;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(246, 70, 93, 0.25);
 }
 
 .btn-danger:hover {
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+    background: #e03e54;
+    box-shadow: 0 6px 20px rgba(246, 70, 93, 0.4);
     transform: translateY(-1px);
 }
 
 .btn-ghost {
     background: transparent;
     color: rgba(156, 163, 175, 1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border);
 }
 
 .btn-ghost:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text);
+    background: var(--hover-overlay);
+    border-color: var(--border-hover);
 }
 
 .btn-sm {
@@ -203,7 +233,7 @@
 
 .btn-icon {
     padding: 0.5rem;
-    border-radius: 0.5rem;
+    border-radius: 0.375rem;
 }
 
 /* ─── Status Badges ──────────────────────────────────────────── */
@@ -220,9 +250,9 @@
 }
 
 .badge-paid {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.2);
+    background: rgba(14, 203, 129, 0.15);
+    color: #0ecb81;
+    border: 1px solid rgba(14, 203, 129, 0.2);
 }
 
 .badge-pending {
@@ -232,13 +262,13 @@
 }
 
 .badge-income {
-    background: rgba(34, 197, 94, 0.15);
-    color: #4ade80;
+    background: rgba(14, 203, 129, 0.15);
+    color: #0ecb81;
 }
 
 .badge-expense {
-    background: rgba(239, 68, 68, 0.15);
-    color: #f87171;
+    background: rgba(246, 70, 93, 0.15);
+    color: #f6465d;
 }
 
 /* ─── Tag Pills ──────────────────────────────────────────────── */
@@ -256,7 +286,7 @@
 .progress-bar {
     width: 100%;
     height: 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hover-overlay);
     border-radius: 9999px;
     overflow: hidden;
 }
@@ -292,10 +322,10 @@
 
 @keyframes pulse-glow {
     0%, 100% {
-        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+        box-shadow: 0 0 0 0 rgba(252, 213, 53, 0.4);
     }
     50% {
-        box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+        box-shadow: 0 0 0 8px rgba(252, 213, 53, 0);
     }
 }
 
@@ -314,7 +344,7 @@
 /* New row highlight (for HTMX inserts) */
 .new-row {
     animation: fadeInUp 0.5s ease-out;
-    background: rgba(99, 102, 241, 0.05) !important;
+    background: rgba(252, 213, 53, 0.04) !important;
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────── */
@@ -323,16 +353,16 @@
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(10, 14, 26, 0.5);
+    background: rgba(11, 14, 17, 0.5);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(99, 102, 241, 0.3);
+    background: rgba(252, 213, 53, 0.3);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(99, 102, 241, 0.5);
+    background: rgba(252, 213, 53, 0.5);
 }
 
 /* ─── Checkbox Overrides (for tags) ──────────────────────────── */
@@ -348,21 +378,21 @@
     border-radius: 9999px;
     font-size: 0.75rem;
     font-weight: 500;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--hover-overlay);
+    border: 1px solid var(--border);
     cursor: pointer;
     transition: all 0.2s ease;
     user-select: none;
 }
 
 .tag-checkbox input[type="checkbox"]:checked + label {
-    background: rgba(99, 102, 241, 0.2);
-    border-color: rgba(99, 102, 241, 0.5);
-    color: #818cf8;
+    background: rgba(252, 213, 53, 0.15);
+    border-color: rgba(252, 213, 53, 0.5);
+    color: #fcd535;
 }
 
 .tag-checkbox label:hover {
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: rgba(252, 213, 53, 0.3);
 }
 
 /* ─── Table ──────────────────────────────────────────────────── */
@@ -380,54 +410,43 @@
     letter-spacing: 0.08em;
     color: rgba(156, 163, 175, 0.7);
     text-align: left;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-bottom: 1px solid var(--border);
 }
 
 .data-table td {
     padding: 0.875rem 1rem;
     font-size: 0.875rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(43, 49, 57, 0.6);
     transition: background 0.15s ease;
 }
 
 .data-table tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--hover-overlay);
 }
 
 /* ─── Utilities ──────────────────────────────────────────────── */
 .text-income {
-    color: #4ade80;
+    color: #0ecb81;
 }
 
 .text-expense {
-    color: #f87171;
+    color: #f6465d;
 }
 
 .divider {
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
     margin: 1.5rem 0;
 }
 
-/* Stat card with gradient border */
+/* Stat card — flat, sem gradiente inferior */
 .stat-card {
     position: relative;
     padding: 1.5rem;
-    border-radius: 1rem;
-    background: rgba(22, 29, 53, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
     overflow: hidden;
-}
-
-.stat-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--stat-color, linear-gradient(90deg, #6366f1, #8b5cf6));
-    border-radius: 0 0 1rem 1rem;
 }
 
 /* Empty state */
@@ -463,7 +482,7 @@
 }
 
 .date-picker-toggle:hover {
-    color: rgba(129, 140, 248, 1);
+    color: #fcd535;
 }
 
 .date-picker-panel {
@@ -473,12 +492,10 @@
     left: 0;
     width: 100%;
     min-width: 17rem;
-    background: rgba(15, 22, 41, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 0.75rem;
-    box-shadow: 0 14px 35px rgba(4, 8, 19, 0.55);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.5);
     padding: 0.75rem;
 }
 
@@ -492,18 +509,18 @@
 .date-picker-header button {
     width: 1.85rem;
     height: 1.85rem;
-    border-radius: 0.5rem;
+    border-radius: 0.375rem;
     color: rgba(156, 163, 175, 1);
     transition: all 0.2s ease;
 }
 
 .date-picker-header button:hover {
-    color: rgba(129, 140, 248, 1);
-    background: rgba(255, 255, 255, 0.08);
+    color: #fcd535;
+    background: var(--hover-overlay);
 }
 
 .date-picker-header span {
-    color: white;
+    color: var(--text);
     font-size: 0.8rem;
     font-weight: 600;
 }
@@ -527,25 +544,26 @@
 
 .date-picker-day {
     height: 2rem;
-    border-radius: 0.5rem;
-    color: rgba(229, 231, 235, 1);
+    border-radius: 0.375rem;
+    color: var(--text);
     font-size: 0.8rem;
     transition: all 0.15s ease;
 }
 
 .date-picker-day:hover {
-    background: rgba(99, 102, 241, 0.18);
-    color: white;
+    background: rgba(252, 213, 53, 0.15);
+    color: #fcd535;
 }
 
 .date-picker-day.is-today {
-    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.8);
+    box-shadow: inset 0 0 0 1px rgba(252, 213, 53, 0.7);
 }
 
 .date-picker-day.is-selected {
-    background: linear-gradient(135deg, #6366f1, #818cf8);
-    color: white;
-    box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35);
+    background: #fcd535;
+    color: #181a20;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(252, 213, 53, 0.3);
 }
 
 .date-picker-day.is-outside {
@@ -578,14 +596,14 @@
         display: flex;
     }
     .txn-card.mobile-expanded {
-        background: rgba(255, 255, 255, 0.025);
+        background: var(--surface-hover);
         border-radius: 0.75rem;
     }
     .cc-card.mobile-expanded {
-        border-color: rgba(255, 255, 255, 0.1);
+        border-color: var(--border-hover);
     }
     .rec-card.mobile-expanded {
-        background: rgba(255, 255, 255, 0.025);
+        background: var(--surface-hover);
         border-radius: 0.75rem;
     }
 }
@@ -611,3 +629,52 @@
 #recurring-list.tab-active-selected:has(.recurring-row.is-active-rule) .empty-state-active { display: none !important; }
 #recurring-list.tab-archived-selected:has(.recurring-row.is-archived-rule) .empty-state-archived { display: none !important; }
 
+/* ═══════════════════════════════════════════════════════════════
+   Tema Claro — overrides dos utilitários Tailwind inline
+   (escopo html.light garante maior especificidade que as classes)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Texto */
+html.light .text-white { color: #181a20; }
+html.light .text-gray-100,
+html.light .text-gray-200,
+html.light .text-gray-300 { color: #1e2329; }
+html.light .text-gray-400 { color: #707a8a; }
+html.light .text-gray-500 { color: #929aa5; }
+html.light .text-gray-600 { color: #aeb4bc; }
+
+/* Mantém texto branco em botões de fundo sólido colorido */
+html.light .bg-red-500.text-white,
+html.light .bg-red-600.text-white { color: #ffffff; }
+
+/* Sobreposições brancas → sutis escuras */
+html.light .bg-white\/5,
+html.light .bg-white\/8,
+html.light .bg-white\/10,
+html.light .bg-white\/12,
+html.light .bg-white\/\[0\.02\],
+html.light .bg-white\/\[0\.025\] { background-color: rgba(0, 0, 0, 0.04); }
+
+html.light .hover\:bg-white\/5:hover,
+html.light .hover\:bg-white\/10:hover,
+html.light .hover\:bg-white\/12:hover,
+html.light .hover\:bg-white\/\[0\.02\]:hover { background-color: rgba(0, 0, 0, 0.06); }
+
+/* Bordas brancas → hairlines claras */
+html.light .border-white\/5,
+html.light .border-white\/10,
+html.light .border-white\/15,
+html.light .border-white\/20,
+html.light .border-white\/\[0\.08\] { border-color: #eaecef; }
+
+html.light .hover\:border-white\/10:hover,
+html.light .hover\:border-white\/15:hover,
+html.light .hover\:border-white\/20:hover { border-color: #cdd1d6; }
+
+/* Tooltip do gráfico (Chart.js usa cor inline, sem ajuste necessário) */
+
+/* ─── Botão de alternância de tema ───────────────────────────── */
+.theme-to-dark { display: none; }
+.theme-to-light { display: inline-flex; }
+html.light .theme-to-light { display: none; }
+html.light .theme-to-dark { display: inline-flex; }

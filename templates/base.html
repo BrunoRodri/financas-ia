@@ -6,10 +6,27 @@
     <meta name="description" content="App de previsibilidade financeira - Projeção de fluxo de caixa">
     <title>{% block title %}Finança{% endblock %} | Previsão Financeira</title>
 
+    <!-- Tema (aplica antes da pintura para evitar flash) -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                var root = document.documentElement;
+                if (t === 'light') {
+                    root.classList.add('light');
+                    root.classList.remove('dark');
+                } else {
+                    root.classList.add('dark');
+                    root.classList.remove('light');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,19 +40,19 @@
                     },
                     colors: {
                         dark: {
-                            900: '#0a0e1a',
-                            800: '#0f1629',
-                            700: '#161d35',
-                            600: '#1e2742',
-                            500: '#2a3456',
+                            900: 'rgb(var(--c-dark-900) / <alpha-value>)',
+                            800: 'rgb(var(--c-dark-800) / <alpha-value>)',
+                            700: 'rgb(var(--c-dark-700) / <alpha-value>)',
+                            600: 'rgb(var(--c-dark-600) / <alpha-value>)',
+                            500: 'rgb(var(--c-dark-500) / <alpha-value>)',
                         },
                         accent: {
-                            DEFAULT: '#6366f1',
-                            light: '#818cf8',
-                            dark: '#4f46e5',
+                            DEFAULT: '#fcd535',
+                            light: '#f0b90b',
+                            dark: '#3a3a1f',
                         },
-                        income: '#22c55e',
-                        expense: '#ef4444',
+                        income: '#0ecb81',
+                        expense: '#f6465d',
                     }
                 }
             }
@@ -49,7 +66,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 
     {% load static %}
-    <link rel="stylesheet" href="{% static 'css/custom.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}?v=5">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -57,15 +74,15 @@
       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
     <!-- Mobile Top Header -->
-    <header class="fixed top-0 left-0 right-0 h-16 md:hidden flex items-center justify-between px-4 z-40 bg-dark-900/90 backdrop-blur-xl border-b border-white/5">
+    <header class="fixed top-0 left-0 right-0 h-16 md:hidden flex items-center justify-between px-4 z-40 bg-dark-900 border-b border-dark-700">
         <!-- Logo -->
         <a href="{% url 'dashboard' %}" class="flex items-center gap-3 group">
-            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center shadow-lg shadow-accent/20">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+                <svg class="w-4 h-4 text-dark-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                 </svg>
             </div>
-            <span class="text-md font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Finança</span>
+            <span class="text-md font-bold text-white">Finança</span>
         </a>
 
         <!-- Hamburguer Button -->
@@ -77,27 +94,27 @@
     </header>
 
     <!-- Botão para abrir sidebar no Desktop quando recolhida -->
-    <button id="sidebar-open-btn" class="hidden fixed top-4 left-4 z-30 items-center justify-center p-2.5 rounded-xl bg-dark-800/90 backdrop-blur-xl border border-white/5 text-gray-400 hover:text-white shadow-lg transition-all duration-300 hover:scale-105" title="Mostrar menu">
+    <button id="sidebar-open-btn" class="hidden fixed top-4 left-4 z-30 items-center justify-center p-2.5 rounded-xl bg-dark-800 border border-dark-700 text-gray-400 hover:text-white shadow-lg transition-all duration-300 hover:scale-105" title="Mostrar menu">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/>
         </svg>
     </button>
 
     <!-- Sidebar overlay for Mobile -->
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity duration-300"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-40 hidden transition-opacity duration-300"></div>
 
     <!-- Responsive Sidebar -->
-    <aside id="sidebar" class="fixed top-0 right-0 md:right-auto md:left-0 bottom-0 z-50 w-64 bg-dark-800/80 backdrop-blur-xl border-l md:border-l-0 md:border-r border-white/5 flex flex-col justify-between transform translate-x-full transition-all duration-300 ease-in-out">
+    <aside id="sidebar" class="fixed top-0 right-0 md:right-auto md:left-0 bottom-0 z-50 w-64 bg-dark-800 border-l md:border-l-0 md:border-r border-dark-700 flex flex-col justify-between transform translate-x-full transition-all duration-300 ease-in-out">
         <div class="flex flex-col">
             <!-- Header/Logo area -->
-            <div class="h-16 flex items-center justify-between px-6 border-b border-white/5">
+            <div class="h-16 flex items-center justify-between px-6 border-b border-dark-700">
                 <a href="{% url 'dashboard' %}" class="flex items-center gap-3 group">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-purple-500 flex items-center justify-center shadow-lg shadow-accent/20 group-hover:shadow-accent/40 transition-shadow">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div class="w-9 h-9 rounded-xl bg-accent flex items-center justify-center">
+                        <svg class="w-5 h-5 text-dark-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
                     </div>
-                    <span class="text-lg font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">Finança</span>
+                    <span class="text-lg font-bold text-white">Finança</span>
                 </a>
 
                 <!-- Botão de fechar (funciona tanto no mobile quanto no desktop) -->
@@ -111,40 +128,54 @@
 
             <!-- Navigation Links (Tailwind nativo para evitar cache e garantir alinhamento perfeito) -->
             <nav class="flex-1 px-4 py-6 space-y-2">
-                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'dashboard' %}text-white bg-indigo-500/15 border-l-4 border-indigo-500 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                <a href="{% url 'dashboard' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'dashboard' %}text-white bg-yellow-400/10 border-l-4 border-yellow-400 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                     Dashboard
                 </a>
-                <a href="{% url 'transaction_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'transaction_list' %}text-white bg-indigo-500/15 border-l-4 border-indigo-500 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                <a href="{% url 'transaction_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'transaction_list' %}text-white bg-yellow-400/10 border-l-4 border-yellow-400 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                     Transações
                 </a>
-                <a href="{% url 'recurring_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'recurring_list' %}text-white bg-indigo-500/15 border-l-4 border-indigo-500 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                <a href="{% url 'recurring_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'recurring_list' %}text-white bg-yellow-400/10 border-l-4 border-yellow-400 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     Lançamentos
                 </a>
-                <a href="{% url 'card_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'card_list' %}text-white bg-indigo-500/15 border-l-4 border-indigo-500 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                <a href="{% url 'card_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'card_list' %}text-white bg-yellow-400/10 border-l-4 border-yellow-400 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                     Cartões
                 </a>
-                <a href="{% url 'goal_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'goal_list' %}text-white bg-indigo-500/15 border-l-4 border-indigo-500 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                <a href="{% url 'goal_list' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'goal_list' %}text-white bg-yellow-400/10 border-l-4 border-yellow-400 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
                     Metas
                 </a>
-                <a href="{% url 'settings' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'settings' %}text-white bg-indigo-500/15 border-l-4 border-indigo-500 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                <a href="{% url 'settings' %}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 {% if request.resolver_match.url_name == 'settings' %}text-white bg-yellow-400/10 border-l-4 border-yellow-400 pl-3{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     Config
                 </a>
             </nav>
         </div>
 
-        <div class="px-5 py-4 border-t border-white/5 space-y-2">
+        <div class="px-5 py-4 border-t border-dark-700 space-y-2">
             <div class="flex items-center gap-2">
-                <div class="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center text-accent text-xs font-bold shrink-0">
+                <div class="w-7 h-7 rounded-full bg-yellow-400/20 flex items-center justify-center text-yellow-400 text-xs font-bold shrink-0">
                     {{ request.user.username|first|upper }}
                 </div>
                 <span class="text-sm text-gray-300 truncate">{{ request.user.username }}</span>
             </div>
+
+            <!-- Alternar tema claro/escuro -->
+            <button type="button" id="theme-toggle" onclick="toggleTheme()"
+                    class="flex items-center gap-2 w-full py-1.5 px-2 -mx-2 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-colors">
+                <span class="theme-to-light flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                    Modo claro
+                </span>
+                <span class="theme-to-dark items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    Modo escuro
+                </span>
+            </button>
+
             <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
                 <button type="submit" class="flex items-center gap-2 text-xs text-gray-500 hover:text-red-400 transition-colors w-full">
@@ -203,6 +234,13 @@
             if (modal) {
                 modal.innerHTML = '';
             }
+        };
+
+        window.toggleTheme = function() {
+            const root = document.documentElement;
+            const isLight = root.classList.toggle('light');
+            root.classList.toggle('dark', !isLight);
+            try { localStorage.setItem('theme', isLight ? 'light' : 'dark'); } catch (e) {}
         };
 
         function setupDatePickers() {

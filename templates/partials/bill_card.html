@@ -1,6 +1,6 @@
 {% load currency_filters %}
 <div id="bill-{{ card.id }}-{{ bill.ref_year }}-{{ bill.ref_month }}"
-     class="card flex flex-col gap-4 {% if bill.is_current %}ring-1 ring-indigo-500/50{% endif %}">
+     class="card flex flex-col gap-4 {% if bill.is_current %}ring-1 ring-yellow-400/40{% endif %}">
 
     <!-- Cabeçalho da fatura -->
     <div class="flex items-start justify-between">
@@ -8,7 +8,7 @@
             <div class="flex items-center gap-2">
                 <h3 class="text-base font-semibold text-white">{{ bill.month_label }}</h3>
                 {% if bill.is_current %}
-                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-400">Atual</span>
+                <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400/15 text-yellow-400">Atual</span>
                 {% elif bill.is_past %}
                 <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-white/5 text-gray-500 border border-white/[0.08]">Fechada</span>
                 {% else %}
@@ -69,7 +69,7 @@
         <button hx-post="{% url 'card_bill_pay' card.id bill.ref_year bill.ref_month %}"
                 hx-target="#bill-{{ card.id }}-{{ bill.ref_year }}-{{ bill.ref_month }}"
                 hx-swap="outerHTML"
-                class="w-full py-2 text-xs font-medium text-white/80 bg-indigo-500/15 hover:bg-indigo-500/25 rounded-lg transition-colors border border-indigo-500/20 cursor-pointer">
+                class="w-full py-2 text-xs font-medium text-dark-900 bg-yellow-400/90 hover:bg-yellow-400 rounded-lg transition-colors cursor-pointer font-semibold">
             Pagar fatura
         </button>
         {% else %}
