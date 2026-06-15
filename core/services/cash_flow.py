@@ -5,7 +5,9 @@ Calcula o saldo projetado dia a dia e mês a mês para os próximos N meses,
 combinando transações existentes com transações geradas por regras recorrentes.
 """
 
+import calendar as _calendar
 from collections import defaultdict
+from datetime import date as _date
 from datetime import timedelta
 from decimal import Decimal
 
@@ -285,16 +287,42 @@ def get_month_data(user, month, year, projection=None):
         return round(float((current - prev) / prev * 100), 1)
 
     month_key = f"{year}-{month:02d}"
-    daily_balances = [
-        {'date': d['date'], 'balance': d['balance']}
-        for d in projection['daily']
-        if d['date'].month == month and d['date'].year == year
-    ]
+    prev_month_key = f"{prev_y}-{prev_m:02d}"
 
-    end_balance = Decimal('0')
-    for m in projection['monthly_summary']:
-        if m['month'] == month_key:
-            end_balance = m['end_balance']
+    # Saldo inicial do mês = end_balance do mês anterior no monthly_summary.
+    # Percorre o summary em ordem para pegar o mês imediatamente anterior caso
+    # o mês exato não esteja na janela calculada.
+    month_start_balance = projection['start_balance']
+    last_before = None
+    for m_s in projection['monthly_summary']:
+        if m_s['month'] == prev_month_key:
+            month_start_balance = m_s['end_balance']
+            last_before = None
+            break
+        if m_s['month'] < month_key:
+            last_before = m_s['end_balance']
+    if last_before is not None:
+        month_start_balance = last_before
+
+    # Reconstrói o saldo dia a dia para o mês inteiro (passado + futuro).
+    txns_by_date = defaultdict(list)
+    for txn in transactions:
+        txns_by_date[txn.due_date].append(txn)
+
+    _, days_in_month = _calendar.monthrange(year, month)
+    running = month_start_balance
+    daily_balances = []
+    for day in range(1, days_in_month + 1):
+        d = _date(year, month, day)
+        day_net = sum(t.signed_amount for t in txns_by_date.get(d, []))
+        running += day_net
+        daily_balances.append({'date': d, 'balance': running})
+
+    end_balance = daily_balances[-1]['balance'] if daily_balances else month_start_balance
+    # Confirma com o monthly_summary se disponível (fonte mais precisa)
+    for m_s in projection['monthly_summary']:
+        if m_s['month'] == month_key:
+            end_balance = m_s['end_balance']
             break
 
     return {
