@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Finança{% endblock %} | Previsão Financeira</title>
 
+    <!-- Tema (aplica antes da pintura para evitar flash) -->
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('theme');
+                var root = document.documentElement;
+                if (t === 'light') {
+                    root.classList.add('light');
+                    root.classList.remove('dark');
+                } else {
+                    root.classList.add('dark');
+                    root.classList.remove('light');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,8 +34,20 @@
                 extend: {
                     fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
                     colors: {
-                        dark: { 900: '#0a0e1a', 800: '#0f1629', 700: '#161d35' },
-                        accent: { DEFAULT: '#6366f1', light: '#818cf8' },
+                        dark: {
+                            900: 'rgb(var(--c-dark-900) / <alpha-value>)',
+                            800: 'rgb(var(--c-dark-800) / <alpha-value>)',
+                            700: 'rgb(var(--c-dark-700) / <alpha-value>)',
+                            600: 'rgb(var(--c-dark-600) / <alpha-value>)',
+                            500: 'rgb(var(--c-dark-500) / <alpha-value>)',
+                        },
+                        accent: {
+                            DEFAULT: '#fcd535',
+                            light: '#f0b90b',
+                            dark: '#3a3a1f',
+                        },
+                        income: '#0ecb81',
+                        expense: '#f6465d',
                     }
                 }
             }
