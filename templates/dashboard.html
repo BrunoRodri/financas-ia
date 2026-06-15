@@ -126,43 +126,67 @@
     </div>
     {% endif %}
 
-    <!-- Gráfico + Lançamento Rápido -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Gráfico de Saldo Diário -->
-        <div class="lg:col-span-2 card">
-            <div class="flex items-center justify-between mb-3">
+    <!-- Gráfico de Saldo Diário (largura total) -->
+    <div class="card">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
                 <h2 class="text-lg font-semibold text-white">Saldo Diário</h2>
-                <span class="text-xs text-gray-500">{{ selected_label }}</span>
-            </div>
-            {% if month_data.daily_balances %}
-            <div class="relative" style="height: 300px;">
-                <canvas id="cashFlowChart"></canvas>
-            </div>
-            {% else %}
-            <div class="flex flex-col items-center justify-center py-14 text-center">
-                <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-3">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                </div>
-                <p class="text-sm text-gray-500">Projeção indisponível para este mês</p>
-            </div>
-            {% endif %}
-        </div>
 
-        <!-- Lançamento Rápido -->
-        <div class="card card-glow quick-entry-card">
-            <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-accent-light" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Lançamento Rápido
-            </h2>
-            <div id="quick-entry-form">
-                {% include 'partials/transaction_form.html' %}
+                <!-- Info tooltip -->
+                <div class="relative group">
+                    <button class="w-5 h-5 flex items-center justify-center text-gray-600 hover:text-gray-400 transition-colors cursor-default" tabindex="-1" aria-label="Como funciona o gráfico">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </button>
+                    <div class="absolute left-0 top-7 z-50 w-72 rounded-xl border border-white/10 shadow-2xl
+                                opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200"
+                         style="background: rgba(22, 27, 34, 0.97); backdrop-filter: blur(12px);">
+                        <div class="p-4">
+                            <p class="text-xs font-semibold text-white mb-3">Como funciona o gráfico?</p>
+                            <ul class="space-y-2">
+                                <li class="flex gap-2 text-xs text-gray-400">
+                                    <span class="text-accent flex-shrink-0 mt-0.5">◆</span>
+                                    <span>Mostra o <span class="text-gray-200">saldo projetado</span> da conta bancária a cada dia do mês.</span>
+                                </li>
+                                <li class="flex gap-2 text-xs text-gray-400">
+                                    <span class="text-blue-400 flex-shrink-0 mt-0.5">◆</span>
+                                    <span>Compras no cartão de crédito <span class="text-gray-200">não são descontadas</span> individualmente — apenas quando a fatura vence.</span>
+                                </li>
+                                <li class="flex gap-2 text-xs text-gray-400">
+                                    <span class="text-purple-400 flex-shrink-0 mt-0.5">◆</span>
+                                    <span>O pagamento da <span class="text-gray-200">fatura do cartão</span> aparece como um débito único no dia do vencimento.</span>
+                                </li>
+                                <li class="flex gap-2 text-xs text-gray-400">
+                                    <span class="text-gray-500 flex-shrink-0 mt-0.5">◆</span>
+                                    <span>Transações <span class="text-gray-200">pendentes</span> são projeções; as <span class="text-green-400">pagas</span> já foram realizadas.</span>
+                                </li>
+                            </ul>
+                            <div class="mt-3 pt-3 border-t border-white/5 text-[10px] text-gray-600">
+                                Saldo inicial configurado em <span class="text-gray-500">Configurações</span>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
+            <span class="text-xs text-gray-500">{{ selected_label }}</span>
         </div>
+        {% if month_data.daily_balances %}
+        <div class="relative" style="height: 300px;">
+            <canvas id="cashFlowChart"></canvas>
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center py-14 text-center">
+            <div class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
+            </div>
+            <p class="text-sm text-gray-500">Projeção indisponível para este mês</p>
+        </div>
+        {% endif %}
     </div>
+
 
     <!-- Status Pago/Pendente + Comparativo com Mês Anterior -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -405,6 +429,7 @@
     <!-- JSON Scripts para Chart.js -->
     {{ chart_labels|json_script:"chart-labels-data" }}
     {{ chart_balances|json_script:"chart-balances-data" }}
+    {{ chart_day_txns|json_script:"chart-day-txns-data" }}
     {% if tag_items %}
     {{ tag_chart_labels|json_script:"tag-chart-labels" }}
     {{ tag_chart_values|json_script:"tag-chart-values" }}
@@ -418,8 +443,13 @@
             window.cashFlowChartInstance.destroy();
         }
         var ctx = document.getElementById('cashFlowChart').getContext('2d');
-        var labels = JSON.parse(document.getElementById('chart-labels-data').textContent);
-        var balances = JSON.parse(document.getElementById('chart-balances-data').textContent).map(Number);
+        var labels    = JSON.parse(document.getElementById('chart-labels-data').textContent);
+        var balances  = JSON.parse(document.getElementById('chart-balances-data').textContent).map(Number);
+        var dayTxns   = JSON.parse(document.getElementById('chart-day-txns-data').textContent);
+
+        function fmtBRL(v) {
+            return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+        }
 
         window.cashFlowChartInstance = new Chart(ctx, {
             type: 'line',
@@ -447,19 +477,36 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: 'rgba(30, 35, 41, 0.98)',
-                        titleColor: '#fff',
-                        bodyColor: '#d1d5db',
-                        borderColor: 'rgba(255,255,255,0.1)',
+                        displayColors: false,
+                        backgroundColor: 'rgba(22, 27, 34, 0.97)',
+                        titleColor: '#e5e7eb',
+                        bodyColor: '#fcd535',
+                        footerColor: '#9ca3af',
+                        borderColor: 'rgba(255,255,255,0.08)',
                         borderWidth: 1,
-                        cornerRadius: 8,
-                        padding: 12,
-                        titleFont: { family: 'Inter', weight: '600' },
-                        bodyFont: { family: 'Inter' },
+                        cornerRadius: 10,
+                        padding: 14,
+                        titleFont: { family: 'Inter', weight: '600', size: 12 },
+                        bodyFont: { family: 'Inter', weight: '700', size: 14 },
+                        footerFont: { family: 'Inter', size: 11 },
                         callbacks: {
                             label: function(context) {
-                                var value = context.parsed.y;
-                                return 'Saldo: R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                                return fmtBRL(context.parsed.y);
+                            },
+                            footer: function(items) {
+                                var idx = items[0].dataIndex;
+                                var txns = dayTxns[idx];
+                                if (!txns || txns.length === 0) return [];
+                                var lines = [];
+                                txns.forEach(function(t) {
+                                    var arrow = t.is_income ? '↑' : '↓';
+                                    var pending = t.status !== 'PAID' ? '  (pend.)' : '';
+                                    var desc = t.description.length > 22
+                                        ? t.description.slice(0, 22) + '…'
+                                        : t.description;
+                                    lines.push(arrow + ' ' + desc + pending + '   ' + fmtBRL(t.amount));
+                                });
+                                return lines;
                             }
                         }
                     }

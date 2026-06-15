@@ -23,9 +23,13 @@
                     <span class="text-sm font-medium text-white sm:truncate {% if txn.status == 'PAID' %}line-through opacity-50{% endif %}">
                         {{ txn.description }}
                     </span>
-                    {% if txn.credit_card %}
+                    {% if txn.credit_card and not txn.is_card_bill %}
                     <span class="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400 flex-shrink-0">
                         {{ txn.credit_card.name }}
+                    </span>
+                    <span class="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0"
+                          title="Esta compra entra na fatura e não afeta diretamente o saldo da conta">
+                        Na fatura
                     </span>
                     {% endif %}
                     {% if txn.goal and txn.funded_by_goal %}
@@ -44,9 +48,12 @@
                     {% if txn.installment_number and txn.recurring_rule %}
                     <span class="text-[10px] text-gray-600">{{ txn.installment_number }}/{{ txn.recurring_rule.total_installments }}</span>
                     {% endif %}
-                    {% if txn.credit_card %}
+                    {% if txn.credit_card and not txn.is_card_bill %}
                     <span class="sm:hidden text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-gray-400">
                         {{ txn.credit_card.name }}
+                    </span>
+                    <span class="sm:hidden text-[10px] px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        Na fatura
                     </span>
                     {% endif %}
                     {% if txn.goal and txn.funded_by_goal %}

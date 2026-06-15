@@ -14,7 +14,98 @@ from decimal import Decimal
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 
-from core.models import RecurringRule, Transaction, UserSettings
+from core.models import CreditCard, RecurringRule, Transaction, UserSettings
+
+
+_BILL_MONTH_NAMES = {
+    1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr', 5: 'Mai', 6: 'Jun',
+    7: 'Jul', 8: 'Ago', 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez',
+}
+
+
+def get_bill_period(card, year, month):
+    """
+    Retorna (start_date, end_date) do período de compras iniciado no mês de referência.
+    Inicia no dia de fechamento de M/Y e termina no dia anterior ao fechamento de M+1.
+    """
+    closing_day = card.closing_day
+
+    _, last_day_cur = _calendar.monthrange(year, month)
+    start_date = _date(year, month, min(closing_day, last_day_cur))
+
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+    _, last_day_next = _calendar.monthrange(next_year, next_month)
+    closing_next = _date(next_year, next_month, min(closing_day, last_day_next))
+    end_date = closing_next - timedelta(days=1)
+
+    return start_date, end_date
+
+
+def _bill_due_date(card, end_date):
+    if card.due_day < card.closing_day:
+        due_m = end_date.month + 1 if end_date.month < 12 else 1
+        due_y = end_date.year if end_date.month < 12 else end_date.year + 1
+    else:
+        due_m, due_y = end_date.month, end_date.year
+    _, last = _calendar.monthrange(due_y, due_m)
+    return _date(due_y, due_m, min(card.due_day, last))
+
+
+def materialize_card_bills(user, months_ahead=6):
+    """
+    Cria/atualiza transações de fatura (is_card_bill=True) para cada cartão,
+    cobrindo os próximos N meses. Transações já pagas não são alteradas.
+    """
+    today = timezone.localdate()
+
+    for card in CreditCard.objects.filter(user=user):
+        for delta in range(months_ahead + 1):
+            ref = today.month + delta
+            ref_year = today.year + (ref - 1) // 12
+            ref_month = ((ref - 1) % 12) + 1
+
+            start, end = get_bill_period(card, ref_year, ref_month)
+
+            period_txns = Transaction.objects.filter(
+                user=user, credit_card=card,
+                due_date__range=(start, end),
+            ).exclude(funded_by_goal=True).exclude(is_card_bill=True)
+
+            bill_total = (
+                sum(t.amount for t in period_txns if t.is_expense)
+                - sum(t.amount for t in period_txns if t.is_income)
+            )
+
+            due_date = _bill_due_date(card, end)
+
+            bill_txn = Transaction.objects.filter(
+                user=user, is_card_bill=True,
+                bill_card=card, bill_year=ref_year, bill_month=ref_month,
+            ).first()
+
+            if bill_txn is None:
+                if bill_total > 0:
+                    Transaction.objects.create(
+                        user=user,
+                        description=f"Fatura {card.name} — {_BILL_MONTH_NAMES[due_date.month]}/{due_date.year}",
+                        amount=bill_total,
+                        due_date=due_date,
+                        type=Transaction.TransactionType.EXPENSE,
+                        status=Transaction.Status.PENDING,
+                        is_card_bill=True,
+                        bill_card=card,
+                        bill_year=ref_year,
+                        bill_month=ref_month,
+                    )
+            elif bill_txn.status == Transaction.Status.PENDING:
+                if bill_total > 0:
+                    Transaction.objects.filter(pk=bill_txn.pk).update(
+                        amount=bill_total,
+                        due_date=due_date,
+                    )
+                else:
+                    bill_txn.delete()
 
 
 def materialize_recurring_transactions(user, months_ahead=6):
@@ -59,6 +150,7 @@ def project_cash_flow(user, months_ahead=6):
         }
     """
     materialize_recurring_transactions(user, months_ahead)
+    materialize_card_bills(user, months_ahead)
 
     settings = UserSettings.load(user)
     start_balance = settings.current_balance
@@ -79,6 +171,8 @@ def project_cash_flow(user, months_ahead=6):
         due_date__lte=end_date,
     ).exclude(
         funded_by_goal=True
+    ).exclude(
+        credit_card__isnull=False, is_card_bill=False,
     ).select_related('recurring_rule', 'credit_card').prefetch_related('tags').order_by('due_date')
 
     # Projeção diária para hoje em diante
@@ -98,14 +192,14 @@ def project_cash_flow(user, months_ahead=6):
             user=user,
             due_date__lt=today,
             status='PAID',
-        ).exclude(funded_by_goal=True)
+        ).exclude(funded_by_goal=True).exclude(credit_card__isnull=False, is_card_bill=False)
     else:
         past_transactions = Transaction.objects.filter(
             user=user,
             due_date__gt=balance_date,
             due_date__lt=today,
             status='PAID',
-        ).exclude(funded_by_goal=True)
+        ).exclude(funded_by_goal=True).exclude(credit_card__isnull=False, is_card_bill=False)
 
     for txn in past_transactions:
         running_balance += txn.signed_amount
@@ -160,7 +254,7 @@ def project_cash_flow(user, months_ahead=6):
             user=user,
             due_date__gt=balance_date,
             due_date__lt=query_start_date,
-        ).exclude(funded_by_goal=True)
+        ).exclude(funded_by_goal=True).exclude(credit_card__isnull=False, is_card_bill=False)
         for txn in forward_txns:
             month_balance += txn.signed_amount
     else:
@@ -180,7 +274,7 @@ def project_cash_flow(user, months_ahead=6):
                     user=user,
                     due_date__gte=ref_first_day,
                     due_date__lte=balance_date,
-                )
+                ).exclude(funded_by_goal=True).exclude(credit_card__isnull=False, is_card_bill=False)
                 ref_start_balance = start_balance
                 for txn in ref_rollback_txns:
                     ref_start_balance -= txn.signed_amount
@@ -250,7 +344,8 @@ def get_month_data(user, month, year, projection=None):
     if projection is None:
         projection = project_cash_flow(user)
 
-    transactions = list(
+    # Todas as transações do mês para exibição (inclui compras individuais de cartão)
+    all_transactions = list(
         Transaction.objects.filter(
             user=user,
             due_date__month=month,
@@ -259,12 +354,18 @@ def get_month_data(user, month, year, projection=None):
         ).select_related('recurring_rule', 'credit_card').prefetch_related('tags').order_by('due_date')
     )
 
-    income = sum(t.amount for t in transactions if t.is_income)
-    expense = sum(t.amount for t in transactions if t.is_expense)
+    # Apenas transações que afetam o fluxo de caixa (exclui compras individuais de cartão)
+    flow_transactions = [
+        t for t in all_transactions
+        if not (t.credit_card_id is not None and not t.is_card_bill)
+    ]
+
+    income = sum(t.amount for t in flow_transactions if t.is_income)
+    expense = sum(t.amount for t in flow_transactions if t.is_expense)
     net = income - expense
 
-    paid_income = sum(t.amount for t in transactions if t.is_income and t.status == 'PAID')
-    paid_expense = sum(t.amount for t in transactions if t.is_expense and t.status == 'PAID')
+    paid_income = sum(t.amount for t in flow_transactions if t.is_income and t.status == 'PAID')
+    paid_expense = sum(t.amount for t in flow_transactions if t.is_expense and t.status == 'PAID')
     pending_income = income - paid_income
     pending_expense = expense - paid_expense
 
@@ -276,7 +377,7 @@ def get_month_data(user, month, year, projection=None):
             due_date__month=prev_m,
             due_date__year=prev_y,
             funded_by_goal=False,
-        )
+        ).exclude(credit_card__isnull=False, is_card_bill=False)
     )
     prev_income = sum(t.amount for t in prev_txns if t.is_income)
     prev_expense = sum(t.amount for t in prev_txns if t.is_expense)
@@ -289,24 +390,42 @@ def get_month_data(user, month, year, projection=None):
     month_key = f"{year}-{month:02d}"
     prev_month_key = f"{prev_y}-{prev_m:02d}"
 
-    # Saldo inicial do mês = end_balance do mês anterior no monthly_summary.
-    # Percorre o summary em ordem para pegar o mês imediatamente anterior caso
-    # o mês exato não esteja na janela calculada.
-    month_start_balance = projection['start_balance']
-    last_before = None
-    for m_s in projection['monthly_summary']:
-        if m_s['month'] == prev_month_key:
-            month_start_balance = m_s['end_balance']
-            last_before = None
-            break
-        if m_s['month'] < month_key:
-            last_before = m_s['end_balance']
-    if last_before is not None:
-        month_start_balance = last_before
+    settings = UserSettings.load(user)
+    balance_date = settings.balance_date
+    balance_month_key = f"{balance_date.year}-{balance_date.month:02d}"
 
-    # Reconstrói o saldo dia a dia para o mês inteiro (passado + futuro).
+    if month_key == balance_month_key:
+        # O mês selecionado é o mesmo do saldo de referência.
+        # project_cash_flow reseta o saldo neste mês usando rollback a partir do
+        # start_balance — replicamos a mesma lógica para obter o saldo do dia 1.
+        ref_first_day = balance_date.replace(day=1)
+        ref_rollback_txns = Transaction.objects.filter(
+            user=user,
+            due_date__gte=ref_first_day,
+            due_date__lte=balance_date,
+        ).exclude(funded_by_goal=True).exclude(credit_card__isnull=False, is_card_bill=False)
+        month_start_balance = settings.current_balance
+        for txn in ref_rollback_txns:
+            month_start_balance -= txn.signed_amount
+    else:
+        # Saldo inicial do mês = end_balance do mês anterior no monthly_summary.
+        # Percorre o summary em ordem para pegar o mês imediatamente anterior caso
+        # o mês exato não esteja na janela calculada.
+        month_start_balance = projection['start_balance']
+        last_before = None
+        for m_s in projection['monthly_summary']:
+            if m_s['month'] == prev_month_key:
+                month_start_balance = m_s['end_balance']
+                last_before = None
+                break
+            if m_s['month'] < month_key:
+                last_before = m_s['end_balance']
+        if last_before is not None:
+            month_start_balance = last_before
+
+    # Reconstrói o saldo dia a dia usando apenas transações de fluxo de caixa.
     txns_by_date = defaultdict(list)
-    for txn in transactions:
+    for txn in flow_transactions:
         txns_by_date[txn.due_date].append(txn)
 
     _, days_in_month = _calendar.monthrange(year, month)
@@ -314,9 +433,10 @@ def get_month_data(user, month, year, projection=None):
     daily_balances = []
     for day in range(1, days_in_month + 1):
         d = _date(year, month, day)
-        day_net = sum(t.signed_amount for t in txns_by_date.get(d, []))
+        day_txns = txns_by_date.get(d, [])
+        day_net = sum(t.signed_amount for t in day_txns)
         running += day_net
-        daily_balances.append({'date': d, 'balance': running})
+        daily_balances.append({'date': d, 'balance': running, 'transactions': day_txns})
 
     end_balance = daily_balances[-1]['balance'] if daily_balances else month_start_balance
     # Confirma com o monthly_summary se disponível (fonte mais precisa)
@@ -337,7 +457,7 @@ def get_month_data(user, month, year, projection=None):
         'prev_expense': prev_expense,
         'income_delta_pct': _delta_pct(income, prev_income),
         'expense_delta_pct': _delta_pct(expense, prev_expense),
-        'transactions': transactions,
+        'transactions': all_transactions,
         'daily_balances': daily_balances,
         'end_balance': end_balance,
     }

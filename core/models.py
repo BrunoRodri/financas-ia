@@ -269,6 +269,16 @@ class Transaction(models.Model):
         'Financiado pela meta', default=False,
         help_text='Se True, esta despesa foi paga com dinheiro já guardado na meta e não afeta o fluxo de caixa.',
     )
+    is_card_bill = models.BooleanField(
+        'É fatura de cartão', default=False,
+        help_text='Se True, esta transação representa o pagamento da fatura e entra no fluxo de caixa.',
+    )
+    bill_card = models.ForeignKey(
+        CreditCard, on_delete=models.SET_NULL, null=True, blank=True,
+        verbose_name='Cartão da fatura', related_name='bill_transactions',
+    )
+    bill_year = models.SmallIntegerField('Ano da fatura', null=True, blank=True)
+    bill_month = models.SmallIntegerField('Mês da fatura', null=True, blank=True)
     installment_number = models.PositiveIntegerField(
         'Parcela nº', null=True, blank=True,
         help_text='Número da parcela (ex: 3 de 12)',

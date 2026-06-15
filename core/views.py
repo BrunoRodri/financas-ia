@@ -17,7 +17,13 @@ from core.forms import (
     UserSettingsForm,
 )
 from core.models import CreditCard, Goal, RecurringRule, Tag, Transaction, UserSettings
-from core.services.cash_flow import get_month_data, get_upcoming_transactions, project_cash_flow
+from core.services.cash_flow import (
+    get_bill_period,
+    get_month_data,
+    get_upcoming_transactions,
+    materialize_card_bills,
+    project_cash_flow,
+)
 
 
 class VirtualInitialBalance:
@@ -102,6 +108,20 @@ def dashboard(request):
     # Form de lançamento rápido
     form = TransactionForm(user=request.user)
 
+    chart_day_txns = [
+        [
+            {
+                'description': t.description,
+                'amount': float(t.amount),
+                'is_income': t.is_income,
+                'is_card_bill': t.is_card_bill,
+                'status': t.status,
+            }
+            for t in d.get('transactions', [])
+        ]
+        for d in month_data['daily_balances']
+    ]
+
     context = {
         'projection': projection,
         'month_data': month_data,
@@ -110,6 +130,7 @@ def dashboard(request):
         'form': form,
         'chart_labels': [d['date'].strftime('%d/%m') for d in month_data['daily_balances']],
         'chart_balances': [float(d['balance']) for d in month_data['daily_balances']],
+        'chart_day_txns': chart_day_txns,
         'today': today,
         'cards_with_bills': cards_with_bills,
         'tag_items': tag_items,
@@ -132,30 +153,6 @@ def dashboard(request):
 # ─── Transactions ────────────────────────────────────────────────────────────
 
 import calendar
-
-def get_bill_period(card, year, month):
-    """
-    Retorna o período de compras (start_date, end_date) iniciado no mês de referência (M/Y).
-    O período inicia no dia do fechamento do mês de referência (M/Y) e vai até o dia
-    anterior ao fechamento do mês seguinte (M+1).
-    Isso alinha as compras feitas a partir do dia de fechamento com o mês selecionado.
-    """
-    closing_day = card.closing_day
-
-    # Data de início: fechamento no mês selecionado (M/Y)
-    _, last_day_current = calendar.monthrange(year, month)
-    actual_closing_day_current = min(closing_day, last_day_current)
-    start_date = datetime.date(year, month, actual_closing_day_current)
-
-    # Data de término: um dia antes do fechamento do mês seguinte (M+1)
-    next_month = month + 1 if month < 12 else 1
-    next_year = year if month < 12 else year + 1
-    _, last_day_next = calendar.monthrange(next_year, next_month)
-    actual_closing_day_next = min(closing_day, last_day_next)
-    closing_date_next = datetime.date(next_year, next_month, actual_closing_day_next)
-    end_date = closing_date_next - datetime.timedelta(days=1)
-
-    return start_date, end_date
 
 def transaction_list(request):
     """Lista completa de transações com filtros."""
@@ -943,7 +940,7 @@ def _build_bill(user, card, year, month):
         Transaction.objects.filter(
             user=user, credit_card=card,
             due_date__range=(start, end),
-        ).exclude(funded_by_goal=True).order_by('due_date')
+        ).exclude(funded_by_goal=True).exclude(is_card_bill=True).order_by('due_date')
     )
     bill_total = sum(t.amount for t in txns if t.is_expense) - sum(t.amount for t in txns if t.is_income)
     if card.due_day < card.closing_day:
@@ -953,6 +950,14 @@ def _build_bill(user, card, year, month):
         due_month, due_year = end.month, end.year
     due_date = datetime.date(due_year, due_month,
                              min(card.due_day, calendar.monthrange(due_year, due_month)[1]))
+    bill_txn = Transaction.objects.filter(
+        user=user, is_card_bill=True,
+        bill_card=card, bill_year=year, bill_month=month,
+    ).first()
+    if bill_txn:
+        all_paid = bill_txn.status == Transaction.Status.PAID
+    else:
+        all_paid = bool(txns) and all(t.status == 'PAID' for t in txns)
     return {
         'month_label': f"{_MONTH_NAMES[due_month]}/{due_year}",
         'ref_month': month,
@@ -964,7 +969,8 @@ def _build_bill(user, card, year, month):
         'total': bill_total,
         'is_current': start <= today <= end,
         'is_past': end < today,
-        'all_paid': all(t.status == 'PAID' for t in txns) if txns else False,
+        'all_paid': all_paid,
+        'bill_txn': bill_txn,
     }
 
 
@@ -1014,26 +1020,38 @@ def _get_tag_analytics(user, month, year):
 
 @require_POST
 def card_bill_pay(request, pk, year, month):
-    """Marca todas as transações pendentes da fatura como pagas."""
+    """Marca a fatura como paga (bill transaction) e as compras individuais como pagas."""
     card = get_object_or_404(CreditCard, pk=pk, user=request.user)
+    # Marca a transação de fatura como paga (impacta o fluxo de caixa)
+    Transaction.objects.filter(
+        user=request.user, is_card_bill=True,
+        bill_card=card, bill_year=year, bill_month=month,
+    ).update(status='PAID')
+    # Marca compras individuais como pagas (apenas para rastreamento visual)
     start, end = get_bill_period(card, year, month)
     Transaction.objects.filter(
         user=request.user, credit_card=card,
         due_date__range=(start, end), status='PENDING',
-    ).exclude(funded_by_goal=True).update(status='PAID')
+    ).exclude(funded_by_goal=True).exclude(is_card_bill=True).update(status='PAID')
     bill = _build_bill(request.user, card, year, month)
     return render(request, 'partials/bill_card.html', {'card': card, 'bill': bill})
 
 
 @require_POST
 def card_bill_unpay(request, pk, year, month):
-    """Desfaz o pagamento da fatura, revertendo transações para pendente."""
+    """Desfaz o pagamento da fatura."""
     card = get_object_or_404(CreditCard, pk=pk, user=request.user)
+    # Reverte a transação de fatura para pendente
+    Transaction.objects.filter(
+        user=request.user, is_card_bill=True,
+        bill_card=card, bill_year=year, bill_month=month,
+    ).update(status='PENDING')
+    # Reverte compras individuais para pendente
     start, end = get_bill_period(card, year, month)
     Transaction.objects.filter(
         user=request.user, credit_card=card,
         due_date__range=(start, end), status='PAID',
-    ).exclude(funded_by_goal=True).update(status='PENDING')
+    ).exclude(funded_by_goal=True).exclude(is_card_bill=True).update(status='PENDING')
     bill = _build_bill(request.user, card, year, month)
     return render(request, 'partials/bill_card.html', {'card': card, 'bill': bill})
 
