@@ -740,7 +740,7 @@ def goal_update(request, pk):
 
     if action_type and adjust_amount:
         try:
-            amount = Decimal(adjust_amount)
+            amount = Decimal(adjust_amount.strip().replace(',', '.'))
             if action_type == 'add':
                 if create_transaction:
                     tag, _ = Tag.objects.get_or_create(

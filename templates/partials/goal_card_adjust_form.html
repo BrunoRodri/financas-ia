@@ -37,14 +37,12 @@
 
         <div class="relative">
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs font-semibold">R$</span>
-            <input type="number" 
-                   name="adjust_amount" 
-                   step="0.01" 
-                   min="0.01" 
-                   {% if action_type == 'use' %}max="{{ goal.available_amount|stringformat:'.2f' }}"{% endif %}
-                   required 
-                   class="form-input pl-8 pr-3 py-1.5 text-sm font-semibold" 
-                   placeholder="0,00" 
+            <input type="text"
+                   name="adjust_amount"
+                   inputmode="decimal" maxlength="15"
+                   required
+                   class="form-input pl-8 pr-3 py-1.5 text-sm font-semibold amount-input"
+                   placeholder="0,00"
                    {% if action_type != 'use' %}autofocus{% endif %}>
         </div>
 

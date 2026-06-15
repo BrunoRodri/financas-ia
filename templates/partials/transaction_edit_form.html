@@ -18,10 +18,10 @@
         <div class="grid grid-cols-2 gap-3">
             <div>
                 <label class="form-label text-xs" for="edit_amount_{{ txn.id }}">Valor (R$)</label>
-                <input type="number" name="amount" id="edit_amount_{{ txn.id }}"
+                <input type="text" name="amount" id="edit_amount_{{ txn.id }}"
                        value="{{ txn.amount|stringformat:'.2f' }}"
-                       step="0.01" min="0.01"
-                       class="form-input w-full" required>
+                       inputmode="decimal" maxlength="15"
+                       class="form-input w-full amount-input" required>
             </div>
             <div>
                 <label class="form-label text-xs" for="edit_type_{{ txn.id }}">Tipo</label>

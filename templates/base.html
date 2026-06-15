@@ -428,6 +428,45 @@
         document.addEventListener('DOMContentLoaded', setupDatePickers);
         document.body.addEventListener('htmx:afterSettle', setupDatePickers);
 
+        function setupAmountInputs() {
+            document.querySelectorAll('.amount-input').forEach(function(el) {
+                if (el.dataset.amountMask) return;
+                el.dataset.amountMask = '1';
+
+                el.addEventListener('keydown', function(e) {
+                    // Permite: backspace, delete, tab, escape, enter, setas, home, end
+                    if ([8, 9, 13, 27, 37, 38, 39, 40, 46].indexOf(e.keyCode) !== -1) return;
+                    // Permite Ctrl/Cmd + A/C/V/X
+                    if (e.ctrlKey || e.metaKey) return;
+                    // Permite dígitos (0–9 e teclado numérico)
+                    if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105)) return;
+                    // Permite vírgula ou ponto — apenas se não houver separador já
+                    if (e.key === ',' || e.key === '.') {
+                        if (el.value.indexOf('.') !== -1 || el.value.indexOf(',') !== -1) {
+                            e.preventDefault();
+                        }
+                        return;
+                    }
+                    // Bloqueia tudo o mais (letras, símbolos, etc.)
+                    e.preventDefault();
+                });
+
+                // Limpeza defensiva para paste
+                el.addEventListener('input', function() {
+                    var val = el.value.replace(/[^0-9.,]/g, '');
+                    // Permite apenas um separador decimal
+                    var first = val.search(/[.,]/);
+                    if (first !== -1) {
+                        val = val.slice(0, first + 1) + val.slice(first + 1).replace(/[.,]/g, '');
+                    }
+                    if (val !== el.value) el.value = val;
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', setupAmountInputs);
+        document.body.addEventListener('htmx:afterSettle', setupAmountInputs);
+
         // Gerenciamento da Sidebar responsiva (Mobile) e Colapsável (Desktop)
         (function() {
             const btn = document.getElementById('mobile-menu-btn');

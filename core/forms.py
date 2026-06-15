@@ -1,3 +1,6 @@
+import re
+from decimal import Decimal, InvalidOperation
+
 from django import forms
 from django.utils import timezone
 
@@ -5,8 +8,57 @@ from django.db.models import Q
 from core.models import CreditCard, Goal, RecurringRule, Tag, Transaction, UserSettings
 
 
+class AmountField(forms.CharField):
+    """Campo monetário que aceita vírgula ou ponto como separador decimal."""
+
+    def __init__(self, *args, allow_zero=False, allow_negative=False, **kwargs):
+        self.allow_zero = allow_zero
+        self.allow_negative = allow_negative
+        kwargs.setdefault('widget', forms.TextInput(attrs={
+            'placeholder': '0,00',
+            'class': 'form-input amount-input',
+            'inputmode': 'decimal',
+            'maxlength': '15',
+        }))
+        super().__init__(*args, **kwargs)
+
+    def to_python(self, value):
+        value = super().to_python(value)
+        if not value:
+            return None
+        # Remove espaços e normaliza separador decimal
+        value = value.strip()
+        if not re.match(r'^-?[\d.,]+$', value):
+            raise forms.ValidationError('Informe um valor numérico válido (ex: 150,00).')
+        # Se tem ponto e vírgula ao mesmo tempo, considera o último como decimal
+        if '.' in value and ',' in value:
+            if value.rfind('.') > value.rfind(','):
+                # ponto é decimal → remove vírgulas (mil)
+                value = value.replace(',', '')
+            else:
+                # vírgula é decimal → remove pontos (mil) e converte vírgula
+                value = value.replace('.', '').replace(',', '.')
+        else:
+            value = value.replace(',', '.')
+        try:
+            return Decimal(value)
+        except InvalidOperation:
+            raise forms.ValidationError('Informe um valor numérico válido (ex: 150,00).')
+
+    def validate(self, value):
+        super().validate(value)
+        if value is None:
+            return
+        if not self.allow_negative and value < 0:
+            raise forms.ValidationError('O valor não pode ser negativo.')
+        if not self.allow_zero and value == 0:
+            raise forms.ValidationError('O valor deve ser maior que zero.')
+
+
 class TransactionForm(forms.ModelForm):
     """Form para lançamento rápido de transações."""
+
+    amount = AmountField(label='Valor (R$)')
 
     due_date = forms.DateField(
         input_formats=['%Y-%m-%d', '%d/%m/%Y'],
@@ -37,12 +89,6 @@ class TransactionForm(forms.ModelForm):
                 'placeholder': 'Ex: Mercado, Salário, Netflix...',
                 'class': 'form-input',
                 'autofocus': True,
-            }),
-            'amount': forms.NumberInput(attrs={
-                'placeholder': '0,00',
-                'class': 'form-input',
-                'step': '0.01',
-                'min': '0.01',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
@@ -97,6 +143,8 @@ class TransactionForm(forms.ModelForm):
 class RecurringRuleForm(forms.ModelForm):
     """Form para criar regras recorrentes (mensais ou parceladas)."""
 
+    amount = AmountField(label='Valor (R$)')
+
     start_date = forms.DateField(
         input_formats=['%Y-%m-%d', '%d/%m/%Y'],
         widget=forms.TextInput(attrs={
@@ -118,12 +166,6 @@ class RecurringRuleForm(forms.ModelForm):
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Netflix, Celular 12x...',
                 'class': 'form-input',
-            }),
-            'amount': forms.NumberInput(attrs={
-                'placeholder': '0,00',
-                'class': 'form-input',
-                'step': '0.01',
-                'min': '0.01',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'recurrence_type': forms.Select(attrs={'class': 'form-select'}),
@@ -180,6 +222,8 @@ class RecurringRuleForm(forms.ModelForm):
 class RecurringRuleEditForm(forms.ModelForm):
     """Form para editar regras recorrentes existentes (não altera recurrence_type)."""
 
+    amount = AmountField(label='Valor (R$)')
+
     start_date = forms.DateField(
         input_formats=['%Y-%m-%d', '%d/%m/%Y'],
         widget=forms.TextInput(attrs={
@@ -201,12 +245,6 @@ class RecurringRuleEditForm(forms.ModelForm):
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Netflix, Celular 12x...',
                 'class': 'form-input',
-            }),
-            'amount': forms.NumberInput(attrs={
-                'placeholder': '0,00',
-                'class': 'form-input',
-                'step': '0.01',
-                'min': '0.01',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'total_installments': forms.NumberInput(attrs={
@@ -264,6 +302,9 @@ class RecurringRuleEditForm(forms.ModelForm):
 class GoalForm(forms.ModelForm):
     """Form para criar/editar metas financeiras."""
 
+    target_amount = AmountField(label='Valor Alvo (R$)')
+    current_amount = AmountField(label='Valor Acumulado (R$)', allow_zero=True, required=False)
+
     deadline = forms.DateField(
         input_formats=['%Y-%m-%d', '%d/%m/%Y'],
         widget=forms.TextInput(attrs={
@@ -283,34 +324,16 @@ class GoalForm(forms.ModelForm):
                 'placeholder': 'Ex: Viagem pro Rio',
                 'class': 'form-input',
             }),
-            'target_amount': forms.NumberInput(attrs={
-                'placeholder': '0,00',
-                'class': 'form-input',
-                'step': '0.01',
-                'min': '0.01',
-            }),
-            'current_amount': forms.NumberInput(attrs={
-                'placeholder': '0,00',
-                'class': 'form-input',
-                'step': '0.01',
-                'min': '0',
-            }),
             'color': forms.TextInput(attrs={
                 'type': 'color',
                 'class': 'form-input-color',
             }),
         }
 
-    def clean_target_amount(self):
-        value = self.cleaned_data.get('target_amount')
-        if value is not None and value <= 0:
-            raise forms.ValidationError('O valor alvo deve ser maior que zero.')
-        return value
-
     def clean_current_amount(self):
         value = self.cleaned_data.get('current_amount')
-        if value is not None and value < 0:
-            raise forms.ValidationError('O valor acumulado não pode ser negativo.')
+        if value is None:
+            return Decimal('0')
         return value
 
 
@@ -360,6 +383,8 @@ class CreditCardForm(forms.ModelForm):
 class UserSettingsForm(forms.ModelForm):
     """Form para atualizar o saldo atual."""
 
+    current_balance = AmountField(label='Saldo Atual (R$)', allow_zero=True, allow_negative=True)
+
     balance_date = forms.DateField(
         input_formats=['%Y-%m-%d', '%d/%m/%Y'],
         widget=forms.TextInput(attrs={
@@ -374,9 +399,4 @@ class UserSettingsForm(forms.ModelForm):
     class Meta:
         model = UserSettings
         fields = ['current_balance', 'balance_date']
-        widgets = {
-            'current_balance': forms.NumberInput(attrs={
-                'class': 'form-input',
-                'step': '0.01',
-            }),
-        }
+        widgets = {}
