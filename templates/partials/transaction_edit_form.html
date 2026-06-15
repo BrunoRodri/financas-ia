@@ -11,6 +11,7 @@
             <label class="form-label text-xs" for="edit_description_{{ txn.id }}">Descrição</label>
             <input type="text" name="description" id="edit_description_{{ txn.id }}"
                    value="{{ txn.description }}"
+                   maxlength="150" data-char-counter="150"
                    class="form-input w-full" required>
         </div>
 

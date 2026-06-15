@@ -15,10 +15,10 @@ class AmountField(forms.CharField):
         self.allow_zero = allow_zero
         self.allow_negative = allow_negative
         kwargs.setdefault('widget', forms.TextInput(attrs={
-            'placeholder': '0,00',
+            'placeholder': 'R$ 0,00',
             'class': 'form-input amount-input',
-            'inputmode': 'decimal',
-            'maxlength': '15',
+            'inputmode': 'numeric',
+            'autocomplete': 'off',
         }))
         super().__init__(*args, **kwargs)
 
@@ -26,24 +26,26 @@ class AmountField(forms.CharField):
         value = super().to_python(value)
         if not value:
             return None
-        # Remove espaços e normaliza separador decimal
         value = value.strip()
+        # Remove prefixo "R$" gerado pela máscara JS
+        if value.upper().startswith('R$'):
+            value = value[2:].strip()
+        if not value:
+            return None
         if not re.match(r'^-?[\d.,]+$', value):
-            raise forms.ValidationError('Informe um valor numérico válido (ex: 150,00).')
-        # Se tem ponto e vírgula ao mesmo tempo, considera o último como decimal
+            raise forms.ValidationError('Informe um valor numérico válido (ex: R$ 150,00).')
+        # Ponto e vírgula presentes: o último é o separador decimal
         if '.' in value and ',' in value:
             if value.rfind('.') > value.rfind(','):
-                # ponto é decimal → remove vírgulas (mil)
                 value = value.replace(',', '')
             else:
-                # vírgula é decimal → remove pontos (mil) e converte vírgula
                 value = value.replace('.', '').replace(',', '.')
         else:
             value = value.replace(',', '.')
         try:
             return Decimal(value)
         except InvalidOperation:
-            raise forms.ValidationError('Informe um valor numérico válido (ex: 150,00).')
+            raise forms.ValidationError('Informe um valor numérico válido (ex: R$ 150,00).')
 
     def validate(self, value):
         super().validate(value)
@@ -89,6 +91,8 @@ class TransactionForm(forms.ModelForm):
                 'placeholder': 'Ex: Mercado, Salário, Netflix...',
                 'class': 'form-input',
                 'autofocus': True,
+                'maxlength': '150',
+                'data-char-counter': '150',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
@@ -166,6 +170,8 @@ class RecurringRuleForm(forms.ModelForm):
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Netflix, Celular 12x...',
                 'class': 'form-input',
+                'maxlength': '150',
+                'data-char-counter': '150',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'recurrence_type': forms.Select(attrs={'class': 'form-select'}),
@@ -245,6 +251,8 @@ class RecurringRuleEditForm(forms.ModelForm):
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Netflix, Celular 12x...',
                 'class': 'form-input',
+                'maxlength': '150',
+                'data-char-counter': '150',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'total_installments': forms.NumberInput(attrs={

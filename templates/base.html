@@ -433,39 +433,104 @@
                 if (el.dataset.amountMask) return;
                 el.dataset.amountMask = '1';
 
+                // Parse valor inicial do servidor (ex: "150.50" ou "1500.00")
+                var cents = 0;
+                var raw = el.value.trim().replace(/R\$\s*/i, '').replace(/\./g, '').replace(',', '.');
+                var parsed = parseFloat(raw);
+                if (!isNaN(parsed) && parsed > 0) {
+                    cents = Math.round(parsed * 100);
+                }
+
+                function fmtCents(c) {
+                    if (c === 0) return '';
+                    var s = String(c).padStart(3, '0');
+                    var intPart = s.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                    return 'R$ ' + intPart + ',' + s.slice(-2);
+                }
+
+                el.value = fmtCents(cents);
+                el.placeholder = 'R$ 0,00';
+
                 el.addEventListener('keydown', function(e) {
-                    // Permite: backspace, delete, tab, escape, enter, setas, home, end
-                    if ([8, 9, 13, 27, 37, 38, 39, 40, 46].indexOf(e.keyCode) !== -1) return;
-                    // Permite Ctrl/Cmd + A/C/V/X
-                    if (e.ctrlKey || e.metaKey) return;
-                    // Permite dígitos (0–9 e teclado numérico)
-                    if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105)) return;
-                    // Permite vírgula ou ponto — apenas se não houver separador já
-                    if (e.key === ',' || e.key === '.') {
-                        if (el.value.indexOf('.') !== -1 || el.value.indexOf(',') !== -1) {
-                            e.preventDefault();
+                    var digit = -1;
+                    if (e.keyCode >= 96 && e.keyCode <= 105 && !e.shiftKey) digit = e.keyCode - 96;
+                    else if (e.keyCode >= 48 && e.keyCode <= 57 && !e.shiftKey) digit = e.keyCode - 48;
+
+                    if (digit !== -1) {
+                        e.preventDefault();
+                        if (cents < 99999999) { // limite R$ 999.999,99
+                            cents = cents * 10 + digit;
                         }
+                        el.value = fmtCents(cents);
                         return;
                     }
-                    // Bloqueia tudo o mais (letras, símbolos, etc.)
+                    if (e.keyCode === 8) { // Backspace
+                        e.preventDefault();
+                        cents = Math.floor(cents / 10);
+                        el.value = fmtCents(cents);
+                        return;
+                    }
+                    if (e.keyCode === 46) { // Delete
+                        e.preventDefault();
+                        cents = 0;
+                        el.value = '';
+                        return;
+                    }
+                    // Permite Tab, Escape, Enter, setas
+                    if ([9, 13, 27, 37, 38, 39, 40].indexOf(e.keyCode) !== -1) return;
+                    if (e.ctrlKey || e.metaKey) return;
                     e.preventDefault();
                 });
 
-                // Limpeza defensiva para paste
-                el.addEventListener('input', function() {
-                    var val = el.value.replace(/[^0-9.,]/g, '');
-                    // Permite apenas um separador decimal
-                    var first = val.search(/[.,]/);
-                    if (first !== -1) {
-                        val = val.slice(0, first + 1) + val.slice(first + 1).replace(/[.,]/g, '');
+                el.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    var text = (e.clipboardData || window.clipboardData).getData('text');
+                    var cleaned = text.replace(/R\$\s*/i, '').replace(/\./g, '').replace(',', '.').trim();
+                    var p = parseFloat(cleaned);
+                    if (!isNaN(p) && p >= 0) {
+                        cents = Math.round(p * 100);
+                        el.value = fmtCents(cents);
                     }
-                    if (val !== el.value) el.value = val;
+                });
+
+                // Não permite clicar e editar o texto diretamente
+                el.addEventListener('click', function() {
+                    el.setSelectionRange(el.value.length, el.value.length);
+                });
+            });
+        }
+
+        function setupDescriptionCounters() {
+            document.querySelectorAll('input[data-char-counter]').forEach(function(el) {
+                if (el.dataset.counterInit) return;
+                el.dataset.counterInit = '1';
+                var max = parseInt(el.dataset.charCounter, 10);
+                var span = document.createElement('span');
+                span.className = 'char-counter hidden text-[10px] text-gray-600 float-right mt-0.5 transition-colors duration-150';
+                el.parentNode.insertBefore(span, el.nextSibling);
+
+                function update() {
+                    var rem = max - el.value.length;
+                    span.textContent = rem + '/' + max;
+                    span.classList.toggle('text-red-400', rem <= 20);
+                    span.classList.toggle('text-gray-600', rem > 20);
+                }
+
+                el.addEventListener('focus', function() {
+                    update();
+                    span.classList.remove('hidden');
+                });
+                el.addEventListener('input', update);
+                el.addEventListener('blur', function() {
+                    span.classList.add('hidden');
                 });
             });
         }
 
         document.addEventListener('DOMContentLoaded', setupAmountInputs);
         document.body.addEventListener('htmx:afterSettle', setupAmountInputs);
+        document.addEventListener('DOMContentLoaded', setupDescriptionCounters);
+        document.body.addEventListener('htmx:afterSettle', setupDescriptionCounters);
 
         // Gerenciamento da Sidebar responsiva (Mobile) e Colapsável (Desktop)
         (function() {
