@@ -83,3 +83,9 @@ static/css/
 - `.sidebar-link` / `.sidebar-link-active` → classes de navegação da sidebar.
 - Empty states usam seletor CSS `:has()` — não adicionar JS imperativo para isso.
 - Estilo premium definido em `custom.css` (glassmorphism, `backdrop-blur`, animações).
+
+---
+
+## Git
+
+- **Nunca fazer commit ou push automaticamente.** Só executar `git commit` e `git push` quando o usuário pedir explicitamente.

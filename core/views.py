@@ -1,4 +1,5 @@
 import json
+import re
 import datetime
 from decimal import Decimal
 
@@ -24,6 +25,17 @@ from core.services.cash_flow import (
     materialize_card_bills,
     project_cash_flow,
 )
+
+
+def _htmx_toast(message, level='error', also_trigger=None):
+    """Retorna uma resposta HTMX vazia que dispara um toast no frontend."""
+    payload = {'showToast': {'message': message, 'level': level}}
+    if also_trigger:
+        payload[also_trigger] = True
+    response = HttpResponse('', status=200)
+    response['HX-Reswap'] = 'none'
+    response['HX-Trigger'] = json.dumps(payload)
+    return response
 
 
 class VirtualInitialBalance:
@@ -62,8 +74,13 @@ def dashboard(request):
     RecurringRule.auto_archive_expired_rules()
     today = timezone.localdate()
 
-    month = int(request.GET.get('month', today.month))
-    year = int(request.GET.get('year', today.year))
+    try:
+        month = int(request.GET.get('month', today.month))
+        year = int(request.GET.get('year', today.year))
+    except (ValueError, TypeError):
+        month, year = today.month, today.year
+    month = max(1, min(12, month))
+    year = max(today.year - 2, min(today.year + 2, year))
 
     projection = project_cash_flow(request.user, months_ahead=6)
     month_data = get_month_data(request.user, month, year, projection=projection)
@@ -342,7 +359,10 @@ def transaction_create(request):
             'is_new': True,
             'user_settings': user_settings,
         })
-        response['HX-Trigger'] = 'transactionUpdated'
+        response['HX-Trigger'] = json.dumps({
+            'transactionUpdated': True,
+            'showToast': {'message': 'Transação criada.', 'level': 'success'},
+        })
         return response
     # Se inválido, retorna o form com erros
     return render(request, 'partials/transaction_form.html', {
@@ -365,7 +385,10 @@ def transaction_toggle(request, pk):
         'txn': txn,
         'user_settings': user_settings,
     })
-    response['HX-Trigger'] = 'transactionUpdated'
+    response['HX-Trigger'] = json.dumps({
+        'transactionUpdated': True,
+        'showToast': {'message': 'Status atualizado.', 'level': 'success'},
+    })
     return response
 
 
@@ -374,9 +397,7 @@ def transaction_delete(request, pk):
     """Remove transação via HTMX."""
     txn = get_object_or_404(Transaction, pk=pk, user=request.user)
     txn.delete()
-    response = HttpResponse('')
-    response['HX-Trigger'] = 'transactionUpdated'
-    return response
+    return _htmx_toast('Transação excluída.', level='success', also_trigger='transactionUpdated')
 
 
 def transaction_delete_confirm(request, pk):
@@ -420,7 +441,10 @@ def transaction_edit(request, pk):
                 'txn': txn,
                 'user_settings': user_settings,
             })
-            response['HX-Trigger'] = 'transactionUpdated'
+            response['HX-Trigger'] = json.dumps({
+                'transactionUpdated': True,
+                'showToast': {'message': 'Transação salva.', 'level': 'success'},
+            })
             return response
         # Form inválido: retorna o form com erros
         return render(request, 'partials/transaction_edit_form.html', {
@@ -507,7 +531,10 @@ def unified_launch_create(request):
             form.save_m2m()
             rule.materialize_monthly_transactions(months_ahead=6)
             response = render(request, 'partials/unified_launch_form.html', _fresh_ctx(new_monthly_rule=rule))
-            response['HX-Trigger'] = 'transactionUpdated'
+            response['HX-Trigger'] = json.dumps({
+                'transactionUpdated': True,
+                'showToast': {'message': 'Regra mensal criada.', 'level': 'success'},
+            })
             return response
         return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
 
@@ -524,7 +551,10 @@ def unified_launch_create(request):
             form.save_m2m()
             rule.generate_installment_transactions()
             response = render(request, 'partials/unified_launch_form.html', _fresh_ctx())
-            response['HX-Trigger'] = 'transactionUpdated'
+            response['HX-Trigger'] = json.dumps({
+                'transactionUpdated': True,
+                'showToast': {'message': 'Parcelamento criado.', 'level': 'success'},
+            })
             return response
         return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
 
@@ -537,7 +567,10 @@ def unified_launch_create(request):
             txn.save()
             form.save_m2m()
             response = render(request, 'partials/unified_launch_form.html', _fresh_ctx())
-            response['HX-Trigger'] = 'transactionUpdated'
+            response['HX-Trigger'] = json.dumps({
+                'transactionUpdated': True,
+                'showToast': {'message': 'Lançamento criado.', 'level': 'success'},
+            })
             return response
         return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
 
@@ -559,26 +592,23 @@ def recurring_create(request):
         if rule.recurrence_type == RecurringRule.RecurrenceType.INSTALLMENT:
             rule.generate_installment_transactions()
         if request.headers.get('HX-Request'):
-            return render(request, 'partials/recurring_row.html', {
-                'rule': rule, 'is_new': True,
+            response = render(request, 'partials/recurring_row.html', {'rule': rule, 'is_new': True})
+            response['HX-Trigger'] = json.dumps({
+                'showToast': {'message': 'Regra criada.', 'level': 'success'},
             })
+            return response
         return redirect('recurring_list')
     if request.headers.get('HX-Request'):
         installments_error = form.errors.get('total_installments')
         if installments_error:
             message = f'{installments_error[0]} Solução: informe 2 ou mais parcelas para regras parceladas.'
         else:
-            message = 'Não foi possível criar a regra recorrente. Revise os campos e tente novamente.'
-
-        response = HttpResponse('', status=200)
-        response['HX-Reswap'] = 'none'
-        response['HX-Trigger'] = json.dumps({
-            'showToast': {
-                'level': 'error',
-                'message': message,
-            }
-        })
-        return response
+            first_err = next(
+                (errs[0] for errs in form.errors.values() if errs),
+                'Não foi possível criar a regra recorrente. Revise os campos e tente novamente.',
+            )
+            message = first_err
+        return _htmx_toast(message)
 
     return redirect('recurring_list')
 
@@ -622,7 +652,7 @@ def recurring_delete(request, pk):
             txn.delete()
 
     rule.delete()
-    return HttpResponse('')
+    return _htmx_toast('Regra excluída.', level='success', also_trigger='transactionUpdated')
 
 
 def recurring_delete_confirm(request, pk):
@@ -675,6 +705,7 @@ def recurring_edit(request, pk):
     response = render(request, 'partials/recurring_row.html', {'rule': rule})
     response['HX-Retarget'] = f'#rule-{rule.pk}'
     response['HX-Reswap'] = 'outerHTML'
+    response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Regra atualizada.', 'level': 'success'}})
     return response
 
 
@@ -718,9 +749,9 @@ def goal_create(request):
         goal.save()
         form.save_m2m()
         if request.headers.get('HX-Request'):
-            return render(request, 'partials/goal_card.html', {
-                'goal': goal, 'is_new': True,
-            })
+            response = render(request, 'partials/goal_card.html', {'goal': goal, 'is_new': True})
+            response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Meta criada.', 'level': 'success'}})
+            return response
         return redirect('goal_list')
     return render(request, 'partials/goal_form.html', {
         'form': form,
@@ -740,7 +771,19 @@ def goal_update(request, pk):
 
     if action_type and adjust_amount:
         try:
-            amount = Decimal(adjust_amount.strip().replace(',', '.'))
+            _raw = adjust_amount.strip()
+            if _raw.upper().startswith('R$'):
+                _raw = _raw[2:].strip()
+            if '.' in _raw and ',' in _raw:
+                if _raw.rfind('.') > _raw.rfind(','):
+                    _raw = _raw.replace(',', '')
+                else:
+                    _raw = _raw.replace('.', '').replace(',', '.')
+            else:
+                _raw = _raw.replace(',', '.')
+            amount = Decimal(_raw)
+            if amount <= 0:
+                raise ValueError('Valor deve ser maior que zero.')
             if action_type == 'add':
                 if create_transaction:
                     tag, _ = Tag.objects.get_or_create(
@@ -796,7 +839,7 @@ def goal_update(request, pk):
                         user=request.user,
                         defaults={"color": "#8b5cf6"}
                     )
-                    txn_desc = description or f"Gasto: {goal.name}"
+                    txn_desc = (description[:50] if description else None) or f"Gasto: {goal.name}"
                     txn = Transaction.objects.create(
                         user=request.user,
                         description=txn_desc,
@@ -812,11 +855,21 @@ def goal_update(request, pk):
 
             if request.headers.get('HX-Request'):
                 response = render(request, 'partials/goal_card.html', {'goal': goal})
-                response['HX-Trigger'] = 'transactionUpdated'
+                response['HX-Trigger'] = json.dumps({
+                    'transactionUpdated': True,
+                    'showToast': {'message': 'Meta atualizada com sucesso!', 'level': 'success'},
+                })
                 return response
             return redirect('goal_list')
-        except (ValueError, ArithmeticError):
-            pass
+        except ValueError as e:
+            err_msg = str(e) or 'Valor inválido.'
+            if request.headers.get('HX-Request'):
+                return _htmx_toast(err_msg)
+            return redirect('goal_list')
+        except ArithmeticError:
+            if request.headers.get('HX-Request'):
+                return _htmx_toast('Valor inválido. Verifique o valor informado.')
+            return redirect('goal_list')
 
     # Caso contrário, fluxo padrão de form de edição
     form = GoalForm(request.POST, instance=goal)
@@ -824,7 +877,10 @@ def goal_update(request, pk):
         form.save()
         if request.headers.get('HX-Request'):
             response = render(request, 'partials/goal_card.html', {'goal': goal})
-            response['HX-Trigger'] = 'transactionUpdated'
+            response['HX-Trigger'] = json.dumps({
+                'transactionUpdated': True,
+                'showToast': {'message': 'Meta salva com sucesso!', 'level': 'success'},
+            })
             return response
         return redirect('goal_list')
     return render(request, 'partials/goal_form.html', {'form': form}, status=400)
@@ -858,7 +914,7 @@ def goal_delete(request, pk):
     """Remove meta."""
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
     goal.delete()
-    return HttpResponse('')
+    return _htmx_toast('Meta excluída.', level='success', also_trigger='transactionUpdated')
 
 
 # ─── Credit Cards ────────────────────────────────────────────────────────────
@@ -883,9 +939,9 @@ def card_create(request):
         card.user = request.user
         card.save()
         if request.headers.get('HX-Request'):
-            return render(request, 'partials/card_row.html', {
-                'card': card, 'is_new': True,
-            })
+            response = render(request, 'partials/card_row.html', {'card': card, 'is_new': True})
+            response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Cartão cadastrado.', 'level': 'success'}})
+            return response
         return redirect('card_list')
     return render(request, 'partials/card_form.html', {'form': form}, status=400)
 
@@ -895,7 +951,7 @@ def card_delete(request, pk):
     """Remove cartão."""
     card = get_object_or_404(CreditCard, pk=pk, user=request.user)
     card.delete()
-    return HttpResponse('')
+    return _htmx_toast('Cartão excluído.', level='success')
 
 
 def card_edit(request, pk):
@@ -906,7 +962,9 @@ def card_edit(request, pk):
         form = CreditCardForm(request.POST, instance=card)
         if form.is_valid():
             card = form.save()
-            return render(request, 'partials/card_row.html', {'card': card})
+            response = render(request, 'partials/card_row.html', {'card': card})
+            response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Cartão salvo.', 'level': 'success'}})
+            return response
         # Retorna o formulário com erros de validação
         return render(request, 'partials/card_edit_form.html', {
             'form': form, 'card': card,
@@ -1066,9 +1124,9 @@ def settings_view(request):
         if form.is_valid():
             form.save()
             if request.headers.get('HX-Request'):
-                return render(request, 'partials/balance_card.html', {
-                    'settings': settings,
-                })
+                response = render(request, 'partials/balance_card.html', {'settings': settings})
+                response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Configurações salvas.', 'level': 'success'}})
+                return response
             return redirect('dashboard')
     else:
         form = UserSettingsForm(instance=settings)
@@ -1081,11 +1139,17 @@ def settings_view(request):
     return render(request, 'settings/edit.html', context)
 
 
+_HEX_COLOR_RE = re.compile(r'^#[0-9A-Fa-f]{6}$')
+
+
 @require_POST
 def tag_create(request):
     """Cria uma nova tag via HTMX e retorna a listagem atualizada."""
-    name = request.POST.get('name', '').strip()
+    name = request.POST.get('name', '').strip()[:50]
     color = request.POST.get('color', '#6366f1').strip()
+
+    if not _HEX_COLOR_RE.match(color):
+        color = '#6366f1'
 
     if name:
         Tag.objects.get_or_create(name=name, user=request.user, defaults={'color': color})

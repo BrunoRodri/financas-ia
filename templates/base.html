@@ -197,7 +197,7 @@
     </div>
 
     <!-- Toast notifications (HTMX) -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
     <!-- Container Global para Modais -->
     <div id="global-modal"></div>
@@ -213,7 +213,7 @@
                     : 'border-emerald-400/40 bg-emerald-500/10 text-emerald-100';
 
                 const toast = document.createElement('div');
-                toast.className = `max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg backdrop-blur ${tone}`;
+                toast.className = `min-w-[280px] max-w-sm rounded-lg border px-5 py-4 text-base font-medium shadow-xl backdrop-blur ${tone}`;
                 toast.textContent = message;
                 container.appendChild(toast);
 
@@ -227,7 +227,21 @@
                 const detail = event.detail || {};
                 showToast(detail.message, detail.level);
             });
+
+            window.showToast = showToast;
         })();
+
+        document.body.addEventListener('htmx:responseError', function(evt) {
+            var status = evt.detail.xhr ? evt.detail.xhr.status : 0;
+            var msg = status >= 500
+                ? 'Erro interno do servidor. Tente novamente.'
+                : 'Ocorreu um erro (' + status + '). Verifique os dados e tente novamente.';
+            if (window.showToast) window.showToast(msg, 'error');
+        });
+
+        document.body.addEventListener('htmx:sendError', function() {
+            if (window.showToast) window.showToast('Falha na conexão. Verifique sua internet.', 'error');
+        });
 
         window.closeGlobalModal = function() {
             const modal = document.getElementById('global-modal');

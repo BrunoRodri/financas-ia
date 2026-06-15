@@ -57,7 +57,39 @@ class AmountField(forms.CharField):
             raise forms.ValidationError('O valor deve ser maior que zero.')
 
 
-class TransactionForm(forms.ModelForm):
+_DESC_MAX = 50
+_NAME_MAX = 100
+_HEX_COLOR_RE = re.compile(r'^#[0-9A-Fa-f]{6}$')
+
+
+class _DescriptionMixin:
+    """Limita e valida a descrição server-side e corrige o maxlength HTML.
+
+    Django sobrescreve attrs['maxlength'] do widget com o max_length do campo
+    do model durante a inicialização. O __init__ abaixo corrige isso depois
+    que o Django termina de montar os campos.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'description' in self.fields:
+            f = self.fields['description']
+            f.max_length = _DESC_MAX
+            f.widget.attrs.update({
+                'maxlength': str(_DESC_MAX),
+                'data-char-counter': str(_DESC_MAX),
+            })
+
+    def clean_description(self):
+        value = self.cleaned_data.get('description', '').strip()
+        if len(value) > _DESC_MAX:
+            raise forms.ValidationError(f'A descrição deve ter no máximo {_DESC_MAX} caracteres.')
+        if not value:
+            raise forms.ValidationError('A descrição é obrigatória.')
+        return value
+
+
+class TransactionForm(_DescriptionMixin, forms.ModelForm):
     """Form para lançamento rápido de transações."""
 
     amount = AmountField(label='Valor (R$)')
@@ -91,8 +123,8 @@ class TransactionForm(forms.ModelForm):
                 'placeholder': 'Ex: Mercado, Salário, Netflix...',
                 'class': 'form-input',
                 'autofocus': True,
-                'maxlength': '150',
-                'data-char-counter': '150',
+                'maxlength': '50',
+                'data-char-counter': '50',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
@@ -144,7 +176,7 @@ class TransactionForm(forms.ModelForm):
         return cleaned_data
 
 
-class RecurringRuleForm(forms.ModelForm):
+class RecurringRuleForm(_DescriptionMixin, forms.ModelForm):
     """Form para criar regras recorrentes (mensais ou parceladas)."""
 
     amount = AmountField(label='Valor (R$)')
@@ -170,8 +202,8 @@ class RecurringRuleForm(forms.ModelForm):
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Netflix, Celular 12x...',
                 'class': 'form-input',
-                'maxlength': '150',
-                'data-char-counter': '150',
+                'maxlength': '50',
+                'data-char-counter': '50',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'recurrence_type': forms.Select(attrs={'class': 'form-select'}),
@@ -225,7 +257,7 @@ class RecurringRuleForm(forms.ModelForm):
         return cleaned_data
 
 
-class RecurringRuleEditForm(forms.ModelForm):
+class RecurringRuleEditForm(_DescriptionMixin, forms.ModelForm):
     """Form para editar regras recorrentes existentes (não altera recurrence_type)."""
 
     amount = AmountField(label='Valor (R$)')
@@ -251,8 +283,8 @@ class RecurringRuleEditForm(forms.ModelForm):
             'description': forms.TextInput(attrs={
                 'placeholder': 'Ex: Netflix, Celular 12x...',
                 'class': 'form-input',
-                'maxlength': '150',
-                'data-char-counter': '150',
+                'maxlength': '50',
+                'data-char-counter': '50',
             }),
             'type': forms.Select(attrs={'class': 'form-select'}),
             'total_installments': forms.NumberInput(attrs={
@@ -338,6 +370,14 @@ class GoalForm(forms.ModelForm):
             }),
         }
 
+    def clean_name(self):
+        value = self.cleaned_data.get('name', '').strip()
+        if not value:
+            raise forms.ValidationError('O nome da meta é obrigatório.')
+        if len(value) > _NAME_MAX:
+            raise forms.ValidationError(f'O nome deve ter no máximo {_NAME_MAX} caracteres.')
+        return value
+
     def clean_current_amount(self):
         value = self.cleaned_data.get('current_amount')
         if value is None:
@@ -381,10 +421,21 @@ class CreditCardForm(forms.ModelForm):
             }),
         }
 
+    def clean_name(self):
+        value = self.cleaned_data.get('name', '').strip()
+        if not value:
+            raise forms.ValidationError('O nome do cartão é obrigatório.')
+        if len(value) > _NAME_MAX:
+            raise forms.ValidationError(f'O nome deve ter no máximo {_NAME_MAX} caracteres.')
+        return value
+
     def clean_last_digits(self):
         value = self.cleaned_data.get('last_digits', '').strip()
-        if value and not value.isdigit():
-            raise forms.ValidationError('Informe apenas dígitos numéricos.')
+        if value:
+            if not value.isdigit():
+                raise forms.ValidationError('Informe apenas dígitos numéricos.')
+            if len(value) != 4:
+                raise forms.ValidationError('Informe exatamente 4 dígitos.')
         return value
 
 
