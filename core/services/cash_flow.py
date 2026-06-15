@@ -235,3 +235,81 @@ def get_upcoming_transactions(user, days=30):
         due_date__gte=today,
         due_date__lte=end,
     ).select_related('recurring_rule', 'credit_card').prefetch_related('tags').order_by('due_date')
+
+
+def get_month_data(user, month, year, projection=None):
+    """
+    Retorna dados agregados de um mês específico para o dashboard mensal.
+
+    Args:
+        projection: resultado de project_cash_flow() já calculado (evita chamada dupla).
+                    Se None, calcula internamente.
+    """
+    if projection is None:
+        projection = project_cash_flow(user)
+
+    transactions = list(
+        Transaction.objects.filter(
+            user=user,
+            due_date__month=month,
+            due_date__year=year,
+            funded_by_goal=False,
+        ).select_related('recurring_rule', 'credit_card').prefetch_related('tags').order_by('due_date')
+    )
+
+    income = sum(t.amount for t in transactions if t.is_income)
+    expense = sum(t.amount for t in transactions if t.is_expense)
+    net = income - expense
+
+    paid_income = sum(t.amount for t in transactions if t.is_income and t.status == 'PAID')
+    paid_expense = sum(t.amount for t in transactions if t.is_expense and t.status == 'PAID')
+    pending_income = income - paid_income
+    pending_expense = expense - paid_expense
+
+    prev_m = month - 1 if month > 1 else 12
+    prev_y = year if month > 1 else year - 1
+    prev_txns = list(
+        Transaction.objects.filter(
+            user=user,
+            due_date__month=prev_m,
+            due_date__year=prev_y,
+            funded_by_goal=False,
+        )
+    )
+    prev_income = sum(t.amount for t in prev_txns if t.is_income)
+    prev_expense = sum(t.amount for t in prev_txns if t.is_expense)
+
+    def _delta_pct(current, prev):
+        if not prev:
+            return None
+        return round(float((current - prev) / prev * 100), 1)
+
+    month_key = f"{year}-{month:02d}"
+    daily_balances = [
+        {'date': d['date'], 'balance': d['balance']}
+        for d in projection['daily']
+        if d['date'].month == month and d['date'].year == year
+    ]
+
+    end_balance = Decimal('0')
+    for m in projection['monthly_summary']:
+        if m['month'] == month_key:
+            end_balance = m['end_balance']
+            break
+
+    return {
+        'income': income,
+        'expense': expense,
+        'net': net,
+        'paid_income': paid_income,
+        'paid_expense': paid_expense,
+        'pending_income': pending_income,
+        'pending_expense': pending_expense,
+        'prev_income': prev_income,
+        'prev_expense': prev_expense,
+        'income_delta_pct': _delta_pct(income, prev_income),
+        'expense_delta_pct': _delta_pct(expense, prev_expense),
+        'transactions': transactions,
+        'daily_balances': daily_balances,
+        'end_balance': end_balance,
+    }

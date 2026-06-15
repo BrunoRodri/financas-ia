@@ -17,7 +17,7 @@ from core.forms import (
     UserSettingsForm,
 )
 from core.models import CreditCard, Goal, RecurringRule, Tag, Transaction, UserSettings
-from core.services.cash_flow import get_upcoming_transactions, project_cash_flow
+from core.services.cash_flow import get_month_data, get_upcoming_transactions, project_cash_flow
 
 
 class VirtualInitialBalance:
@@ -45,21 +45,29 @@ class VirtualInitialBalance:
 
 # ─── Dashboard ───────────────────────────────────────────────────────────────
 
+_MONTH_NAMES_FULL = {
+    1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril', 5: 'Maio', 6: 'Junho',
+    7: 'Julho', 8: 'Agosto', 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro',
+}
+
+
 def dashboard(request):
-    """Página principal com projeção de saldo e lançamento rápido."""
+    """Página principal com projeção mensal e lançamento rápido."""
     RecurringRule.auto_archive_expired_rules()
+    today = timezone.localdate()
+
+    month = int(request.GET.get('month', today.month))
+    year = int(request.GET.get('year', today.year))
+
     projection = project_cash_flow(request.user, months_ahead=6)
-    upcoming = get_upcoming_transactions(request.user, days=30)
+    month_data = get_month_data(request.user, month, year, projection=projection)
+
     goals = Goal.objects.filter(user=request.user, is_archived=False)
     settings = UserSettings.load(request.user)
-    today = timezone.localdate()
 
     # Widget de faturas dos cartões
     cards_with_bills = []
     for c in CreditCard.objects.filter(user=request.user):
-        # A fatura em aberto "agora" é a que contém a data de hoje. Se ainda não
-        # chegou no dia de fechamento deste mês, o período em aberto começou no
-        # mês anterior.
         actual_closing_day = min(c.closing_day, calendar.monthrange(today.year, today.month)[1])
         if today.day >= actual_closing_day:
             ref_month, ref_year = today.month, today.year
@@ -80,35 +88,28 @@ def dashboard(request):
         due_date = datetime.date(due_year, due_month, min(c.due_day, calendar.monthrange(due_year, due_month)[1]))
         cards_with_bills.append({'card': c, 'total': bill_total, 'due_date': due_date})
 
-    # Dados para o gráfico (Chart.js)
-    chart_labels = [m['month_label'] for m in projection['monthly_summary']]
-    chart_balances = [float(m['end_balance']) for m in projection['monthly_summary']]
-    chart_income = [float(m['income']) for m in projection['monthly_summary']]
-    chart_expense = [float(m['expense']) for m in projection['monthly_summary']]
+    # Tag analytics (sincronizado com o mês selecionado)
+    tag_items, tag_grand_total = _get_tag_analytics(request.user, month, year)
 
-    # Gráfico de gastos por tag
-    tag_month = int(request.GET.get('tag_month', today.month))
-    tag_year  = int(request.GET.get('tag_year',  today.year))
-    tag_items, tag_grand_total = _get_tag_analytics(request.user, tag_month, tag_year)
-    years_available = sorted(
-        {d.year for d in Transaction.objects.filter(user=request.user).dates('due_date', 'year')} | {today.year},
-        reverse=True,
-    )
-    months_available = [{'value': i, 'label': _MONTH_NAMES[i]} for i in range(1, 13)]
+    # Navegação de mês
+    prev_month = month - 1 if month > 1 else 12
+    prev_year = year if month > 1 else year - 1
+    next_month = month + 1 if month < 12 else 1
+    next_year = year if month < 12 else year + 1
+
+    selected_label = f"{_MONTH_NAMES_FULL[month]} {year}"
 
     # Form de lançamento rápido
     form = TransactionForm(user=request.user)
 
     context = {
         'projection': projection,
-        'upcoming': upcoming,
+        'month_data': month_data,
         'goals': goals,
         'settings': settings,
         'form': form,
-        'chart_labels': chart_labels,
-        'chart_balances': chart_balances,
-        'chart_income': chart_income,
-        'chart_expense': chart_expense,
+        'chart_labels': [d['date'].strftime('%d/%m') for d in month_data['daily_balances']],
+        'chart_balances': [float(d['balance']) for d in month_data['daily_balances']],
         'today': today,
         'cards_with_bills': cards_with_bills,
         'tag_items': tag_items,
@@ -116,10 +117,14 @@ def dashboard(request):
         'tag_chart_labels': [i['name'] for i in tag_items],
         'tag_chart_values': [float(i['total']) for i in tag_items],
         'tag_chart_colors': [i['color'] for i in tag_items],
-        'tag_month': tag_month,
-        'tag_year': tag_year,
-        'months_available': months_available,
-        'years_available': years_available,
+        'selected_month': month,
+        'selected_year': year,
+        'selected_label': selected_label,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
+        'is_current_month': month == today.month and year == today.year,
     }
     return render(request, 'dashboard.html', context)
 
