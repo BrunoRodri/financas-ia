@@ -511,14 +511,14 @@ def unified_launch_create(request):
             'new_monthly_rule': new_monthly_rule,
         }
 
-    def _error_ctx(form):
-        return {
-            'form': form,
-            'type_value': post_data.get('type', 'EXPENSE'),
-            'launch_mode': launch_mode,
-            'installments': installments,
-            'date_value': post_data.get('date', ''),
-        }
+    def _form_error(form):
+        for field_name, errors in form.errors.items():
+            if field_name == '__all__':
+                return _htmx_toast(errors[0])
+            field = form.fields.get(field_name)
+            label = getattr(field, 'label', None) or field_name
+            return _htmx_toast(f'{label}: {errors[0]}')
+        return _htmx_toast('Verifique os campos do formulário.')
 
     if launch_mode == 'monthly':
         post_data['start_date'] = post_data.get('date', '')
@@ -536,7 +536,7 @@ def unified_launch_create(request):
                 'showToast': {'message': 'Regra mensal criada.', 'level': 'success'},
             })
             return response
-        return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
+        return _form_error(form)
 
     elif installments > 1:
         post_data['start_date'] = post_data.get('date', '')
@@ -556,7 +556,7 @@ def unified_launch_create(request):
                 'showToast': {'message': 'Parcelamento criado.', 'level': 'success'},
             })
             return response
-        return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
+        return _form_error(form)
 
     else:
         post_data['due_date'] = post_data.get('date', '')
@@ -572,7 +572,7 @@ def unified_launch_create(request):
                 'showToast': {'message': 'Lançamento criado.', 'level': 'success'},
             })
             return response
-        return render(request, 'partials/unified_launch_form.html', _error_ctx(form), status=422)
+        return _form_error(form)
 
 
 @require_POST
@@ -753,9 +753,11 @@ def goal_create(request):
             response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Meta criada.', 'level': 'success'}})
             return response
         return redirect('goal_list')
-    return render(request, 'partials/goal_form.html', {
-        'form': form,
-    }, status=400)
+    first_error = next(
+        (msg for errors in form.errors.values() for msg in errors),
+        'Verifique os campos do formulário.',
+    )
+    return _htmx_toast(first_error)
 
 
 @require_POST

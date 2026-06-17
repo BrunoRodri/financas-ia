@@ -1,3 +1,4 @@
+import datetime
 import re
 from decimal import Decimal, InvalidOperation
 
@@ -60,6 +61,7 @@ class AmountField(forms.CharField):
 _DESC_MAX = 50
 _NAME_MAX = 100
 _CARD_NAME_MAX = 25
+_GOAL_NAME_MAX = 25
 _HEX_COLOR_RE = re.compile(r'^#[0-9A-Fa-f]{6}$')
 
 
@@ -364,6 +366,7 @@ class GoalForm(forms.ModelForm):
             'name': forms.TextInput(attrs={
                 'placeholder': 'Ex: Viagem pro Rio',
                 'class': 'form-input',
+                'maxlength': str(_GOAL_NAME_MAX),
             }),
             'color': forms.TextInput(attrs={
                 'type': 'color',
@@ -375,14 +378,44 @@ class GoalForm(forms.ModelForm):
         value = self.cleaned_data.get('name', '').strip()
         if not value:
             raise forms.ValidationError('O nome da meta é obrigatório.')
-        if len(value) > _NAME_MAX:
-            raise forms.ValidationError(f'O nome deve ter no máximo {_NAME_MAX} caracteres.')
+        if len(value) > _GOAL_NAME_MAX:
+            raise forms.ValidationError(f'O nome deve ter no máximo {_GOAL_NAME_MAX} caracteres.')
+        return value
+
+    def clean_color(self):
+        value = self.cleaned_data.get('color', '').strip()
+        if not value:
+            return '#22c55e'
+        if not _HEX_COLOR_RE.match(value):
+            raise forms.ValidationError('Cor inválida. Use o formato #rrggbb.')
+        return value
+
+    def clean_target_amount(self):
+        value = self.cleaned_data.get('target_amount')
+        if value is None or value <= 0:
+            raise forms.ValidationError('O valor alvo deve ser maior que zero.')
+        if value > Decimal('999999999.99'):
+            raise forms.ValidationError('Valor alvo muito alto.')
         return value
 
     def clean_current_amount(self):
         value = self.cleaned_data.get('current_amount')
         if value is None:
             return Decimal('0')
+        if value < 0:
+            raise forms.ValidationError('O valor acumulado não pode ser negativo.')
+        if value > Decimal('999999999.99'):
+            raise forms.ValidationError('Valor acumulado muito alto.')
+        return value
+
+    def clean_deadline(self):
+        value = self.cleaned_data.get('deadline')
+        if not value:
+            raise forms.ValidationError('A data limite é obrigatória.')
+        if value < datetime.date(2000, 1, 1):
+            raise forms.ValidationError('Data limite inválida.')
+        if value > datetime.date(2100, 12, 31):
+            raise forms.ValidationError('Data limite muito distante no futuro.')
         return value
 
 

@@ -70,8 +70,10 @@
                     <div class="date-picker-grid" data-date-grid></div>
                 </div>
             </div>
-            {% if form.due_date.errors or form.start_date.errors %}
-                <p class="form-error">{{ form.due_date.errors.0|default:form.start_date.errors.0 }}</p>
+            {% if form.due_date.errors %}
+                <p class="form-error">{{ form.due_date.errors.0 }}</p>
+            {% elif 'start_date' in form.fields and form.start_date.errors %}
+                <p class="form-error">{{ form.start_date.errors.0 }}</p>
             {% endif %}
         </div>
         <div id="status-container">

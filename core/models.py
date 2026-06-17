@@ -427,7 +427,7 @@ class Goal(models.Model):
     """Meta financeira (ex: Viagem pro Rio, Reserva de emergência)."""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                              verbose_name='Usuário', related_name='goals')
-    name = models.CharField('Nome', max_length=100)
+    name = models.CharField('Nome', max_length=25)
     target_amount = models.DecimalField('Valor alvo', max_digits=12, decimal_places=2)
     current_amount = models.DecimalField('Valor acumulado', max_digits=12, decimal_places=2,
                                          default=0)
