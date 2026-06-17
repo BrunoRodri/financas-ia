@@ -36,6 +36,9 @@
                 <input type="text" name="last_digits" id="edit_last_digits_{{ card.id }}"
                        value="{{ card.last_digits }}"
                        maxlength="4"
+                       inputmode="numeric"
+                       pattern="[0-9]*"
+                       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
                        class="form-input w-full">
             </div>
         </div>

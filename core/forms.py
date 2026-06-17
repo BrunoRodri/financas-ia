@@ -59,6 +59,7 @@ class AmountField(forms.CharField):
 
 _DESC_MAX = 50
 _NAME_MAX = 100
+_CARD_NAME_MAX = 25
 _HEX_COLOR_RE = re.compile(r'^#[0-9A-Fa-f]{6}$')
 
 
@@ -388,15 +389,39 @@ class GoalForm(forms.ModelForm):
 class CreditCardForm(forms.ModelForm):
     """Form para cadastrar cartões de crédito."""
 
+    last_digits = forms.CharField(
+        label='Últimos 4 dígitos',
+        required=False,
+        max_length=4,
+        widget=forms.TextInput(attrs={
+            'placeholder': '1234',
+            'class': 'form-input',
+            'maxlength': '4',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'oninput': "this.value=this.value.replace(/[^0-9]/g,'')",
+        }),
+        error_messages={'max_length': 'Informe exatamente 4 dígitos.'},
+    )
     closing_day = forms.IntegerField(
         min_value=1, max_value=31,
         label='Fechamento (dia)',
         widget=forms.NumberInput(attrs={'class': 'form-input', 'min': '1', 'max': '31'}),
+        error_messages={
+            'min_value': 'O dia deve ser entre 1 e 31.',
+            'max_value': 'O dia deve ser entre 1 e 31.',
+            'invalid': 'Informe um número inteiro válido.',
+        },
     )
     due_day = forms.IntegerField(
         min_value=1, max_value=31,
         label='Vencimento (dia)',
         widget=forms.NumberInput(attrs={'class': 'form-input', 'min': '1', 'max': '31'}),
+        error_messages={
+            'min_value': 'O dia deve ser entre 1 e 31.',
+            'max_value': 'O dia deve ser entre 1 e 31.',
+            'invalid': 'Informe um número inteiro válido.',
+        },
     )
 
     class Meta:
@@ -406,13 +431,6 @@ class CreditCardForm(forms.ModelForm):
             'name': forms.TextInput(attrs={
                 'placeholder': 'Ex: Nubank',
                 'class': 'form-input',
-            }),
-            'last_digits': forms.TextInput(attrs={
-                'placeholder': '1234',
-                'class': 'form-input',
-                'maxlength': '4',
-                'inputmode': 'numeric',
-                'pattern': '[0-9]*',
             }),
             'brand': forms.Select(attrs={'class': 'form-select'}),
             'color': forms.TextInput(attrs={
@@ -425,8 +443,8 @@ class CreditCardForm(forms.ModelForm):
         value = self.cleaned_data.get('name', '').strip()
         if not value:
             raise forms.ValidationError('O nome do cartão é obrigatório.')
-        if len(value) > _NAME_MAX:
-            raise forms.ValidationError(f'O nome deve ter no máximo {_NAME_MAX} caracteres.')
+        if len(value) > _CARD_NAME_MAX:
+            raise forms.ValidationError(f'O nome deve ter no máximo {_CARD_NAME_MAX} caracteres.')
         return value
 
     def clean_last_digits(self):

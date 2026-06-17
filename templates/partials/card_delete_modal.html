@@ -1,0 +1,81 @@
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[105] flex items-center justify-center animate-fade-in pointer-events-auto"
+     id="card-delete-modal-overlay"
+     onclick="if(event.target === this) this.remove()">
+    <div class="bg-dark-800 border border-white/10 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl space-y-5 animate-scale-up">
+
+        <!-- Header -->
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-white">Excluir Cartão</h3>
+                <p class="text-sm text-gray-400 mt-1">Cartão: <span class="text-white font-medium">{{ card.name }}{% if card.last_digits %} •••• {{ card.last_digits }}{% endif %}</span></p>
+            </div>
+        </div>
+
+        <!-- Detalhes do cartão -->
+        <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-gray-400">Bandeira:</span>
+                <span class="text-white">{{ card.get_brand_display }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-400">Fechamento / Vencimento:</span>
+                <span class="text-white">Dia {{ card.closing_day }} / Dia {{ card.due_day }}</span>
+            </div>
+            {% if txn_count or rule_count %}
+            <div class="border-t border-white/5 pt-2 flex justify-between">
+                <span class="text-gray-400">Lançamentos vinculados:</span>
+                <span class="text-yellow-400 font-medium">
+                    {{ txn_count }} transaç{{ txn_count|pluralize:"ão,ões" }}{% if rule_count %} · {{ rule_count }} regra{{ rule_count|pluralize:",s" }}{% endif %}
+                </span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Aviso -->
+        <p class="text-xs text-gray-500 text-center">Como deseja prosseguir com a exclusão?</p>
+
+        <!-- Ações -->
+        <div class="flex flex-col gap-2">
+            {% if txn_count or rule_count %}
+            <!-- Opção 1: excluir tudo -->
+            <button hx-post="{% url 'card_delete_with_transactions' card.id %}"
+                    hx-target="#card-{{ card.id }}"
+                    hx-swap="outerHTML"
+                    hx-on::after-request="const overlay = document.getElementById('card-delete-modal-overlay'); if(overlay) overlay.remove()"
+                    class="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-all shadow-md shadow-red-600/10 active:scale-[0.98]">
+                Excluir cartão e lançamentos
+                <span class="text-xs font-normal opacity-70 ml-1">({{ txn_count }} transaç{{ txn_count|pluralize:"ão,ões" }}{% if rule_count %} · {{ rule_count }} regra{{ rule_count|pluralize:",s" }}{% endif %})</span>
+            </button>
+            <!-- Opção 2: só o cartão -->
+            <button hx-post="{% url 'card_delete' card.id %}"
+                    hx-target="#card-{{ card.id }}"
+                    hx-swap="outerHTML"
+                    hx-on::after-request="const overlay = document.getElementById('card-delete-modal-overlay'); if(overlay) overlay.remove()"
+                    class="w-full py-2.5 rounded-xl text-sm font-semibold bg-white/5 hover:bg-white/10 text-gray-200 transition-colors border border-white/10 active:scale-[0.98]">
+                Excluir só o cartão
+                <span class="text-xs font-normal text-gray-500 ml-1">(lançamentos permanecem)</span>
+            </button>
+            {% else %}
+            <!-- Sem lançamentos: opção única -->
+            <button hx-post="{% url 'card_delete' card.id %}"
+                    hx-target="#card-{{ card.id }}"
+                    hx-swap="outerHTML"
+                    hx-on::after-request="const overlay = document.getElementById('card-delete-modal-overlay'); if(overlay) overlay.remove()"
+                    class="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-all shadow-md shadow-red-600/10 active:scale-[0.98]">
+                Sim, excluir cartão
+            </button>
+            {% endif %}
+
+            <button type="button"
+                    onclick="this.closest('#card-delete-modal-overlay').remove()"
+                    class="w-full py-2.5 rounded-xl text-sm font-semibold bg-transparent hover:bg-white/5 text-gray-500 hover:text-gray-300 transition-colors">
+                Cancelar
+            </button>
+        </div>
+    </div>
+</div>

@@ -37,7 +37,7 @@ class CreditCard(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
                              verbose_name='Usuário', related_name='credit_cards')
-    name = models.CharField('Nome do cartão', max_length=100,
+    name = models.CharField('Nome do cartão', max_length=25,
                             help_text='Ex: Nubank, MercadoPago, Inter')
     last_digits = models.CharField('Últimos 4 dígitos', max_length=4, blank=True, default='')
     brand = models.CharField('Bandeira', max_length=20, choices=Brand.choices, default=Brand.VISA)

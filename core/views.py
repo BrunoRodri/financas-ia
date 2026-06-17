@@ -943,15 +943,47 @@ def card_create(request):
             response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Cartão cadastrado.', 'level': 'success'}})
             return response
         return redirect('card_list')
-    return render(request, 'partials/card_form.html', {'form': form}, status=400)
+    first_error = next(
+        (msg for errors in form.errors.values() for msg in errors),
+        'Verifique os campos do formulário.',
+    )
+    return _htmx_toast(first_error)
+
+
+def card_delete_modal(request, pk):
+    """Retorna o modal de confirmação de exclusão do cartão."""
+    card = get_object_or_404(CreditCard, pk=pk, user=request.user)
+    txn_count = Transaction.objects.filter(
+        Q(credit_card=card) | Q(bill_card=card)
+    ).count()
+    rule_count = RecurringRule.objects.filter(credit_card=card).count()
+    return render(request, 'partials/card_delete_modal.html', {
+        'card': card,
+        'txn_count': txn_count,
+        'rule_count': rule_count,
+    })
 
 
 @require_POST
 def card_delete(request, pk):
-    """Remove cartão."""
+    """Remove cartão e desvincula lançamentos (SET_NULL)."""
     card = get_object_or_404(CreditCard, pk=pk, user=request.user)
     card.delete()
-    return _htmx_toast('Cartão excluído.', level='success')
+    response = HttpResponse('')
+    response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Cartão excluído.', 'level': 'success'}})
+    return response
+
+
+@require_POST
+def card_delete_with_transactions(request, pk):
+    """Remove cartão junto com todos os lançamentos e regras vinculados."""
+    card = get_object_or_404(CreditCard, pk=pk, user=request.user)
+    Transaction.objects.filter(Q(credit_card=card) | Q(bill_card=card)).delete()
+    RecurringRule.objects.filter(credit_card=card).delete()
+    card.delete()
+    response = HttpResponse('')
+    response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Cartão e lançamentos excluídos.', 'level': 'success'}})
+    return response
 
 
 def card_edit(request, pk):
@@ -965,10 +997,11 @@ def card_edit(request, pk):
             response = render(request, 'partials/card_row.html', {'card': card})
             response['HX-Trigger'] = json.dumps({'showToast': {'message': 'Cartão salvo.', 'level': 'success'}})
             return response
-        # Retorna o formulário com erros de validação
-        return render(request, 'partials/card_edit_form.html', {
-            'form': form, 'card': card,
-        }, status=400)
+        first_error = next(
+            (msg for errors in form.errors.values() for msg in errors),
+            'Verifique os campos do formulário.',
+        )
+        return _htmx_toast(first_error)
 
     # GET com ?cancel=1 → cancela e retorna o item original
     if request.GET.get('cancel'):
