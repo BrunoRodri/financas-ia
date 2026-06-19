@@ -65,6 +65,14 @@ _GOAL_NAME_MAX = 25
 _HEX_COLOR_RE = re.compile(r'^#[0-9A-Fa-f]{6}$')
 
 
+def _min_allowed_date() -> datetime.date:
+    today = datetime.date.today()
+    try:
+        return today.replace(year=today.year - 1)
+    except ValueError:  # 29/fev em ano não-bissexto
+        return today.replace(year=today.year - 1, day=28)
+
+
 class _DescriptionMixin:
     """Limita e valida a descrição server-side e corrige o maxlength HTML.
 
@@ -162,6 +170,16 @@ class TransactionForm(_DescriptionMixin, forms.ModelForm):
             else:
                 self.fields['payment_type'].initial = 'other'
 
+    def clean_due_date(self):
+        due = self.cleaned_data.get('due_date')
+        if due:
+            min_date = _min_allowed_date()
+            if due < min_date:
+                raise forms.ValidationError(
+                    f'A data não pode ser anterior a {min_date.strftime("%d/%m/%Y")}.'
+                )
+        return due
+
     def clean(self):
         cleaned_data = super().clean()
         txn_type = cleaned_data.get('type')
@@ -240,6 +258,16 @@ class RecurringRuleForm(_DescriptionMixin, forms.ModelForm):
                     Q(is_archived=False) | Q(pk=self.instance.goal_id)
                 )
             self.fields['goal'].queryset = goals_qs
+
+    def clean_start_date(self):
+        start = self.cleaned_data.get('start_date')
+        if start:
+            min_date = _min_allowed_date()
+            if start < min_date:
+                raise forms.ValidationError(
+                    f'A data não pode ser anterior a {min_date.strftime("%d/%m/%Y")}.'
+                )
+        return start
 
     def clean(self):
         cleaned_data = super().clean()
@@ -322,6 +350,16 @@ class RecurringRuleEditForm(_DescriptionMixin, forms.ModelForm):
 
         if self.instance and self.instance.recurrence_type != RecurringRule.RecurrenceType.INSTALLMENT:
             self.fields['total_installments'].widget.attrs['disabled'] = True
+
+    def clean_start_date(self):
+        start = self.cleaned_data.get('start_date')
+        if start:
+            min_date = _min_allowed_date()
+            if start < min_date:
+                raise forms.ValidationError(
+                    f'A data não pode ser anterior a {min_date.strftime("%d/%m/%Y")}.'
+                )
+        return start
 
     def clean(self):
         cleaned_data = super().clean()

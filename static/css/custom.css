@@ -572,6 +572,12 @@ html.light {
     cursor: default;
 }
 
+.date-picker-day.is-disabled {
+    color: rgba(107, 114, 128, 0.4);
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 @media (max-width: 640px) {
     .date-picker-panel {
         min-width: 15.5rem;

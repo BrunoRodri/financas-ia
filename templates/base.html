@@ -276,6 +276,7 @@
 
                 const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
                 const today = new Date();
+                const minDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
 
                 function formatBR(date) {
                     const dd = String(date.getDate()).padStart(2, '0');
@@ -346,14 +347,19 @@
                         if (isSameDate(current, today)) day.classList.add('is-today');
                         if (isSameDate(current, selectedDate)) day.classList.add('is-selected');
 
-                        day.addEventListener('click', function() {
-                            selectedDate = current;
-                            input.value = formatBR(current);
-                            panel.classList.add('hidden');
-                            renderCalendar();
-                            input.dispatchEvent(new Event('input', { bubbles: true }));
-                            input.dispatchEvent(new Event('change', { bubbles: true }));
-                        });
+                        if (current < minDate) {
+                            day.disabled = true;
+                            day.classList.add('is-disabled');
+                        } else {
+                            day.addEventListener('click', function() {
+                                selectedDate = current;
+                                input.value = formatBR(current);
+                                panel.classList.add('hidden');
+                                renderCalendar();
+                                input.dispatchEvent(new Event('input', { bubbles: true }));
+                                input.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                        }
 
                         grid.appendChild(day);
                     }
@@ -373,6 +379,14 @@
                 function syncFromInput() {
                     const parsed = parseDate(input.value);
                     if (!parsed) return;
+                    if (parsed < minDate) {
+                        selectedDate = minDate;
+                        viewMonth = minDate.getMonth();
+                        viewYear  = minDate.getFullYear();
+                        input.value = formatBR(minDate);
+                        renderCalendar();
+                        return;
+                    }
                     selectedDate = parsed;
                     viewMonth = parsed.getMonth();
                     viewYear = parsed.getFullYear();
@@ -410,11 +424,12 @@
 
                 prev.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    viewMonth -= 1;
-                    if (viewMonth < 0) {
-                        viewMonth = 11;
-                        viewYear -= 1;
-                    }
+                    const prevMonth = viewMonth === 0 ? 11 : viewMonth - 1;
+                    const prevYear  = viewMonth === 0 ? viewYear - 1 : viewYear;
+                    if (prevYear < minDate.getFullYear() ||
+                        (prevYear === minDate.getFullYear() && prevMonth < minDate.getMonth())) return;
+                    viewMonth = prevMonth;
+                    viewYear  = prevYear;
                     renderCalendar();
                 });
 
