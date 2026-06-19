@@ -18,7 +18,7 @@ class CreditCardAdmin(admin.ModelAdmin):
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ['description', 'amount', 'type', 'due_date', 'status', 'credit_card']
-    list_filter = ['type', 'status', 'credit_card', 'tags']
+    list_filter = ['type', 'status', 'credit_card', 'tags', 'user']
     search_fields = ['description']
     date_hierarchy = 'due_date'
     filter_horizontal = ['tags']
