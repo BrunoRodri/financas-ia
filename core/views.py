@@ -186,18 +186,29 @@ def transaction_list(request):
     status = request.GET.get('status')
     txn_type = request.GET.get('type')
     tag = request.GET.get('tag')
-    month_filter = request.GET.get('month')  # Pode ser "05" ou "2026-05" (redirecionamento do dashboard)
-    year_filter = request.GET.get('year')
     payment_method = request.GET.get('payment_method')
     card_id = request.GET.get('card')
     view_by_bill = request.GET.get('view_by_bill') == 'true'
 
+    today = timezone.localdate()
+    raw_month = request.GET.get('month', '')
+    raw_year  = request.GET.get('year', '')
+
     # Suporte a redirecionamentos do dashboard no formato YYYY-MM
-    if month_filter and '-' in month_filter:
+    if raw_month and '-' in raw_month:
         try:
-            year_filter, month_filter = month_filter.split('-')
+            raw_year, raw_month = raw_month.split('-')
         except ValueError:
             pass
+
+    try:
+        month = int(raw_month) if raw_month else today.month
+        year  = int(raw_year)  if raw_year  else today.year
+    except (ValueError, TypeError):
+        month, year = today.month, today.year
+
+    month = max(1, min(12, month))
+    year  = max(today.year - 3, min(today.year + 3, year))
 
     # Aplicar filtros
     if status:
@@ -211,25 +222,14 @@ def transaction_list(request):
     if view_by_bill and card_id:
         try:
             card = CreditCard.objects.get(id=card_id, user=request.user)
-            target_year = int(year_filter) if year_filter else timezone.localdate().year
-            target_month = int(month_filter) if month_filter else timezone.localdate().month
-            start_date, end_date = get_bill_period(card, target_year, target_month)
+            start_date, end_date = get_bill_period(card, year, month)
             transactions = transactions.filter(due_date__range=(start_date, end_date))
             applied_bill_filter = True
         except (ValueError, CreditCard.DoesNotExist):
             pass
 
     if not applied_bill_filter:
-        if year_filter:
-            try:
-                transactions = transactions.filter(due_date__year=int(year_filter))
-            except ValueError:
-                pass
-        if month_filter:
-            try:
-                transactions = transactions.filter(due_date__month=int(month_filter))
-            except ValueError:
-                pass
+        transactions = transactions.filter(due_date__year=year, due_date__month=month)
     if payment_method:
         if payment_method == 'other':
             transactions = transactions.filter(credit_card__isnull=True)
@@ -252,18 +252,8 @@ def transaction_list(request):
             show_initial_balance = False
     if tag or card_id or payment_method:
         show_initial_balance = False
-    if year_filter:
-        try:
-            if user_settings.balance_date.year != int(year_filter):
-                show_initial_balance = False
-        except ValueError:
-            pass
-    if month_filter:
-        try:
-            if user_settings.balance_date.month != int(month_filter):
-                show_initial_balance = False
-        except ValueError:
-            pass
+    if user_settings.balance_date.year != year or user_settings.balance_date.month != month:
+        show_initial_balance = False
 
     # Saldo líquido inclui o saldo de partida (se estiver ativo/exibido nos filtros atuais)
     net_balance = total_income - total_expense
@@ -282,49 +272,32 @@ def transaction_list(request):
 
     cards = CreditCard.objects.filter(user=request.user)
 
-    # Todos os 12 meses em ordem cronológica
-    months_available = [
-        {'value': '01', 'label': 'Janeiro'},
-        {'value': '02', 'label': 'Fevereiro'},
-        {'value': '03', 'label': 'Março'},
-        {'value': '04', 'label': 'Abril'},
-        {'value': '05', 'label': 'Maio'},
-        {'value': '06', 'label': 'Junho'},
-        {'value': '07', 'label': 'Julho'},
-        {'value': '08', 'label': 'Agosto'},
-        {'value': '09', 'label': 'Setembro'},
-        {'value': '10', 'label': 'Outubro'},
-        {'value': '11', 'label': 'Novembro'},
-        {'value': '12', 'label': 'Dezembro'},
-    ]
+    _MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    prev_month = month - 1 if month > 1 else 12
+    prev_year  = year if month > 1 else year - 1
+    next_month = month + 1 if month < 12 else 1
+    next_year  = year if month < 12 else year + 1
+    selected_label   = f"{_MONTH_NAMES[month - 1]} {year}"
+    is_current_month = (month == today.month and year == today.year)
 
-    # Mapear os anos existentes nas transações
-    from django.db.models.functions import ExtractYear
-    years_query = Transaction.objects.filter(user=request.user).annotate(
-        year=ExtractYear('due_date')
-    ).values_list('year', flat=True).distinct().order_by('-year')
-
-    current_year = timezone.localdate().year
-    years_available = list(years_query)
-    if current_year not in years_available:
-        years_available.append(current_year)
-
-    # Remover valores nulos e ordenar decrescente
-    years_available = sorted([y for y in years_available if y is not None], reverse=True)
-
-    has_advanced = bool(status or month_filter or year_filter or payment_method or card_id or tag)
+    has_advanced = bool(status or payment_method or card_id or tag)
 
     context = {
         'transactions': transactions_list,
         'tags': Tag.objects.filter(user=request.user),
         'cards': cards,
-        'months_available': months_available,
-        'years_available': years_available,
+        'selected_month':   month,
+        'selected_year':    year,
+        'selected_label':   selected_label,
+        'is_current_month': is_current_month,
+        'prev_month':       prev_month,
+        'prev_year':        prev_year,
+        'next_month':       next_month,
+        'next_year':        next_year,
         'current_status': status,
         'current_type': txn_type,
         'current_tag': tag,
-        'current_month': month_filter,
-        'current_year': year_filter,
         'current_payment_method': payment_method,
         'current_card': card_id,
         'view_by_bill': view_by_bill,

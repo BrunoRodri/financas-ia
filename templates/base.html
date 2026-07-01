@@ -462,10 +462,17 @@
                 if (el.dataset.amountMask) return;
                 el.dataset.amountMask = '1';
 
-                // Parse valor inicial do servidor (ex: "150.50" ou "1500.00")
+                // Parse valor inicial do servidor (ex: "150.50") ou BRL formatado ("R$ 1.500,50")
                 var cents = 0;
-                var raw = el.value.trim().replace(/R\$\s*/i, '').replace(/\./g, '').replace(',', '.');
-                var parsed = parseFloat(raw);
+                var rawVal = el.value.trim().replace(/R\$\s*/i, '').trim();
+                var parsed;
+                if (rawVal.indexOf(',') !== -1) {
+                    // Formato BRL: ponto = milhar, vírgula = decimal
+                    parsed = parseFloat(rawVal.replace(/\./g, '').replace(',', '.'));
+                } else {
+                    // Formato do servidor: ponto = decimal
+                    parsed = parseFloat(rawVal);
+                }
                 if (!isNaN(parsed) && parsed > 0) {
                     cents = Math.round(parsed * 100);
                 }

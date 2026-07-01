@@ -9,8 +9,20 @@
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-white">Transações</h1>
-            <p class="text-sm text-gray-400 mt-1">Todas as suas receitas e despesas</p>
+            <p class="text-sm text-gray-400 mt-1">Receitas e despesas de {{ selected_label }}</p>
         </div>
+    </div>
+
+    <!-- Month Navigator -->
+    <div class="card flex items-center justify-between px-6 py-4">
+        <button type="button" onclick="goToMonth({{ prev_month }}, {{ prev_year }})"
+                class="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all text-lg font-light">‹</button>
+        <div class="text-center">
+            <p class="text-lg font-bold text-white">{{ selected_label }}</p>
+            {% if is_current_month %}<span class="text-xs text-accent-light">Mês atual</span>{% endif %}
+        </div>
+        <button type="button" onclick="goToMonth({{ next_month }}, {{ next_year }})"
+                class="w-9 h-9 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all text-lg font-light">›</button>
     </div>
 
     <!-- Filters Panel -->
@@ -28,6 +40,8 @@
                 <div class="flex flex-wrap items-center gap-3">
                     <input type="hidden" name="type" id="filter_type_input" value="{{ current_type|default:'' }}">
                     <input type="hidden" name="tag" id="filter_tag_input" value="{{ current_tag|default:'' }}">
+                    <input type="hidden" name="month" id="filter_month" value="{{ selected_month }}">
+                    <input type="hidden" name="year" id="filter_year" value="{{ selected_year }}">
 
                     <!-- Botões de Tipo (Sempre Visíveis) -->
                     <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Tipo:</span>
@@ -38,7 +52,7 @@
 
                 <div class="flex items-center gap-2">
                     <!-- Botão de Limpar (Visível se algum filtro estiver ativo) -->
-                    {% if current_type or current_month or current_year or current_payment_method or current_card or current_status or current_tag %}
+                    {% if current_type or current_payment_method or current_card or current_status or current_tag %}
                     <a href="{% url 'transaction_list' %}"
                        hx-get="{% url 'transaction_list' %}"
                        hx-target="#transactions-page-container"
@@ -61,29 +75,7 @@
 
             <!-- Advanced Filters Panel (Hidden by Default) -->
             <div id="advanced-filters-panel" class="space-y-4 pt-4 border-t border-white/5 {% if not has_advanced %}hidden{% endif %}">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <!-- Mês -->
-                    <div>
-                        <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_month">Mês</label>
-                        <select name="month" id="filter_month" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
-                            <option value="">Todos os meses</option>
-                            {% for m in months_available %}
-                                <option value="{{ m.value }}" {% if m.value == current_month %}selected{% endif %}>{{ m.label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Ano -->
-                    <div>
-                        <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_year">Ano</label>
-                        <select name="year" id="filter_year" class="form-select mt-1 w-full bg-dark-900/60 border-white/10 rounded-lg text-white">
-                            <option value="">Todos os anos</option>
-                            {% for y in years_available %}
-                                <option value="{{ y }}" {% if y|stringformat:"d" == current_year %}selected{% endif %}>{{ y }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Meio de Pagamento -->
                     <div>
                         <label class="form-label text-xs uppercase tracking-wider text-gray-400 font-semibold" for="filter_payment_method">Meio de Pagamento</label>
@@ -184,10 +176,10 @@
     <div class="card">
         <div class="space-y-1.5 animate-fade-in" id="full-transaction-list">
             {% for txn in transactions %}
-                {% ifchanged txn.due_date|date:"Y-m" %}
-                    <div class="flex items-center gap-3 pt-5 pb-1.5 {% if not forloop.first %}mt-5 border-t border-white/5{% endif %} first:pt-1">
+                {% ifchanged txn.due_date %}
+                    <div class="flex items-center gap-3 pt-5 pb-1.5 {% if not forloop.first %}mt-3 border-t border-white/5{% endif %} first:pt-1">
                         <span class="text-xs font-bold uppercase tracking-wider text-primary-400">
-                            {{ txn.due_date|date:"F Y" }}
+                            {{ txn.due_date|date:"d \d\e F" }}
                         </span>
                         <div class="h-px flex-1 bg-white/5"></div>
                     </div>
@@ -200,17 +192,20 @@
             {% empty %}
                 <div class="empty-state">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    <p class="text-sm">Nenhuma transação encontrada</p>
-                    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-sm mt-4">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                        Lançar no Dashboard
-                    </a>
+                    <p class="text-sm">Nenhuma transação em {{ selected_label }}</p>
+                    <p class="text-xs mt-1 text-gray-500">Use os botões ‹ › para navegar entre os meses</p>
                 </div>
             {% endfor %}
         </div>
     </div>
 
     <script>
+        window.goToMonth = function(m, y) {
+            document.getElementById('filter_month').value = m;
+            document.getElementById('filter_year').value  = y;
+            htmx.trigger('#filter-form', 'submit');
+        };
+
         (function() {
             function updateFilterCardVisibility() {
                 const methodField = document.getElementById('filter_payment_method');
