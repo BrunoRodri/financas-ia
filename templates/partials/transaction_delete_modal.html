@@ -61,11 +61,13 @@
                     hx-target="#txn-{{ txn.id }}"
                     hx-swap="outerHTML"
                     hx-on::after-request="const overlay = document.getElementById('delete-modal-overlay'); if(overlay) overlay.remove()"
+                    data-loading-text="Excluindo..."
                     class="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-all shadow-md shadow-red-600/10 active:scale-[0.98]">
                 Só esta parcela
                 <span class="text-xs font-normal opacity-70 ml-1">({{ txn.installment_number }}/{{ txn.recurring_rule.total_installments }})</span>
             </button>
             <button hx-post="{% url 'transaction_delete_installments' txn.id %}"
+                    data-loading-text="Excluindo..."
                     class="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-900/60 hover:bg-red-800/60 text-red-300 transition-all border border-red-700/30 active:scale-[0.98]">
                 Todas as parcelas
                 <span class="text-xs font-normal opacity-70 ml-1">({{ txn.recurring_rule.total_installments }} no total)</span>
@@ -76,6 +78,7 @@
                     hx-target="#txn-{{ txn.id }}"
                     hx-swap="outerHTML"
                     hx-on::after-request="const overlay = document.getElementById('delete-modal-overlay'); if(overlay) overlay.remove()"
+                    data-loading-text="Excluindo..."
                     class="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-all shadow-md shadow-red-600/10 active:scale-[0.98]">
                 Sim, excluir transação
             </button>

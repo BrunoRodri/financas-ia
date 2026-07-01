@@ -73,6 +73,9 @@
 <body class="bg-dark-900 text-gray-100 font-sans antialiased min-h-screen flex flex-col md:flex-row"
       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
+    <!-- Barra de progresso global (HTMX) -->
+    <div id="htmx-progress-bar" style="position:fixed;top:0;left:0;height:3px;width:0%;z-index:99999;background:linear-gradient(90deg,#fcd535,#f0b90b);opacity:1;pointer-events:none;transition:none;"></div>
+
     <!-- Mobile Top Header -->
     <header class="fixed top-0 left-0 right-0 h-16 md:hidden flex items-center justify-between px-4 z-40 bg-dark-900 border-b border-dark-700">
         <!-- Logo -->
@@ -706,6 +709,84 @@
 
             initSidebar();
             window.addEventListener('resize', initSidebar);
+        })();
+
+        // Barra de progresso + spinner nos botões de ação
+        (function() {
+            var bar = document.getElementById('htmx-progress-bar');
+            var _timer = null;
+            var _activeBtn = null;
+            var _originalHTML = null;
+
+            var SPINNER = '<svg class="animate-spin inline w-4 h-4 align-text-bottom mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+            function startBar() {
+                if (!bar) return;
+                clearTimeout(_timer);
+                bar.style.transition = 'none';
+                bar.style.width = '0%';
+                bar.style.opacity = '1';
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        bar.style.transition = 'width 2s cubic-bezier(0.1, 0.4, 0.3, 1)';
+                        bar.style.width = '85%';
+                    });
+                });
+            }
+
+            function finishBar() {
+                if (!bar) return;
+                clearTimeout(_timer);
+                bar.style.transition = 'width 0.15s ease-in';
+                bar.style.width = '100%';
+                _timer = setTimeout(function() {
+                    bar.style.transition = 'opacity 0.2s ease';
+                    bar.style.opacity = '0';
+                    setTimeout(function() {
+                        bar.style.transition = 'none';
+                        bar.style.width = '0%';
+                        bar.style.opacity = '1';
+                    }, 220);
+                }, 150);
+            }
+
+            function startBtn(elt) {
+                var btn = null;
+                if (elt && elt.tagName === 'FORM') {
+                    btn = elt.querySelector('[data-loading-text]');
+                } else if (elt && elt.getAttribute && elt.getAttribute('data-loading-text')) {
+                    btn = elt;
+                }
+                if (!btn) return;
+                _activeBtn = btn;
+                _originalHTML = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = SPINNER + btn.getAttribute('data-loading-text');
+            }
+
+            function restoreBtn() {
+                if (_activeBtn && _originalHTML !== null) {
+                    _activeBtn.disabled = false;
+                    _activeBtn.innerHTML = _originalHTML;
+                }
+                _activeBtn = null;
+                _originalHTML = null;
+            }
+
+            document.body.addEventListener('htmx:beforeRequest', function(e) {
+                startBar();
+                startBtn(e.detail.elt);
+            });
+
+            document.body.addEventListener('htmx:afterRequest', function() {
+                finishBar();
+                restoreBtn();
+            });
+
+            document.body.addEventListener('htmx:sendError', function() {
+                finishBar();
+                restoreBtn();
+            });
         })();
     </script>
 

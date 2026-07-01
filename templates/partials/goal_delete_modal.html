@@ -31,6 +31,7 @@
                     hx-target="#goal-card-{{ goal.id }}"
                     hx-swap="outerHTML"
                     hx-on::after-request="const overlay = document.getElementById('delete-modal-overlay'); if(overlay) overlay.remove()"
+                    data-loading-text="Excluindo..."
                     class="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition-all shadow-md shadow-red-600/10 active:scale-[0.98] cursor-pointer">
                 Sim, excluir meta
             </button>
